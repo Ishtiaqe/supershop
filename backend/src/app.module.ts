@@ -22,6 +22,7 @@ import { SalesModule } from './modules/sales/sales.module';
       },
     ]),
     PrismaModule,
+  // CacheModule removed — we rely on frontend sessionStorage for typeahead caching
     AuthModule,
     UsersModule,
     TenantsModule,

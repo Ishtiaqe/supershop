@@ -49,20 +49,17 @@ CREATE DATABASE supershop;
 ```
 
 3. **Configure Connection**:
-Edit `backend/.env`:
+   Edit `backend/.env`:
 
 ```env
 DATABASE_URL="postgresql://postgres:your_password@localhost:5432/supershop?schema=public"
 ```
 
-### Option 2: Docker PostgreSQL
+### Option 2: Docker PostgreSQL (Deprecated)
 
-```bash
-cd backend
-docker-compose up -d postgres
-```
-
-This starts PostgreSQL on `localhost:5432`
+This repository no longer uses Docker for local development by default. If you need a containerized database,
+start a PostgreSQL instance manually with Docker or your preferred method — the recommended development
+flow is to run Postgres locally or use the Cloud SQL Proxy as documented in `backend/LOCAL_DB_SETUP.md`.
 
 ---
 
@@ -126,26 +123,70 @@ NEXT_PUBLIC_APP_NAME=ShopSys
 
 ### Backend Setup & Run
 
-```bash
+````bash
 cd backend
 
 # Install dependencies
 npm install
+### Seed default users (optional)
+
+After the database is running and `prisma:generate`/`prisma:migrate` have completed, seed the example users:
+
+```bash
+cd backend
+npm run prisma:seed
+````
+
+This creates two accounts by default:
+
+- Super Admin: <admin@supershop.com> / Admin123!
+- Store Owner: <owner@shop1.com> / Owner123!
+
+You can then test authentication with the Login endpoint.
+
+### Test Login (curl)
+
+Register a new user:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/register \
+   -H 'Content-Type: application/json' \
+   -d '{"email":"new@user.com","password":"Secret123!","fullName":"New User","role":"OWNER"}'
+```
+
+Login and get tokens:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/login \
+   -H 'Content-Type: application/json' \
+   -d '{"email":"admin@supershop.com","password":"Admin123!"}'
+```
+
+If login is successful you will receive an accessToken and refreshToken. Use the access token in Authorization headers:
+
+```bash
+curl -H "Authorization: Bearer <accessToken>" http://localhost:8000/api/v1/tenants/me
+```
 
 # Generate Prisma client
+
 npm run prisma:generate
 
 # Run database migrations
+
 npm run prisma:migrate
 
 # (Optional) Seed database with sample data
+
 npm run prisma:seed
 
 # Start development server
-npm run start:dev
-```
 
-**Backend will run at**: `http://localhost:8000`  
+npm run start:dev
+
+````
+
+**Backend will run at**: `http://localhost:8000`
 **API Documentation**: `http://localhost:8000/api/docs`
 
 ### Frontend Setup & Run
@@ -158,7 +199,7 @@ npm install
 
 # Start development server
 npm run dev
-```
+````
 
 **Frontend will run at**: `http://localhost:3000`
 
@@ -194,11 +235,13 @@ git push origin main
 ```
 
 2. **Import in Vercel**:
+
    - Go to [vercel.com](https://vercel.com)
    - Click "Add New Project"
    - Import your GitHub repository
 
 3. **Configure Environment Variables**:
+
    - `NEXT_PUBLIC_API_URL` = `https://api.yourdomain.com/api/v1`
    - `NEXT_PUBLIC_APP_NAME` = `ShopSys`
 
@@ -218,6 +261,7 @@ git push origin main
 #### 2.1 Create Managed Database
 
 1. **Create PostgreSQL Database**:
+
    - Go to DigitalOcean Dashboard
    - Create → Databases → PostgreSQL 15
    - **Region**: Choose closest to users (e.g., SGP1 for Singapore)
@@ -232,6 +276,7 @@ git push origin main
 #### 2.2 Create Droplet (VPS)
 
 1. **Create Droplet**:
+
    - Image: Ubuntu 22.04 LTS
    - Plan: Basic ($12/month - 2GB RAM minimum)
    - **Same region** as database
@@ -365,7 +410,7 @@ certbot --nginx -d api.yourdomain.com
 ```
 
 5. **Update Frontend CORS Origin**:
-Update `CORS_ORIGIN` in `.env.production` to your Vercel domain.
+   Update `CORS_ORIGIN` in `.env.production` to your Vercel domain.
 
 ---
 
@@ -376,7 +421,7 @@ Update `CORS_ORIGIN` in `.env.production` to your Vercel domain.
 **Problem**: Database connection fails
 
 ```
-Solution: 
+Solution:
 - Check DATABASE_URL is correct
 - Ensure PostgreSQL is running
 - Check firewall allows connection

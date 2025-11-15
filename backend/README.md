@@ -9,9 +9,9 @@ A comprehensive, production-ready shop management system with multi-tenant archi
 - **Framework**: NestJS (TypeScript)
 - **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: JWT with refresh tokens
-- **Caching**: Redis
+- **Caching**: Redis (optional; not required for POS typeahead — the frontend uses sessionStorage for short-term caching)
 - **Documentation**: Swagger/OpenAPI
-- **Deployment**: Docker + DigitalOcean Droplet
+- **Deployment**: DigitalOcean Droplet / Managed services (Docker is deprecated in this repo)
 
 ### **Frontend Stack**
 
@@ -47,8 +47,7 @@ supershop/
 │   │   └── schema.prisma      # Database schema
 │   ├── package.json
 │   ├── tsconfig.json
-│   ├── Dockerfile
-│   └── docker-compose.yml
+│   └── (Docker is not used) - Dockerfile and docker-compose.yml removed from this project
 │
 └── frontend/                   # Next.js Dashboard
     ├── src/
@@ -213,61 +212,19 @@ npm run lint           # Lint code
 
 ```bash
 npm run dev           # Development server
-npm run build         # Production build
-npm run start         # Start production server
-npm run lint          # Lint code
-```
 
-## 🐳 **Docker Deployment**
+## Deployment
 
-### **Development** (Backend + PostgreSQL + Redis)
-
-```bash
-cd backend
-docker-compose up -d
-```
-
-### **Production** (DigitalOcean Droplet)
-
-```bash
-# Build image
-docker build -t supershop-backend .
-
-# Run container
-docker run -d \
-  -p 8000:8000 \
-  --env-file .env.production \
-  --name supershop-api \
-  supershop-backend
-```
-
-## 🌐 **Deployment Guide**
 
 ### **Frontend (Vercel)**
 
-1. Push code to GitHub
-2. Import project in Vercel
-3. Set environment variables:
-   - `NEXT_PUBLIC_API_URL=https://api.yourdomain.com/api/v1`
-4. Deploy automatically on every push to `main`
 
 ### **Backend (DigitalOcean)**
 
-1. Create a Droplet (Ubuntu 22.04)
-2. Install Docker & Docker Compose
-3. Clone repository
-4. Create managed PostgreSQL database
-5. Create managed Redis instance
-6. Configure environment variables
-7. Run `docker-compose up -d`
+-- `GET /inventory` - List inventory items. Optional query param `q` will filter items by inventory name, SKU, variant name or product name (useful for POS typeahead/search). When `q` is present, results are capped with `take: 20` for performance. The frontend caches recently searched queries in `sessionStorage` for small bursts of repeated queries; server-side Redis caching is optional but not required.
 8. Set up nginx reverse proxy with SSL (Let's Encrypt)
 
 ### **Database (DigitalOcean Managed PostgreSQL)**
-
-- Create database in same region as Droplet (e.g., SGP1)
-- Enable private networking
-- Run migrations: `npm run prisma:migrate`
-
 ## 📝 **API Documentation**
 
 Full API reference available at: `/api/docs` (Swagger UI)
@@ -288,6 +245,23 @@ Full API reference available at: `/api/docs` (Swagger UI)
 - `GET /tenants/stats` - Get tenant statistics
 - `GET /tenants/metrics/dashboard` - Dashboard metrics
 - `POST /tenants/setup` - Setup first store (OWNER)
+### Create tenant (Super Admin)
+
+Super-admins can create tenants on behalf of owners with the `POST /tenants` endpoint.
+
+Example curl (SUPER_ADMIN token required):
+
+```bash
+curl -X POST https://api.shomaj.one/api/v1/tenants \
+    -H "Authorization: Bearer <ADMIN_TOKEN>" \
+    -H "Content-Type: application/json" \
+    -d '{"name":"Tenant Name","ownerId":"OWNER_USER_UUID"}'
+```
+
+The owner must be an existing user without a tenant assigned. After this call the owner will be linked to the new tenant.
+
+Create tenant (Owner self-setup): Owners should use the frontend link `https://shop.shomaj.one/tenant/setup` after logging in to set up their store; this calls `POST /tenants/setup`.
+
 - `PATCH /tenants/:id` - Update tenant
 
 #### **Catalog**
@@ -300,7 +274,7 @@ Full API reference available at: `/api/docs` (Swagger UI)
 
 #### **Inventory**
 
-- `GET /inventory` - List inventory items
+-- `GET /inventory` - List inventory items. Optional query param `q` will filter items by inventory name, SKU, variant name or product name (useful for POS typeahead/search). When `q` is present, results are capped with `take: 20` for performance and cached in Redis using key `inventory-search:<tenantId>:<q>` with TTL given by env `REDIS_TTL` (default 60s).
 - `POST /inventory` - Add inventory item
 - `POST /inventory/batch/restock` - Batch restock
 - `GET /inventory/alerts/low-stock` - Low stock alerts

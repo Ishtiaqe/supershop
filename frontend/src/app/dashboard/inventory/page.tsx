@@ -1,0 +1,17 @@
+import dynamic from 'next/dynamic'
+import { Card } from 'antd'
+
+const InventoryClient = dynamic(() => import('@/components/inventory/InventoryClient'), {
+  ssr: false,
+})
+
+export default function InventoryPage() {
+  return (
+    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        <Card title="Inventory" bordered>
+          <InventoryClient />
+        </Card>
+      </div>
+  
+  )
+}

@@ -23,6 +23,15 @@ cp .env.example .env.local
 npm run dev
 ```
 
+## Favicon
+
+To use a custom favicon file (SVG) from your Downloads directory, run this script from the `frontend` directory:
+
+```
+./scripts/add-favicon.sh /home/ishtiaqe/Downloads/shop-svgrepo-com.svg
+```
+
+This copies the provided SVG to `frontend/public/favicon.svg` and Next.js will use it (also used as the Apple icon).
 Open [http://localhost:3000](http://localhost:3000)
 
 ## Environment Variables

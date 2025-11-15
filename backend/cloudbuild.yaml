@@ -1,0 +1,71 @@
+steps:
+  # 1. Build the backend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA', '.']
+    dir: 'backend'
+
+  # 2. Push the image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA']
+
+  # 3. Deploy the image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - supershop-api
+      - --image
+      - gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA
+      - --region
+      - asia-southeast1
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --add-cloudsql-instances=$CLOUDSQL_INSTANCE
+      - --quiet
+
+  # 4. Create or replace a Cloud Run Job for migrations and run it
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: run-migrations
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        # Ensure job exists (replace if exists)
+        gcloud run jobs describe supershop-migrate --region=asia-southeast1 >/dev/null 2>&1 && \
+          gcloud run jobs replace --region=asia-southeast1 --file=- <<JOB || true
+        apiVersion: v1
+        kind: Job
+        metadata:
+          name: supershop-migrate
+        spec:
+          taskTemplate:
+            containers:
+              - image: gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA
+                command: ["bash", "-lc"]
+                args:
+                  - npx prisma migrate deploy
+                env:
+                  - name: DATABASE_URL
+                    value: "$DATABASE_URL"
+            timeoutSeconds: 120
+        JOB
+        # Create if missing
+        gcloud run jobs describe supershop-migrate --region=asia-southeast1 >/dev/null 2>&1 || \
+          gcloud run jobs create supershop-migrate --image gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA --region=asia-southeast1 --command "bash" --args "-c","npx prisma migrate deploy" --set-env-vars "DATABASE_URL=$DATABASE_URL" --add-cloudsql-instances=$CLOUDSQL_INSTANCE
+        # Execute migration job (blocking)
+        gcloud run jobs execute supershop-migrate --region=asia-southeast1 --wait
+
+images:
+  - 'gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA'
+
+substitutions:
+  _REGION: 'us-central1'
+  _CLOUDSQL_INSTANCE: 'PROJECT_ID:REGION:supershop-db'
+
+timeout: '1200s'
+
+options:
+  substitutionOption: 'ALLOW_LOOSE'

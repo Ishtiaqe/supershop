@@ -27,8 +27,9 @@ export class InventoryController {
   @Get()
   @Roles(UserRole.OWNER, UserRole.EMPLOYEE)
   @ApiOperation({ summary: 'Get all inventory items' })
-  async findAll(@CurrentUser() user: any) {
-    return this.inventoryService.findAll(user.tenantId);
+  async findAll(@CurrentUser() user: any, @Query('q') q?: string) {
+    // if a query string is provided, the service will filter by itemName/product/variant
+    return this.inventoryService.findAll(user.tenantId, q);
   }
 
   @Post()

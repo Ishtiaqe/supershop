@@ -15,8 +15,10 @@ export interface Tenant {
   addressCity?: string
   addressZone?: string
   status: 'ACTIVE' | 'SUSPENDED' | 'INACTIVE'
-  preferences?: any
-  theme?: any
+  preferences?: Record<string, unknown>
+  theme?: Record<string, unknown>
+  latitude?: number
+  longitude?: number
 }
 
 export interface Product {

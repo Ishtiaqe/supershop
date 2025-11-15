@@ -410,11 +410,11 @@ Create `cloudbuild.yaml` in backend:
 steps:
   # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/supershop-backend:$COMMIT_SHA', '.']
+    args: ['build', '-t', 'gcr.io/shomaj-817b0/supershop-backend:$COMMIT_SHA', '.']
   
   # Push to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/supershop-backend:$COMMIT_SHA']
+    args: ['push', 'gcr.io/shomaj-817b0/supershop-backend:$COMMIT_SHA']
   
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -424,15 +424,17 @@ steps:
       - 'deploy'
       - 'supershop-api'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/supershop-backend:$COMMIT_SHA'
+      - 'gcr.io/shomaj-817b0/supershop-backend:$COMMIT_SHA'
       - '--region'
       - 'us-central1'
       - '--platform'
       - 'managed'
 
 images:
-  - 'gcr.io/$PROJECT_ID/supershop-backend:$COMMIT_SHA'
+  - 'gcr.io/shomaj-817b0/supershop-backend:$COMMIT_SHA'
 ```
+
+The `cloudbuild.yaml` above builds the backend, deploys it to Cloud Run and then can be extended to create/execute a Cloud Run Job (see `backend/cloudbuild.yaml`) which runs `npx prisma migrate deploy` against your database. When you create a trigger, set substitutions and secrets for `DATABASE_URL` and `CLOUDSQL_INSTANCE`.
 
 ### Setup Trigger
 
