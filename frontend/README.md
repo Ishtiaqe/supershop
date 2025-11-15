@@ -1,6 +1,6 @@
-# ShopSys Frontend
+# SuperShop Frontend
 
-Admin dashboard for ShopSys multi-tenant shop management system.
+Admin dashboard for SuperShop multi-tenant shop management system.
 
 ## Tech Stack
 
@@ -38,7 +38,7 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-NEXT_PUBLIC_APP_NAME=ShopSys
+NEXT_PUBLIC_APP_NAME=SuperShop
 ```
 
 ## Project Structure

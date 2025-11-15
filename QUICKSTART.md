@@ -1,6 +1,6 @@
 # ⚡ Quick Start Guide
 
-Get ShopSys running in 5 minutes!
+Get SuperShop running in 5 minutes!
 
 ## Prerequisites
 

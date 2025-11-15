@@ -169,7 +169,7 @@ firebase init hosting
 Update `frontend/.env.production`:
 ```env
 NEXT_PUBLIC_API_URL=https://supershop-api-xxxxx-uc.a.run.app/api/v1
-NEXT_PUBLIC_APP_NAME=ShopSys
+NEXT_PUBLIC_APP_NAME=SuperShop
 ```
 
 ### Step 2: Add Frontend Caching (Replace Redis)

@@ -1,10 +1,10 @@
-# 🏪 ShopSys - Multi-Tenant Shop Management System
+# 🏪 SuperShop - Multi-Tenant Shop Management System
 
 A complete, production-ready shop management system designed for multi-tenant architecture. Built with modern technologies for scalability, performance, and ease of deployment.
 
 ## 📋 Overview
 
-ShopSys provides a comprehensive solution for managing multiple shop branches or independent businesses within a single platform. Each tenant (shop) has complete data isolation while sharing the same application infrastructure.
+SuperShop provides a comprehensive solution for managing multiple shop branches or independent businesses within a single platform. Each tenant (shop) has complete data isolation while sharing the same application infrastructure.
 
 ### **Key Features**
 

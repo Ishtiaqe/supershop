@@ -33,7 +33,7 @@ async function bootstrap() {
 
   // Swagger documentation
   const config = new DocumentBuilder()
-    .setTitle('ShopSys API')
+    .setTitle('SuperShop API')
     .setDescription('Multi-tenant Shop Management System API')
     .setVersion('1.0')
     .addBearerAuth()

@@ -1,4 +1,4 @@
-# ShopSys - Multi-tenant Shop Management System
+# SuperShop - Multi-tenant Shop Management System
 
 A comprehensive, production-ready shop management system with multi-tenant architecture built with **NestJS** (backend) and **Next.js** (frontend).
 

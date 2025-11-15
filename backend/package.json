@@ -1,7 +1,7 @@
 {
   "name": "supershop-backend",
   "version": "1.0.0",
-  "description": "ShopSys - Multi-tenant Shop Management System Backend",
+  "description": "SuperShop - Multi-tenant Shop Management System Backend",
   "author": "Ishtiaqe",
   "private": true,
   "license": "MIT",

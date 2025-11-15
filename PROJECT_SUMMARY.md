@@ -1,4 +1,4 @@
-# 📦 ShopSys - Project Summary
+# 📦 SuperShop - Project Summary
 
 ## ✅ What Has Been Built
 

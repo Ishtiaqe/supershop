@@ -1,6 +1,6 @@
 # 🚀 Google Cloud Deployment Guide
 
-Complete guide to deploy ShopSys on Google Cloud Platform.
+Complete guide to deploy SuperShop on Google Cloud Platform.
 
 ## Architecture Overview
 
@@ -261,7 +261,7 @@ git push origin main
 
 In Vercel dashboard:
 - `NEXT_PUBLIC_API_URL` = `https://supershop-api-xxxxx-uc.a.run.app/api/v1`
-- `NEXT_PUBLIC_APP_NAME` = `ShopSys`
+- `NEXT_PUBLIC_APP_NAME` = `SuperShop`
 
 ### 4.4 Deploy
 

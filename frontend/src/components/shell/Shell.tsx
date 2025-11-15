@@ -60,7 +60,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} breakpoint="md">
-  <div style={{ color: '#fff', padding: 16, textAlign: 'center', fontWeight: 700, fontSize: '1.125rem' }}>ShopSys</div>
+  <div style={{ color: '#fff', padding: 16, textAlign: 'center', fontWeight: 700, fontSize: '1.125rem' }}>SuperShop</div>
   <Menu theme="dark" mode="inline" items={items} selectedKeys={[selectedKey]} />
       </Sider>
 

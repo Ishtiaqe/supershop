@@ -1,6 +1,6 @@
-# 🚀 ShopSys Setup & Deployment Guide
+# 🚀 SuperShop Setup & Deployment Guide
 
-Complete guide to set up and deploy the ShopSys multi-tenant shop management system.
+Complete guide to set up and deploy the SuperShop multi-tenant shop management system.
 
 ## Table of Contents
 
@@ -114,7 +114,7 @@ Create `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-NEXT_PUBLIC_APP_NAME=ShopSys
+NEXT_PUBLIC_APP_NAME=SuperShop
 ```
 
 ---
@@ -243,7 +243,7 @@ git push origin main
 3. **Configure Environment Variables**:
 
    - `NEXT_PUBLIC_API_URL` = `https://api.yourdomain.com/api/v1`
-   - `NEXT_PUBLIC_APP_NAME` = `ShopSys`
+   - `NEXT_PUBLIC_APP_NAME` = `SuperShop`
 
 4. **Deploy**:
    - Vercel auto-deploys on every push to `main`

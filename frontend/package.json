@@ -1,7 +1,7 @@
 {
   "name": "supershop-frontend",
   "version": "1.0.0",
-  "description": "ShopSys Frontend - Multi-tenant Shop Management Dashboard",
+  "description": "SuperShop Frontend - Multi-tenant Shop Management Dashboard",
   "private": true,
   "scripts": {
     "dev": "next dev",

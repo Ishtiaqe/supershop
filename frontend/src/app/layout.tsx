@@ -11,7 +11,7 @@ const Shell = dynamic(() => import('@/components/shell/Shell'), { ssr: false })
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ShopSys - Multi-tenant Shop Management',
+  title: 'SuperShop - Multi-tenant Shop Management',
   description: 'Complete shop management solution for your business',
   icons: {
     icon: '/favicon.svg',
