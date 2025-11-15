@@ -1,35 +1,29 @@
-# Base image
-FROM node:18-alpine AS base
+### Multistage Dockerfile for NestJS backend
 
-# Dependencies stage
-FROM base AS dependencies
+# Use an official Node base image. Alpine keeps image smaller, but you can choose debian/bullseye if you need native deps.
+FROM node:20-bullseye-slim AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json package-lock.json* ./
+RUN npm ci --silent
 
-# Build stage
-FROM base AS build
+FROM node:20-bullseye-slim AS build
 WORKDIR /app
-COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npx prisma generate
+# Ensure OpenSSL is present during build so Prisma can choose a proper engine
+RUN apt-get update && apt-get install -y openssl libssl-dev ca-certificates && rm -rf /var/lib/apt/lists/*
+# Generate Prisma client before building
+RUN npx prisma generate || true
 RUN npm run build
 
-# Production stage
-FROM base AS production
+FROM node:20-bullseye-slim AS production
 WORKDIR /app
-
-# Copy necessary files
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package.json ./
-COPY --from=build /app/prisma ./prisma
-
-# Set environment
 ENV NODE_ENV=production
-
-# Expose port
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/prisma ./prisma
+# Ensure OpenSSL/libssl is available for the Prisma query engine
+RUN apt-get update && apt-get install -y openssl libssl-dev ca-certificates && rm -rf /var/lib/apt/lists/*
 EXPOSE 8000
-
-# Start application
-CMD ["npm", "run", "start:prod"]
+CMD ["node", "dist/main"]

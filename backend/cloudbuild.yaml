@@ -1,12 +1,15 @@
 steps:
   # 1. Build the backend Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA', '.']
+    # Use BUILD_ID as a stable non-empty tag when build triggers aren't setting SHORT_SHA.
+    # SHORT_SHA is available for trigger-based builds, but `gcloud builds submit` may not set it
+    # which causes an invalid image name ending in ':' — so default to BUILD_ID here.
+    args: ['build', '-t', 'gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID', '.']
     dir: 'backend'
 
   # 2. Push the image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA']
+    args: ['push', 'gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID']
 
   # 3. Deploy the image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -16,13 +19,13 @@ steps:
       - deploy
       - supershop-api
       - --image
-      - gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA
+      - 'gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID'
       - --region
       - asia-southeast1
       - --platform
       - managed
       - --allow-unauthenticated
-      - --add-cloudsql-instances=supershop
+      - --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
       - --quiet
 
   # 4. Create or replace a Cloud Run Job for migrations and run it
@@ -43,26 +46,42 @@ steps:
         spec:
           taskTemplate:
             containers:
-              - image: gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA
+              - image: gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID
                 command: ["bash", "-lc"]
                 args:
                   - npx prisma migrate deploy
                 env:
                   - name: DATABASE_URL
-                    value: "postgresql://supershop_user:MUJAHIDrumel123@@127.0.0.1:5432/supershop?schema=public"
+                    # Allow passing a validated DATABASE_URL substitution to the build.
+                    # Example: --substitutions=_DATABASE_URL="postgresql://user:pass@/supershop?host=/cloudsql/PROJECT:REGION:INSTANCE"
+                    value: "${_DATABASE_URL}"
             timeoutSeconds: 120
         JOB
         # Create if missing
           gcloud run jobs describe supershop-migrate --region=asia-southeast1 >/dev/null 2>&1 || \
-          gcloud run jobs create supershop-migrate --image gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA --region=asia-southeast1 --command "bash" --args "-c","npx prisma migrate deploy" --set-env-vars "DATABASE_URL=postgresql://supershop_user:MUJAHIDrumel123@@127.0.0.1:5432/supershop?schema=public" --add-cloudsql-instances=supershop
-        # Execute migration job (blocking)
-        gcloud run jobs execute supershop-migrate --region=asia-southeast1 --wait
+          gcloud run jobs create supershop-migrate --image gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID --region=asia-southeast1 --command "bash" --args "-c","npx prisma migrate deploy" --set-env-vars "DATABASE_URL=${_DATABASE_URL}" --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
+  # Execute migration job (blocking) - done as a follow-up Cloud Build step
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - execute
+      - supershop-migrate
+      - --region
+      - asia-southeast1
+      - --wait
 
 images:
-  - 'gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA'
+  # Use BUILD_ID here to avoid an empty tag when running locally. When you configure
+  # a trigger that provides SHORT_SHA, you can change these lines to use $SHORT_SHA.
+  - 'gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID'
 
 substitutions:
   _REGION: 'asia-southeast1'
+  _DATABASE_URL: 'postgresql://supershop_user:MUJAHIDrumel123@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop'
+  # Expect this to be set either as a full Cloud SQL instance id (PROJECT:REGION:INSTANCE)
+  # or a short instance name depending on your CI; default is set below in docs.
   _CLOUDSQL_INSTANCE: 'shomaj-817b0:asia-southeast1:supershop'
 
 timeout: '1200s'

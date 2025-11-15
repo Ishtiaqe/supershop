@@ -47,7 +47,7 @@ supershop/
 │   │   └── schema.prisma      # Database schema
 │   ├── package.json
 │   ├── tsconfig.json
-│   └── (Docker is not used) - Dockerfile and docker-compose.yml removed from this project
+│   └── Dockerfile included for container builds when deploying to Cloud Run / local Docker workflows
 │
 └── frontend/                   # Next.js Dashboard
     ├── src/
