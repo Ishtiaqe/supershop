@@ -61,7 +61,7 @@ gcloud config set project YOUR_PROJECT_ID
 gcloud sql instances create supershop-db \
   --database-version=POSTGRES_15 \
   --tier=db-f1-micro \
-  --region=us-central1 \
+  --region=asia-southeast1 \
   --root-password=YOUR_SECURE_PASSWORD \
   --storage-type=SSD \
   --storage-size=10GB \
@@ -153,7 +153,7 @@ CORS_ORIGIN: "https://your-frontend.vercel.app"
 gcloud run deploy supershop-api \
   --image gcr.io/YOUR_PROJECT_ID/supershop-backend:latest \
   --platform managed \
-  --region us-central1 \
+  --region asia-southeast1 \
   --allow-unauthenticated \
   --set-env-vars-file env.yaml \
   --add-cloudsql-instances PROJECT_ID:REGION:supershop-db \
@@ -175,7 +175,7 @@ const port = process.env.PORT || 8080;
 ```bash
 # Get Cloud Run service URL
 gcloud run services describe supershop-api \
-  --region us-central1 \
+  --region asia-southeast1 \
   --format="value(status.url)"
 
 # Run migrations using Cloud Run Jobs (or connect via Cloud SQL Proxy)
@@ -208,7 +208,7 @@ npm run prisma:migrate deploy
 ```bash
 gcloud redis instances create supershop-redis \
   --size=1 \
-  --region=us-central1 \
+  --region=asia-southeast1 \
   --redis-version=redis_7_0 \
   --tier=basic
 ```
@@ -217,7 +217,7 @@ gcloud redis instances create supershop-redis \
 
 ```bash
 gcloud redis instances describe supershop-redis \
-  --region=us-central1 \
+  --region=asia-southeast1 \
   --format="value(host)"
 ```
 
@@ -353,15 +353,15 @@ gcloud sql backups list --instance=supershop-db
 
 ```bash
 # View logs
-gcloud run services logs read supershop-api --region=us-central1
+gcloud run services logs read supershop-api --region=asia-southeast1
 
 # Update service
 gcloud run services update supershop-api \
-  --region=us-central1 \
+  --region=asia-southeast1 \
   --set-env-vars KEY=VALUE
 
 # Delete service
-gcloud run services delete supershop-api --region=us-central1
+gcloud run services delete supershop-api --region=asia-southeast1
 ```
 
 ### Container Registry
@@ -426,7 +426,7 @@ steps:
       - '--image'
       - 'gcr.io/shomaj-817b0/supershop-backend:$COMMIT_SHA'
       - '--region'
-      - 'us-central1'
+      - 'asia-southeast1'
       - '--platform'
       - 'managed'
 

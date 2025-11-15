@@ -68,7 +68,7 @@ gcloud run deploy supershop-api \
   --image gcr.io/YOUR_PROJECT/supershop-backend \
   --add-cloudsql-instances YOUR_PROJECT:REGION:supershop-db \
   --set-env-vars DATABASE_URL="postgresql://..." \
-  --region us-central1 \
+  --region asia-southeast1 \
   --allow-unauthenticated
 
 # Done! You get a URL like:

@@ -62,7 +62,7 @@ images:
   - 'gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA'
 
 substitutions:
-  _REGION: 'us-central1'
+  _REGION: 'asia-southeast1'
   _CLOUDSQL_INSTANCE: 'PROJECT_ID:REGION:supershop-db'
 
 timeout: '1200s'
