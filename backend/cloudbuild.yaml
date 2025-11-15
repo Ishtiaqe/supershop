@@ -49,12 +49,12 @@ steps:
                   - npx prisma migrate deploy
                 env:
                   - name: DATABASE_URL
-                    value: "$DATABASE_URL"
+                    value: "postgresql://supershop_user:MUJAHIDrumel123@@127.0.0.1:5432/supershop?schema=public"
             timeoutSeconds: 120
         JOB
         # Create if missing
           gcloud run jobs describe supershop-migrate --region=asia-southeast1 >/dev/null 2>&1 || \
-          gcloud run jobs create supershop-migrate --image gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA --region=asia-southeast1 --command "bash" --args "-c","npx prisma migrate deploy" --set-env-vars "DATABASE_URL=$_DATABASE_URL" --add-cloudsql-instances=supershop
+          gcloud run jobs create supershop-migrate --image gcr.io/shomaj-817b0/supershop-backend:$SHORT_SHA --region=asia-southeast1 --command "bash" --args "-c","npx prisma migrate deploy" --set-env-vars "DATABASE_URL=postgresql://supershop_user:MUJAHIDrumel123@@127.0.0.1:5432/supershop?schema=public" --add-cloudsql-instances=supershop
         # Execute migration job (blocking)
         gcloud run jobs execute supershop-migrate --region=asia-southeast1 --wait
 
