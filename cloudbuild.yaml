@@ -1,22 +1,23 @@
 steps:
   # 1. Build the backend Docker image
   - name: "gcr.io/cloud-builders/docker"
+    dir: "backend"
     args: [
         "build",
         "-t",
         "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID",
-        "-f",
-        "backend/Dockerfile",
-        "./backend",
+        ".",
       ]
 
   # 2. Push the image to Container Registry
   - name: "gcr.io/cloud-builders/docker"
+    dir: "backend"
     args: ["push", "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"]
 
   # 3. Deploy the image to Cloud Run
   # No secret checks: we deliberately keep the current env vars in Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    dir: "backend"
     entrypoint: gcloud
     args:
       - run
@@ -41,6 +42,7 @@ steps:
 
   # 4. Create or replace a Cloud Run Job for migrations and run it
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    dir: "backend"
     id: run-migrations
     entrypoint: bash
     args:
@@ -74,6 +76,7 @@ steps:
           gcloud run jobs create supershop-migrate --image gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID --region=asia-southeast1 --command "bash" --args "-c","npx prisma migrate deploy" --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
   # Execute migration job (blocking) - done as a follow-up Cloud Build step
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    dir: "backend"
     entrypoint: gcloud
     args:
       - run
