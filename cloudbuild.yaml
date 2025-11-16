@@ -1,12 +1,15 @@
 steps:
   # 1. Build the backend Docker image
   - name: "gcr.io/cloud-builders/docker"
-    dir: "backend"
+    # Explicitly point Docker to the backend Dockerfile and use the ./backend context
+    # so Cloud Build does not default to /workspace/Dockerfile.
     args: [
         "build",
         "-t",
         "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID",
-        ".",
+        "-f",
+        "/workspace/backend/Dockerfile",
+        "./backend",
       ]
 
   # 2. Push the image to Container Registry
