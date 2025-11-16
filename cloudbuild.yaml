@@ -1,21 +1,21 @@
 steps:
   # 1. Build the backend Docker image (FIXED)
+  # We run from root (default) but explicitly point to the file and context.
   - name: "gcr.io/cloud-builders/docker"
-    dir: "backend"
     args:
       - "build"
       - "-t"
       - "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"
-      - "."
+      - "-f"
+      - "backend/Dockerfile"
+      - "backend"
 
   # 2. Push the image to Container Registry
   - name: "gcr.io/cloud-builders/docker"
-    dir: "backend"
     args: ["push", "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"]
 
   # 3. Deploy the image to Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    dir: "backend"
     entrypoint: gcloud
     args:
       - run
@@ -24,20 +24,18 @@ steps:
       - --image
       - "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"
       - --region
-      - asia-southeast1
+      - ${_REGION}
       - --platform
       - managed
       - --allow-unauthenticated
       - --port
       - "8000"
       - --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
-      # Pass the plain text DB URL as an environment variable (per your request)
+      # Using env vars as requested (Plan to migrate to Secrets later)
       - --set-env-vars=DATABASE_URL=${_DATABASE_URL}
       - --quiet
 
-  # 4. Create or Update Migration Job (FIXED & SIMPLIFIED)
-  # Using 'jobs update' is safer and cleaner than the complex bash script.
-  # It creates the job if missing, or updates it if it exists.
+  # 4. Create or Update Migration Job
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
     args:
@@ -48,7 +46,7 @@ steps:
       - --image
       - "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"
       - --region
-      - asia-southeast1
+      - ${_REGION}
       - --command
       - "npx"
       - --args
@@ -67,7 +65,7 @@ steps:
       - execute
       - supershop-migrate
       - --region
-      - asia-southeast1
+      - ${_REGION}
       - --wait
 
 images:
@@ -75,8 +73,7 @@ images:
 
 substitutions:
   _REGION: "asia-southeast1"
-  # Note: Hardcoding passwords here is insecure but functions for now as requested.
-  _DATABASE_URL: "postgresql://supershop_user:MUJAHIDrumel123@@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop"
+  _DATABASE_URL: "postgresql://supershop_user:MUJAHIDrumel123@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop"
   _CLOUDSQL_INSTANCE: "shomaj-817b0:asia-southeast1:supershop"
 
 timeout: "1200s"
