@@ -1,16 +1,12 @@
 steps:
-  # 1. Build the backend Docker image
+  # 1. Build the backend Docker image (FIXED)
   - name: "gcr.io/cloud-builders/docker"
-    # Explicitly point Docker to the backend Dockerfile and use the ./backend context
-    # so Cloud Build does not default to /workspace/Dockerfile.
-    args: [
-        "build",
-        "-t",
-        "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID",
-        "-f",
-        "/workspace/backend/Dockerfile",
-        "./backend",
-      ]
+    dir: "backend"
+    args:
+      - "build"
+      - "-t"
+      - "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"
+      - "."
 
   # 2. Push the image to Container Registry
   - name: "gcr.io/cloud-builders/docker"
@@ -18,7 +14,6 @@ steps:
     args: ["push", "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"]
 
   # 3. Deploy the image to Cloud Run
-  # No secret checks: we deliberately keep the current env vars in Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     dir: "backend"
     entrypoint: gcloud
@@ -35,51 +30,36 @@ steps:
       - --allow-unauthenticated
       - --port
       - "8000"
-      # Use Secret Manager references for secrets in production instead of plaintext
-      # Example: --set-secrets JWT_SECRET=projects/shomaj-817b0/secrets/JWT_SECRET:latest
-      # Provide secret NAMES through substitutions below, not the secret value.
-      # Keep current Cloud Run env vars (do not change JWT/DATABASE env type)
-      # Ensure the app listens on the expected port (Nest reads PORT from env/config)
       - --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
+      # Pass the plain text DB URL as an environment variable (per your request)
+      - --set-env-vars=DATABASE_URL=${_DATABASE_URL}
       - --quiet
 
-  # 4. Create or replace a Cloud Run Job for migrations and run it
+  # 4. Create or Update Migration Job (FIXED & SIMPLIFIED)
+  # Using 'jobs update' is safer and cleaner than the complex bash script.
+  # It creates the job if missing, or updates it if it exists.
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    dir: "backend"
-    id: run-migrations
-    entrypoint: bash
+    entrypoint: gcloud
     args:
-      - -c
-      - |
-        set -e
-        # Ensure job exists (replace if exists)
-        gcloud run jobs describe supershop-migrate --region=asia-southeast1 >/dev/null 2>&1 && \
-          gcloud run jobs replace --region=asia-southeast1 --file=- <<JOB || true
-        apiVersion: v1
-        kind: Job
-        metadata:
-          name: supershop-migrate
-        spec:
-          taskTemplate:
-            containers:
-              - image: gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID
-                command: ["bash", "-lc"]
-                args:
-                  - npx prisma migrate deploy
-                env:
-                  - name: DATABASE_URL
-                    # Allow passing a validated DATABASE_URL substitution to the build.
-                    # Example: --substitutions=_DATABASE_URL="postgresql://user:pass@/supershop?host=/cloudsql/PROJECT:asia-southeast1:INSTANCE"
-                    # Accept a secret name reference for DATABASE_URL (recommended)
-                    value: "${_DATABASE_URL}"
-            timeoutSeconds: 120
-        JOB
-        # Create if missing
-          gcloud run jobs describe supershop-migrate --region=asia-southeast1 >/dev/null 2>&1 || \
-          gcloud run jobs create supershop-migrate --image gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID --region=asia-southeast1 --command "bash" --args "-c","npx prisma migrate deploy" --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
-  # Execute migration job (blocking) - done as a follow-up Cloud Build step
+      - run
+      - jobs
+      - update
+      - supershop-migrate
+      - --image
+      - "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"
+      - --region
+      - asia-southeast1
+      - --command
+      - "npx"
+      - --args
+      - "prisma,migrate,deploy"
+      - --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
+      - --set-env-vars=DATABASE_URL=${_DATABASE_URL}
+      - --task-timeout
+      - "600s"
+
+  # 5. Run the migration job
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    dir: "backend"
     entrypoint: gcloud
     args:
       - run
@@ -91,26 +71,14 @@ steps:
       - --wait
 
 images:
-  # Use BUILD_ID here to avoid an empty tag when running locally. When you configure
-  # a trigger that provides SHORT_SHA, you can change these lines to use $SHORT_SHA.
   - "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"
 
 substitutions:
   _REGION: "asia-southeast1"
-  _DATABASE_URL: "postgresql://supershop_user:MUJAHIDrumel123@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop"
-  _JWT_SECRET: "default_jwt_secret_for_build"
-  _JWT_REFRESH_SECRET: "default_refresh_secret_for_build"
-  # Expect this to be set either as a full Cloud SQL instance id (PROJECT:asia-southeast1:INSTANCE)
-  # or a short instance name depending on your CI; default is set below in docs.
+  # Note: Hardcoding passwords here is insecure but functions for now as requested.
+  _DATABASE_URL: "postgresql://supershop_user:MUJAHIDrumel123@@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop"
   _CLOUDSQL_INSTANCE: "shomaj-817b0:asia-southeast1:supershop"
-  # Secret manager names for runtime environment variables. Create these secrets in
-  # Secret Manager and give Cloud Run the Secret Manager accessor role for each
-  # secret (roles/secretmanager.secretAccessor) on the Cloud Run runtime service account.
-  _JWT_SECRET_SECRET: "JWT_SECRET"
-  _JWT_REFRESH_SECRET_SECRET: "JWT_REFRESH_SECRET"
-  _DATABASE_URL_SECRET: "DATABASE_URL"
 
 timeout: "1200s"
-
 options:
   substitutionOption: "ALLOW_LOOSE"

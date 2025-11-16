@@ -190,7 +190,7 @@ gcloud secrets add-iam-policy-binding DATABASE_URL \
 If you already created `DATABASE_URL` earlier and want to update the stored DB URL, add a new secret version instead of trying to re-create the secret. Use:
 
 ```bash
-echo -n 'postgresql://supershop_user:MUJAHIDrumel123@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop' | \
+echo -n 'postgresql://supershop_user:MUJAHIDrumel123@@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop' | \
   gcloud secrets versions add DATABASE_URL --data-file=-
 ```
 
