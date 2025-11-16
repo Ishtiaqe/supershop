@@ -95,8 +95,8 @@ npm run prisma:seed
 npm run start:dev
 ```
 
-The API will be available at `http://localhost:8000/api/v1`
-API documentation at `http://localhost:8000/api/docs`
+The API will be available at `http://localhost:8080/api/v1`
+API documentation at `http://localhost:8080/api/docs`
 
 ### **Frontend Setup**
 
@@ -110,7 +110,7 @@ npm install
 cp .env.example .env.local
 
 # Edit .env.local
-# NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+# NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 
 # Start development server
 npm run dev

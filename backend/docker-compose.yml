@@ -37,10 +37,10 @@ services:
     container_name: supershop-backend
     restart: unless-stopped
     ports:
-      - '8000:8000'
+      - '8080:8080'
     environment:
       NODE_ENV: production
-      PORT: 8000
+      PORT: 8080
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/supershop?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379

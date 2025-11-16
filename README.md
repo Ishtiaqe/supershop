@@ -103,8 +103,8 @@ npm run prisma:migrate
 npm run start:dev
 ```
 
-**Backend runs at:** `http://localhost:8000`  
-**API Docs (Swagger):** `http://localhost:8000/api/docs`
+**Backend runs at:** `http://localhost:8080`  
+**API Docs (Swagger):** `http://localhost:8080/api/docs`
 
 ### **Frontend Setup**
 
@@ -142,7 +142,7 @@ This starts:
 
 ### **Base URL**
 
-- Development: `http://localhost:8000/api/v1`
+- Development: `http://localhost:8080/api/v1`
 - Production: `https://your-domain.com/api/v1`
 
 ### **Authentication Endpoints**

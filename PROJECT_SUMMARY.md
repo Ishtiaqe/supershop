@@ -325,7 +325,7 @@ Before going to production:
 ## 📞 Support & Resources
 
 - **Repository**: <https://github.com/Ishtiaqe/supershop>
-- **API Docs**: <http://localhost:8000/api/docs> (dev)
+- **API Docs**: <http://localhost:8080/api/docs> (dev)
 - **Issues**: GitHub Issues
 - **Email**: <support@supershop.com>
 

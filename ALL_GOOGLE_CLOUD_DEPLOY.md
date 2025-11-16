@@ -179,7 +179,7 @@ Update `frontend/src/lib/api.ts` to use browser caching:
 ```typescript
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
 // Simple cache helper
 const cache = {

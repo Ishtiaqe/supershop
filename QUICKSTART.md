@@ -34,8 +34,8 @@ npm run prisma:migrate
 npm run start:dev
 ```
 
-✅ Backend running at: <http://localhost:8000>  
-📚 API Docs at: <http://localhost:8000/api/docs>
+✅ Backend running at: <http://localhost:8080>  
+📚 API Docs at: <http://localhost:8080/api/docs>
 
 ## 3. Frontend Setup
 

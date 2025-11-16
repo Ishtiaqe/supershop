@@ -72,7 +72,7 @@ Create `backend/.env`:
 ```env
 # Application
 NODE_ENV=development
-PORT=8000
+PORT=8080
 API_VERSION=v1
 API_PREFIX=api
 
@@ -113,7 +113,7 @@ openssl rand -base64 32
 Create `frontend/.env.local`:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 NEXT_PUBLIC_APP_NAME=SuperShop
 ```
 
@@ -149,7 +149,7 @@ You can then test authentication with the Login endpoint.
 Register a new user:
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/auth/register \
+curl -X POST http://localhost:8080/api/v1/auth/register \
    -H 'Content-Type: application/json' \
    -d '{"email":"new@user.com","password":"Secret123!","fullName":"New User","role":"OWNER"}'
 ```
@@ -157,7 +157,7 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 Login and get tokens:
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/auth/login \
+curl -X POST http://localhost:8080/api/v1/auth/login \
    -H 'Content-Type: application/json' \
    -d '{"email":"admin@supershop.com","password":"Admin123!"}'
 ```
@@ -165,7 +165,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 If login is successful you will receive an accessToken and refreshToken. Use the access token in Authorization headers:
 
 ```bash
-curl -H "Authorization: Bearer <accessToken>" http://localhost:8000/api/v1/tenants/me
+curl -H "Authorization: Bearer <accessToken>" http://localhost:8080/api/v1/tenants/me
 ```
 
 # Generate Prisma client
@@ -186,8 +186,8 @@ npm run start:dev
 
 ````
 
-**Backend will run at**: `http://localhost:8000`
-**API Documentation**: `http://localhost:8000/api/docs`
+**Backend will run at**: `http://localhost:8080`
+**API Documentation**: `http://localhost:8080/api/docs`
 
 ### Frontend Setup & Run
 
@@ -214,7 +214,7 @@ This starts:
 
 - PostgreSQL (port 5432)
 - Redis (port 6379)
-- NestJS Backend (port 8000)
+- NestJS Backend (port 8080)
 
 ---
 
@@ -325,7 +325,7 @@ Add:
 
 ```env
 NODE_ENV=production
-PORT=8000
+PORT=8080
 DATABASE_URL="postgresql://user:pass@managed-db-host:25060/supershop?sslmode=require"
 REDIS_HOST=managed-redis-host
 REDIS_PORT=25061
@@ -347,7 +347,7 @@ docker run --rm --env-file .env.production supershop-backend npx prisma migrate 
 # Start application
 docker run -d \
   --name supershop-backend \
-  -p 8000:8000 \
+  -p 8080:8080 \
   --env-file .env.production \
   --restart unless-stopped \
   supershop-backend
@@ -356,7 +356,7 @@ docker run -d \
 4. **Verify Backend is Running**:
 
 ```bash
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8080/api/v1/health
 ```
 
 #### 2.4 Setup Nginx Reverse Proxy with SSL
@@ -381,7 +381,7 @@ server {
     server_name api.yourdomain.com;
 
     location / {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:8080;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -438,12 +438,12 @@ npm run prisma:migrate reset
 npx prisma migrate deploy
 ```
 
-**Problem**: Port 8000 already in use
+**Problem**: Port 8080 already in use
 
 ```bash
 Solution:
 # Find process using port
-lsof -i :8000
+lsof -i :8080
 # Kill process
 kill -9 <PID>
 ```
@@ -531,7 +531,7 @@ git pull origin main
 docker build -t supershop-backend .
 docker stop supershop-backend
 docker rm supershop-backend
-docker run -d --name supershop-backend -p 8000:8000 --env-file .env.production supershop-backend
+docker run -d --name supershop-backend -p 8080:8080 --env-file .env.production supershop-backend
 ```
 
 ---

@@ -116,7 +116,7 @@ cd backend
 docker build -t gcr.io/shomaj-817b0/supershop-backend:latest .
 
 # Test locally (optional)
-docker run -p 8000:8000 \
+docker run -p 8080:8080 \
   -e DATABASE_URL="postgresql://user:pass@HOST:5432/supershop" \
   gcr.io/shomaj-817b0/supershop-backend:latest
 ```
@@ -157,7 +157,7 @@ gcloud run deploy supershop-backend \
   --allow-unauthenticated \
   --env-vars-file cloudbuild.yaml \
   --add-cloudsql-instances shomaj-817b0:asia-southeast1:supershop-db \
-  --port 8000
+  --port 8080
 
 ### 2.4.1 Use Secret Manager for runtime secrets (recommended)
 
@@ -284,7 +284,7 @@ gcloud run deploy supershop-backend \
   --service-account=supershop-run-sa@shomaj-817b0.iam.gserviceaccount.com \
   --add-cloudsql-instances PROJECT:asia-southeast1:INSTANCE \
   --set-secrets "DATABASE_URL=DATABASE_URL:latest" --set-secrets "JWT_SECRET=JWT_SECRET:latest" \
-  --set-env-vars PORT=8000
+  --set-env-vars PORT=8080
 ```
 ```
 
