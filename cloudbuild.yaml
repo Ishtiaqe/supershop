@@ -1,44 +1,68 @@
 steps:
   # -------------------------------------------------------------------------
-  # STEP 0: DEBUG
-  # List the contents of the backend directory to verify file existence and type.
+  # STEP 0: DEBUG & DIAGNOSTICS
+  # This step prints the folder structure so you can verify where files are.
   # -------------------------------------------------------------------------
   - name: 'ubuntu'
+    id: debug-context
     script: |
-      echo "Listing root contents:"
-      ls -la .
-      echo "Listing backend contents:"
-      ls -la backend/ || echo "Backend directory not found!"
-
-  # -------------------------------------------------------------------------
-  # STEP 1: BUILD (Using 'script' for better path control)
-  # We explicitly move into the directory and build.
-  # -------------------------------------------------------------------------
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    script: |
-      # Fail on error
-      set -e
+      echo "================================================================"
+      echo "                       DEBUGGING BUILD CONTEXT                  "
+      echo "================================================================"
       
-      # Check if Dockerfile exists where we expect it
-      if [ ! -f backend/Dockerfile ]; then
-        echo "ERROR: backend/Dockerfile not found!"
-        exit 1
+      echo "[1] Current Working Directory:"
+      pwd
+      
+      echo ""
+      echo "[2] Listing Root Directory (checking for symlinks):"
+      ls -la
+      
+      echo ""
+      echo "[3] Listing 'backend' Directory:"
+      if [ -d "backend" ]; then
+        ls -la backend
+      else
+        echo "❌ ERROR: 'backend' directory NOT FOUND in root!"
       fi
 
-      # Build explicitly using the directory path
-      docker build -t gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID -f backend/Dockerfile backend/
+      echo ""
+      echo "[4] Searching for all Dockerfiles:"
+      find . -name "Dockerfile" -type f
+
+      echo "================================================================"
 
   # -------------------------------------------------------------------------
-  # STEP 2: PUSH
+  # STEP 1: BUILD IMAGE
+  # We use 'script' to explicitly control the build command and context.
+  # -------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-image
+    script: |
+      echo "Starting Docker Build..."
+      
+      # Fail fast if the Dockerfile isn't where we expect it
+      if [ ! -f "backend/Dockerfile" ]; then
+         echo "❌ FATAL: backend/Dockerfile not found. check the debug output above."
+         exit 1
+      fi
+
+      # Run the build
+      # -f backend/Dockerfile : Uses the file in the subfolder
+      # backend               : Sets the build context to the subfolder
+      docker build -t gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID -f backend/Dockerfile backend
+
+  # -------------------------------------------------------------------------
+  # STEP 2: PUSH IMAGE
   # -------------------------------------------------------------------------
   - name: "gcr.io/cloud-builders/docker"
+    id: push-image
     args: ["push", "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"]
 
   # -------------------------------------------------------------------------
-  # STEP 3: DEPLOY
+  # STEP 3: DEPLOY TO CLOUD RUN
   # -------------------------------------------------------------------------
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: deploy-cloud-run
     script: |
       gcloud run deploy supershop-backend \
         --image gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID \
@@ -51,9 +75,10 @@ steps:
         --quiet
 
   # -------------------------------------------------------------------------
-  # STEP 4: MIGRATION JOB (Create/Update)
+  # STEP 4: UPDATE MIGRATION JOB
   # -------------------------------------------------------------------------
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: update-job
     script: |
       gcloud run jobs update supershop-migrate \
         --image gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID \
@@ -65,9 +90,10 @@ steps:
         --task-timeout 600s
 
   # -------------------------------------------------------------------------
-  # STEP 5: EXECUTE MIGRATION
+  # STEP 5: RUN MIGRATIONS
   # -------------------------------------------------------------------------
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: run-job
     script: |
       gcloud run jobs execute supershop-migrate \
         --region ${_REGION} \
