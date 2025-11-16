@@ -59,7 +59,7 @@ node --version
 1. **Google Cloud Account**
    - Create project: https://console.cloud.google.com
    - Enable billing
-   - Note your PROJECT_ID
+   - Note your shomaj-817b0
 
 2. **Vercel Account**
    - Sign up: https://vercel.com/signup
@@ -275,7 +275,7 @@ cd backend
 gcloud builds submit --tag gcr.io/shomaj-817b0/supershop-backend
 
 # Deploy to Cloud Run
-gcloud run deploy supershop-api \
+gcloud run deploy supershop-backend \
   --image gcr.io/shomaj-817b0/supershop-backend \
   --platform managed \
   --region asia-southeast1 \
@@ -293,11 +293,11 @@ gcloud run deploy supershop-api \
   --timeout 300
 
 # Get your API URL
-gcloud run services describe supershop-api \
+gcloud run services describe supershop-backend \
   --region asia-southeast1 \
   --format="value(status.url)"
 
-# Example output: https://supershop-api-xxxxx-uc.a.run.app
+# Example output: https://supershop-backend-xxxxx-uc.a.run.app
 # SAVE THIS URL - you'll need it for frontend!
 ```
 
@@ -326,7 +326,7 @@ pkill cloud-sql-proxy
 
 ```bash
 # Get API URL
-export API_URL=$(gcloud run services describe supershop-api \
+export API_URL=$(gcloud run services describe supershop-backend \
   --region asia-southeast1 \
   --format="value(status.url)")
 
@@ -355,7 +355,7 @@ curl $API_URL/api/v1/auth/register -X POST \
 Update `frontend/.env.production`:
 
 ```env
-NEXT_PUBLIC_API_URL=https://supershop-api-xxxxx-uc.a.run.app/api/v1
+NEXT_PUBLIC_API_URL=https://supershop-backend-xxxxx-uc.a.run.app/api/v1
 NEXT_PUBLIC_APP_NAME=SuperShop
 ```
 
@@ -524,7 +524,7 @@ vercel
 
 # Set environment variable
 vercel env add NEXT_PUBLIC_API_URL production
-# Enter: https://supershop-api-xxxxx-uc.a.run.app/api/v1
+# Enter: https://supershop-backend-xxxxx-uc.a.run.app/api/v1
 
 vercel env add NEXT_PUBLIC_APP_NAME production
 # Enter: SuperShop
@@ -541,7 +541,7 @@ Now that you have your Vercel URL, update backend CORS:
 
 ```bash
 # Update Cloud Run with your Vercel URL
-gcloud run services update supershop-api \
+gcloud run services update supershop-backend \
   --region asia-southeast1 \
   --set-env-vars "CORS_ORIGIN=https://supershop.vercel.app,https://supershop-git-main-yourusername.vercel.app"
 ```
@@ -585,7 +585,7 @@ vercel domains add yourdomain.com
 ```bash
 # Map custom domain
 gcloud beta run domain-mappings create \
-  --service supershop-api \
+  --service supershop-backend \
   --domain api.yourdomain.com \
   --region asia-southeast1
 
@@ -606,17 +606,17 @@ cd backend
 
 # Rebuild and redeploy
 gcloud builds submit --tag gcr.io/shomaj-817b0/supershop-backend
-gcloud run deploy supershop-api \
+gcloud run deploy supershop-backend \
   --image gcr.io/shomaj-817b0/supershop-backend \
   --region asia-southeast1
 
 # Update environment variables
-gcloud run services update supershop-api \
+gcloud run services update supershop-backend \
   --region asia-southeast1 \
   --set-env-vars "KEY=VALUE"
 
 # View logs
-gcloud run services logs read supershop-api \
+gcloud run services logs read supershop-backend \
   --region asia-southeast1 \
   --limit 100
 ```
@@ -671,15 +671,15 @@ gcloud sql backups restore BACKUP_ID \
 
 ```bash
 # Live logs
-gcloud run services logs tail supershop-api --region asia-southeast1
+gcloud run services logs tail supershop-backend --region asia-southeast1
 
 # Recent logs
-gcloud run services logs read supershop-api \
+gcloud run services logs read supershop-backend \
   --region asia-southeast1 \
   --limit 100
 
 # Filter errors
-gcloud run services logs read supershop-api \
+gcloud run services logs read supershop-backend \
   --region asia-southeast1 \
   --filter="severity>=ERROR"
 ```
@@ -717,7 +717,7 @@ vercel logs YOUR_DEPLOYMENT_URL
 ### 1. Cloud Run (Backend)
 ```bash
 # Set min-instances to 0 (scale to zero when idle)
-gcloud run services update supershop-api \
+gcloud run services update supershop-backend \
   --region asia-southeast1 \
   --min-instances 0
 
@@ -725,7 +725,7 @@ gcloud run services update supershop-api \
 --memory 256Mi  # Instead of 512Mi
 
 # Monitor usage
-gcloud run services describe supershop-api \
+gcloud run services describe supershop-backend \
   --region asia-southeast1 \
   --format="value(status.url)"
 ```
@@ -771,17 +771,17 @@ gcloud run services describe supershop-api \
 
 ```bash
 # 1. Check CORS settings
-gcloud run services describe supershop-api \
+gcloud run services describe supershop-backend \
   --region asia-southeast1 \
   --format="value(spec.template.spec.containers[0].env)"
 
 # 2. Update CORS with correct Vercel URL
-gcloud run services update supershop-api \
+gcloud run services update supershop-backend \
   --region asia-southeast1 \
   --set-env-vars "CORS_ORIGIN=https://your-app.vercel.app"
 
 # 3. Check API is accessible
-curl https://supershop-api-xxxxx-uc.a.run.app/api/v1/health
+curl https://supershop-backend-xxxxx-uc.a.run.app/api/v1/health
 ```
 
 ### Database connection fails
@@ -792,7 +792,7 @@ gcloud sql instances describe supershop \
   --format="value(connectionName)"
 
 # 2. Check Cloud Run has --add-cloudsql-instances
-gcloud run services describe supershop-api \
+gcloud run services describe supershop-backend \
   --region asia-southeast1 \
   --format="value(spec.template.metadata.annotations)"
 
@@ -844,14 +844,14 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v0
         with:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          shomaj-817b0: ${{ secrets.GCP_shomaj-817b0 }}
       
       - name: Build and Deploy
         run: |
           cd backend
-          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/supershop-backend
-          gcloud run deploy supershop-api \
-            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/supershop-backend \
+          gcloud builds submit --tag gcr.io/${{ secrets.GCP_shomaj-817b0 }}/supershop-backend
+          gcloud run deploy supershop-backend \
+            --image gcr.io/${{ secrets.GCP_shomaj-817b0 }}/supershop-backend \
             --region asia-southeast1
 ```
 

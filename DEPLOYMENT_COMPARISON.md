@@ -158,8 +158,8 @@ Since you're already using **Google Cloud SQL**, I strongly recommend deploying 
 
 ```bash
 # Build & deploy in 2 commands
-gcloud builds submit --tag gcr.io/PROJECT_ID/supershop-backend
-gcloud run deploy --image gcr.io/PROJECT_ID/supershop-backend --add-cloudsql-instances PROJECT_ID:REGION:INSTANCE_NAME
+gcloud builds submit --tag gcr.io/shomaj-817b0/supershop-backend
+gcloud run deploy --image gcr.io/shomaj-817b0/supershop-backend --add-cloudsql-instances shomaj-817b0:asia-southeast1:INSTANCE_NAME
 ```
 
 That's it! Your API is live with HTTPS.

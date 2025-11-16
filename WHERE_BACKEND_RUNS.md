@@ -64,15 +64,15 @@ docker build -t gcr.io/YOUR_PROJECT/supershop-backend .
 gcloud builds submit --tag gcr.io/YOUR_PROJECT/supershop-backend
 
 # 3. Deploy to Cloud Run (connected to your Cloud SQL)
-gcloud run deploy supershop-api \
+gcloud run deploy supershop-backend \
   --image gcr.io/YOUR_PROJECT/supershop-backend \
-  --add-cloudsql-instances YOUR_PROJECT:REGION:supershop-db \
+  --add-cloudsql-instances YOUR_PROJECT:asia-southeast1:supershop-db \
   --set-env-vars DATABASE_URL="postgresql://..." \
   --region asia-southeast1 \
   --allow-unauthenticated
 
 # Done! You get a URL like:
-# https://supershop-api-xxxxx.a.run.app
+# https://supershop-backend-xxxxx.a.run.app
 ```
 
 ### Deploy Frontend to Vercel
@@ -82,7 +82,7 @@ gcloud run deploy supershop-api \
 git push origin main
 
 # Import in Vercel dashboard
-# Set: NEXT_PUBLIC_API_URL=https://supershop-api-xxxxx.a.run.app/api/v1
+# Set: NEXT_PUBLIC_API_URL=https://supershop-backend-xxxxx.a.run.app/api/v1
 # Deploy automatically
 ```
 

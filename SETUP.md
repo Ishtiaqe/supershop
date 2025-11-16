@@ -346,7 +346,7 @@ docker run --rm --env-file .env.production supershop-backend npx prisma migrate 
 
 # Start application
 docker run -d \
-  --name supershop-api \
+  --name supershop-backend \
   -p 8000:8000 \
   --env-file .env.production \
   --restart unless-stopped \
@@ -474,10 +474,10 @@ npm run build
 
 ```bash
 # Check logs
-docker logs supershop-api
+docker logs supershop-backend
 
 # Restart container
-docker restart supershop-api
+docker restart supershop-backend
 ```
 
 **Problem**: Out of memory
@@ -520,7 +520,7 @@ pg_dump -h managed-db-host -U user -d supershop > backup.sql
 View Docker logs:
 
 ```bash
-docker logs -f supershop-api
+docker logs -f supershop-backend
 ```
 
 ### Updating Application
@@ -529,9 +529,9 @@ docker logs -f supershop-api
 cd supershop/backend
 git pull origin main
 docker build -t supershop-backend .
-docker stop supershop-api
-docker rm supershop-api
-docker run -d --name supershop-api -p 8000:8000 --env-file .env.production supershop-backend
+docker stop supershop-backend
+docker rm supershop-backend
+docker run -d --name supershop-backend -p 8000:8000 --env-file .env.production supershop-backend
 ```
 
 ---

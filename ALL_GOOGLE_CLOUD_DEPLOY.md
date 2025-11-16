@@ -38,7 +38,7 @@ firebase login
 
 ```bash
 # Set project
-gcloud config set project YOUR_PROJECT_ID
+gcloud config set project shomaj-817b0
 
 # Create PostgreSQL instance
 gcloud sql instances create supershop-db \
@@ -55,7 +55,7 @@ gcloud sql databases create supershop --instance=supershop-db
 # Get connection name (save this!)
 gcloud sql instances describe supershop-db \
   --format="value(connectionName)"
-# Output: PROJECT_ID:REGION:supershop-db
+# Output: shomaj-817b0:asia-southeast1:supershop-db
 ```
 
 ### Step 2: Prepare Backend (Remove Redis)
@@ -64,7 +64,7 @@ Update `backend/.env.production`:
 ```env
 NODE_ENV=production
 PORT=8080
-DATABASE_URL=postgresql://postgres:PASSWORD@/supershop?host=/cloudsql/PROJECT:REGION:supershop-db
+DATABASE_URL=postgresql://postgres:PASSWORD@/supershop?host=/cloudsql/PROJECT:asia-southeast1:supershop-db
 JWT_SECRET=your-super-secret-jwt-key-min-32-characters
 JWT_REFRESH_SECRET=your-super-secret-refresh-key-min-32-characters
 JWT_EXPIRES_IN=15m
@@ -102,27 +102,27 @@ console.log(`🚀 Running on port ${port}`);
 cd backend
 
 # Build Docker image and submit to Google Cloud Build
-gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/supershop-backend
+gcloud builds submit --tag gcr.io/shomaj-817b0/supershop-backend
 
 # Deploy to Cloud Run with Cloud SQL connection
-gcloud run deploy supershop-api \
-  --image gcr.io/YOUR_PROJECT_ID/supershop-backend \
+gcloud run deploy supershop-backend \
+  --image gcr.io/shomaj-817b0/supershop-backend \
   --platform managed \
   --region asia-southeast1 \
   --allow-unauthenticated \
-  --add-cloudsql-instances PROJECT_ID:REGION:supershop-db \
+  --add-cloudsql-instances shomaj-817b0:asia-southeast1:supershop-db \
   --set-env-vars NODE_ENV=production,PORT=8080,JWT_SECRET=your-secret,JWT_REFRESH_SECRET=your-refresh-secret,CORS_ORIGIN=https://YOUR-APP.web.app \
-  --set-env-vars DATABASE_URL="postgresql://postgres:PASSWORD@/supershop?host=/cloudsql/PROJECT:REGION:supershop-db" \
+  --set-env-vars DATABASE_URL="postgresql://postgres:PASSWORD@/supershop?host=/cloudsql/PROJECT:asia-southeast1:supershop-db" \
   --memory 512Mi \
   --cpu 1 \
   --min-instances 0 \
   --max-instances 10
 
 # Get your API URL
-gcloud run services describe supershop-api \
+gcloud run services describe supershop-backend \
   --region asia-southeast1 \
   --format="value(status.url)"
-# Example: https://supershop-api-xxxxx-uc.a.run.app
+# Example: https://supershop-backend-xxxxx-uc.a.run.app
 ```
 
 ### Step 4: Run Database Migrations
@@ -133,7 +133,7 @@ curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/clou
 chmod +x cloud-sql-proxy
 
 # Start proxy in background
-./cloud-sql-proxy PROJECT_ID:REGION:supershop-db &
+./cloud-sql-proxy shomaj-817b0:asia-southeast1:supershop-db &
 
 # Run migrations (in another terminal)
 cd backend
@@ -145,7 +145,7 @@ kill %1
 ```
 
 **Your backend is live!** 🎉
-URL: `https://supershop-api-xxxxx-uc.a.run.app`
+URL: `https://supershop-backend-xxxxx-uc.a.run.app`
 
 ---
 
@@ -168,7 +168,7 @@ firebase init hosting
 
 Update `frontend/.env.production`:
 ```env
-NEXT_PUBLIC_API_URL=https://supershop-api-xxxxx-uc.a.run.app/api/v1
+NEXT_PUBLIC_API_URL=https://supershop-backend-xxxxx-uc.a.run.app/api/v1
 NEXT_PUBLIC_APP_NAME=SuperShop
 ```
 
@@ -250,7 +250,7 @@ firebase deploy --only hosting
 Now that you have your Firebase URL, update backend CORS:
 
 ```bash
-gcloud run services update supershop-api \
+gcloud run services update supershop-backend \
   --region asia-southeast1 \
   --set-env-vars CORS_ORIGIN=https://YOUR-PROJECT.web.app
 ```
@@ -277,7 +277,7 @@ firebase hosting:channel:deploy live --expires 30d
 ```bash
 # Map custom domain to Cloud Run
 gcloud beta run domain-mappings create \
-  --service supershop-api \
+  --service supershop-backend \
   --domain api.yourdomain.com \
   --region asia-southeast1
 
@@ -312,10 +312,10 @@ gcloud sql instances create supershop-db --database-version=POSTGRES_15 --tier=d
 # 2. Deploy Backend
 cd backend
 gcloud builds submit --tag gcr.io/PROJECT/supershop-backend
-gcloud run deploy supershop-api --image gcr.io/PROJECT/supershop-backend --add-cloudsql-instances PROJECT:REGION:supershop-db
+gcloud run deploy supershop-backend --image gcr.io/PROJECT/supershop-backend --add-cloudsql-instances PROJECT:asia-southeast1:supershop-db
 
 # 3. Run Migrations
-./cloud-sql-proxy PROJECT:REGION:supershop-db &
+./cloud-sql-proxy PROJECT:asia-southeast1:supershop-db &
 npm run prisma:migrate deploy
 
 # 4. Deploy Frontend
@@ -328,7 +328,7 @@ firebase deploy --only hosting
 # Update Backend
 cd backend
 gcloud builds submit --tag gcr.io/PROJECT/supershop-backend
-gcloud run deploy supershop-api --image gcr.io/PROJECT/supershop-backend
+gcloud run deploy supershop-backend --image gcr.io/PROJECT/supershop-backend
 
 # Update Frontend
 cd frontend
@@ -366,7 +366,7 @@ const { data } = useQuery({
 
 ### Cloud Run Logs
 ```bash
-gcloud run services logs read supershop-api --region=asia-southeast1 --limit=50
+gcloud run services logs read supershop-backend --region=asia-southeast1 --limit=50
 ```
 
 ### Cloud SQL Logs
@@ -400,13 +400,13 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v0
         with:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          shomaj-817b0: ${{ secrets.GCP_shomaj-817b0 }}
       
       - name: Build and Deploy Backend
         run: |
           cd backend
-          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/supershop-backend
-          gcloud run deploy supershop-api --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/supershop-backend --region asia-southeast1
+          gcloud builds submit --tag gcr.io/${{ secrets.GCP_shomaj-817b0 }}/supershop-backend
+          gcloud run deploy supershop-backend --image gcr.io/${{ secrets.GCP_shomaj-817b0 }}/supershop-backend --region asia-southeast1
   
   deploy-frontend:
     runs-on: ubuntu-latest
@@ -445,10 +445,10 @@ jobs:
 **Issue:** Frontend can't connect to backend
 ```bash
 # Check CORS is set correctly
-gcloud run services describe supershop-api --region=asia-southeast1 --format="value(spec.template.spec.containers[0].env)"
+gcloud run services describe supershop-backend --region=asia-southeast1 --format="value(spec.template.spec.containers[0].env)"
 
 # Update CORS
-gcloud run services update supershop-api --set-env-vars CORS_ORIGIN=https://your-app.web.app
+gcloud run services update supershop-backend --set-env-vars CORS_ORIGIN=https://your-app.web.app
 ```
 
 **Issue:** Database connection fails
@@ -457,7 +457,7 @@ gcloud run services update supershop-api --set-env-vars CORS_ORIGIN=https://your
 gcloud sql instances describe supershop-db --format="value(connectionName)"
 
 # Check Cloud Run has --add-cloudsql-instances flag
-gcloud run services describe supershop-api --region=asia-southeast1
+gcloud run services describe supershop-backend --region=asia-southeast1
 ```
 
 **Issue:** Firebase build fails
