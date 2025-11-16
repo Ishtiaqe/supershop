@@ -47,7 +47,7 @@ npm run prisma:studio
 
 ### ❌ Old DATABASE_URL (broken):
 ```
-postgresql://supershop_user:MUJAHIDrumel123@@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop?schema=public
+postgresql://supershop_user:MUJAHIDrumel123@123@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop?schema=public
 ```
 
 **Problems:**
@@ -57,7 +57,7 @@ postgresql://supershop_user:MUJAHIDrumel123@@/supershop?host=/cloudsql/shomaj-81
 
 ### ✅ New DATABASE_URL (fixed):
 ```
-postgresql://supershop_user:MUJAHIDrumel123@@127.0.0.1:5432/supershop?schema=public
+postgresql://supershop_user:MUJAHIDrumel123@123@127.0.0.1:5432/supershop?schema=public
 ```
 
 **This works because:**
@@ -147,7 +147,7 @@ docker run -d \
   postgres:15-alpine
 
 # Update .env to use local database
-DATABASE_URL=postgresql://supershop_user:MUJAHIDrumel123@@localhost:5432/supershop?schema=public
+DATABASE_URL=postgresql://supershop_user:MUJAHIDrumel123@123@localhost:5432/supershop?schema=public
 
 # Run migrations
 npm run prisma:migrate
@@ -159,12 +159,12 @@ npm run prisma:migrate
 
 ### `.env` (Development - Local with Cloud SQL Proxy)
 ```env
-DATABASE_URL=postgresql://supershop_user:MUJAHIDrumel123@@127.0.0.1:5432/supershop?schema=public
+DATABASE_URL=postgresql://supershop_user:MUJAHIDrumel123@123@127.0.0.1:5432/supershop?schema=public
 ```
 
 ### `.env.production` (Production - Cloud Run)
 ```env
-DATABASE_URL=postgresql://supershop_user:MUJAHIDrumel123@@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop&schema=public
+DATABASE_URL=postgresql://supershop_user:MUJAHIDrumel123@123@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop&schema=public
 ```
 
 Note: Use `&` not `?` for the second parameter in the socket path version!

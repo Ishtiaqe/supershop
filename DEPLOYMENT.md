@@ -111,7 +111,7 @@ gcloud sql databases create supershop \
 # Create app user (recommended for security)
 gcloud sql users create supershop_user \
   --instance=supershop \
-  --password=MUJAHIDrumel123@
+  --password=MUJAHIDrumel123@123
 
 # Get connection name (save this!)
 gcloud sql instances describe supershop \

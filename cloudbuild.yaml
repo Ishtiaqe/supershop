@@ -1,112 +1,80 @@
 steps:
-  # -------------------------------------------------------------------------
-  # STEP 0: DEBUG & DIAGNOSTICS
-  # This step prints the folder structure so you can verify where files are.
-  # -------------------------------------------------------------------------
-  - name: 'ubuntu'
-    id: debug-context
-    script: |
-      echo "================================================================"
-      echo "                       DEBUGGING BUILD CONTEXT                  "
-      echo "================================================================"
-      
-      echo "[1] Current Working Directory:"
-      pwd
-      
-      echo ""
-      echo "[2] Listing Root Directory (checking for symlinks):"
-      ls -la
-      
-      echo ""
-      echo "[3] Listing 'backend' Directory:"
-      if [ -d "backend" ]; then
-        ls -la backend
-      else
-        echo "❌ ERROR: 'backend' directory NOT FOUND in root!"
-      fi
-
-      echo ""
-      echo "[4] Searching for all Dockerfiles:"
-      find . -name "Dockerfile" -type f
-
-      echo "================================================================"
-
-  # -------------------------------------------------------------------------
-  # STEP 1: BUILD IMAGE
-  # We use 'script' to explicitly control the build command and context.
-  # -------------------------------------------------------------------------
+  # 1. Build Image (Explicit Context)
   - name: 'gcr.io/cloud-builders/docker'
-    id: build-image
-    script: |
-      echo "Starting Docker Build..."
-      
-      # Fail fast if the Dockerfile isn't where we expect it
-      if [ ! -f "backend/Dockerfile" ]; then
-         echo "❌ FATAL: backend/Dockerfile not found. check the debug output above."
-         exit 1
-      fi
+    args:
+      - "build"
+      - "-t"
+      - "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"
+      - "-f"
+      - "backend/Dockerfile"
+      - "backend"
 
-      # Run the build
-      # -f backend/Dockerfile : Uses the file in the subfolder
-      # backend               : Sets the build context to the subfolder
-      docker build -t gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID -f backend/Dockerfile backend
-
-  # -------------------------------------------------------------------------
-  # STEP 2: PUSH IMAGE
-  # -------------------------------------------------------------------------
+  # 2. Push Image
   - name: "gcr.io/cloud-builders/docker"
-    id: push-image
     args: ["push", "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"]
 
-  # -------------------------------------------------------------------------
-  # STEP 3: DEPLOY TO CLOUD RUN
-  # -------------------------------------------------------------------------
+  # 3. Deploy (Matches your Service Name 'supershop')
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    id: deploy-cloud-run
-    script: |
-      gcloud run deploy supershop-backend \
-        --image gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID \
-        --region ${_REGION} \
-        --platform managed \
-        --allow-unauthenticated \
-        --port 8000 \
-        --add-cloudsql-instances=${_CLOUDSQL_INSTANCE} \
-        --set-env-vars=DATABASE_URL=${_DATABASE_URL} \
-        --quiet
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - supershop
+      - --image
+      - "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"
+      - --region
+      - ${_REGION}
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --port
+      - "8000"
+      - --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
+      - --set-env-vars=DATABASE_URL=${_DATABASE_URL}
+      - --quiet
 
-  # -------------------------------------------------------------------------
-  # STEP 4: UPDATE MIGRATION JOB
-  # -------------------------------------------------------------------------
+  # 4. Update Migration Job
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    id: update-job
-    script: |
-      gcloud run jobs update supershop-migrate \
-        --image gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID \
-        --region ${_REGION} \
-        --command "npx" \
-        --args "prisma,migrate,deploy" \
-        --add-cloudsql-instances=${_CLOUDSQL_INSTANCE} \
-        --set-env-vars=DATABASE_URL=${_DATABASE_URL} \
-        --task-timeout 600s
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - update
+      - supershop-migrate
+      - --image
+      - "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"
+      - --region
+      - ${_REGION}
+      - --command
+      - "npx"
+      - --args
+      - "prisma,migrate,deploy"
+      - --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
+      - --set-env-vars=DATABASE_URL=${_DATABASE_URL}
+      - --task-timeout
+      - "600s"
 
-  # -------------------------------------------------------------------------
-  # STEP 5: RUN MIGRATIONS
-  # -------------------------------------------------------------------------
+  # 5. Run Migrations
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    id: run-job
-    script: |
-      gcloud run jobs execute supershop-migrate \
-        --region ${_REGION} \
-        --wait
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - execute
+      - supershop-migrate
+      - --region
+      - ${_REGION}
+      - --wait
 
 images:
   - "gcr.io/shomaj-817b0/supershop-backend:$BUILD_ID"
 
 substitutions:
   _REGION: "asia-southeast1"
-  _DATABASE_URL: "postgresql://supershop_user:MUJAHIDrumel123@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop"
+  # FIXED TYPO: Removed extra '@'
+  _DATABASE_URL: "postgresql://supershop_user:MUJAHIDrumel123@123@/supershop?host=/cloudsql/shomaj-817b0:asia-southeast1:supershop"
   _CLOUDSQL_INSTANCE: "shomaj-817b0:asia-southeast1:supershop"
 
 timeout: "1200s"
 options:
-  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: "ALLOW_LOOSE"
