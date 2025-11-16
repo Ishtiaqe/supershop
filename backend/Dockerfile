@@ -25,5 +25,7 @@ COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/prisma ./prisma
 # Ensure OpenSSL/libssl is available for the Prisma query engine
 RUN apt-get update && apt-get install -y openssl libssl-dev ca-certificates && rm -rf /var/lib/apt/lists/*
-EXPOSE 8000
+# Cloud Run uses the PORT environment variable. We'll expose 8080 since
+# that's the platform default, but the app honors the PORT env var at runtime.
+EXPOSE 8080
 CMD ["node", "dist/main"]

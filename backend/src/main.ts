@@ -41,10 +41,15 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = configService.get('PORT') || 8000;
+  // Prefer the platform provided PORT environment variable (Cloud Run/Heroku) and
+  // fall back to configuration or a sensible default. Ensure value is a number.
+  const envPort = process.env.PORT ? Number(process.env.PORT) : undefined;
+  const configPort = configService.get('PORT') ? Number(configService.get('PORT')) : undefined;
+  const port = envPort || configPort || 8080;
   await app.listen(port, '0.0.0.0');
   
   console.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
+  console.log(`🔎 Effective PORT env: ${process.env.PORT ?? '<not set>'}, config PORT: ${configService.get('PORT') ?? '<not set>'}`);
   console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
 }
 
