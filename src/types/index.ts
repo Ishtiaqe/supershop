@@ -45,7 +45,7 @@ export interface InventoryItem {
   quantity: number
   purchasePrice: number
   retailPrice: number
-  maxDiscountRate: number
+  maxDiscount: number
   expiryDate?: Date
   mfgDate?: Date
   batchNo?: string
