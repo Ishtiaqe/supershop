@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, Avatar, Button, Form, Input, message } from 'antd'
 import type { User } from '@/types'
+import api from '@/lib/api'
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
@@ -13,11 +14,20 @@ export default function ProfilePage() {
   }, [])
 
   const onFinish = async (values: Partial<User>) => {
-    // Just update localStorage for now — backend profile update not implemented
-  const updated: User = { ...user, ...values } as User
-    localStorage.setItem('user', JSON.stringify(updated))
-    setUser(updated)
-    message.success('Profile saved')
+    if (!user) return
+
+    try {
+      const response = await api.put(`/users/${user.id}`, {
+        fullName: values.fullName,
+      })
+      const updatedUser = response.data
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+      setUser(updatedUser)
+      message.success('Profile saved')
+    } catch (error) {
+      message.error('Failed to update profile')
+      console.error('Profile update error:', error)
+    }
   }
 
   if (!user) {
@@ -44,7 +54,7 @@ export default function ProfilePage() {
         </Form.Item>
 
         <Form.Item label="Email" name="email">
-          <Input />
+          <Input disabled />
         </Form.Item>
 
         <Form.Item>

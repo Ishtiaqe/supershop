@@ -1,76 +1,304 @@
-"use client"
+"use client";
 
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { InventoryItem } from '@/types'
-import api from '@/lib/api'
-import { Table, Form, Input, InputNumber, Button, Space, Typography } from 'antd'
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InventoryItem } from "@/types";
+import api from "@/lib/api";
+import {
+  Table,
+  Form,
+  Input,
+  InputNumber,
+  Button,
+  Space,
+  Typography,
+  Modal,
+  message,
+} from "antd";
 
 function fetchInventory(): Promise<InventoryItem[]> {
-  return api.get('/inventory').then((r) => r.data)
+  return api.get("/inventory").then((r) => r.data);
 }
 
 export default function InventoryClient() {
-  const queryClient = useQueryClient()
-  const { data: items = [], isLoading } = useQuery<InventoryItem[], Error>({ queryKey: ['inventory'], queryFn: fetchInventory })
-  const [form, setForm] = useState({ itemName: '', quantity: 0, purchasePrice: 0, retailPrice: 0 })
+  const queryClient = useQueryClient();
+  const [addFormInstance] = Form.useForm();
+  const { data: items = [], isLoading } = useQuery<InventoryItem[], Error>({
+    queryKey: ["inventory"],
+    queryFn: fetchInventory,
+  });
+  const [editForm, setEditForm] = useState<{
+    id?: string;
+    itemName: string;
+    quantity: number;
+    purchasePrice: number;
+    retailPrice: number;
+  }>({
+    id: undefined,
+    itemName: "",
+    quantity: 0,
+    purchasePrice: 0,
+    retailPrice: 0,
+  });
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const addMutation = useMutation<InventoryItem, Error, Partial<InventoryItem>>({
-  mutationFn: (payload: Partial<InventoryItem>) => api.post('/inventory', payload).then((r) => r.data),
+  const addMutation = useMutation<InventoryItem, Error, Partial<InventoryItem>>(
+    {
+      mutationFn: (payload: Partial<InventoryItem>) =>
+        api.post("/inventory", payload).then((r) => r.data),
+      async onSuccess() {
+        await queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      },
+    }
+  );
+
+  const submitAdd = async () => {
+    const values = addFormInstance.getFieldsValue();
+    await addMutation.mutateAsync(values);
+    addFormInstance.resetFields();
+    message.success("Item added successfully");
+  };
+
+  const submitEdit = async () => {
+    if (!editForm.id) return;
+    await updateMutation.mutateAsync({ id: editForm.id, ...editForm });
+  };
+
+  const handleDelete = async () => {
+    if (!editForm.id) return;
+    Modal.confirm({
+      title: "Delete Item",
+      content: "Are you sure you want to delete this item?",
+      okText: "Delete",
+      okType: "danger",
+      onOk: async () => {
+        await deleteMutation.mutateAsync(editForm.id!);
+      },
+    });
+  };
+
+  const updateMutation = useMutation<InventoryItem, Error, Partial<InventoryItem>>({
+    mutationFn: (payload: Partial<InventoryItem>) =>
+      api.put(`/inventory/${payload.id}`, payload).then((r) => r.data),
     async onSuccess() {
-      await queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      await queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      message.success("Item updated successfully");
+      setModalOpen(false);
     },
-  })
+  });
 
-  const submit = async (values: Partial<InventoryItem>) => {
-    await addMutation.mutateAsync(values)
-    setForm({ itemName: '', quantity: 0, purchasePrice: 0, retailPrice: 0 })
-  }
+  const deleteMutation = useMutation<void, Error, string>({
+    mutationFn: (id: string) =>
+      api.delete(`/inventory/${id}`).then((r) => r.data),
+    async onSuccess() {
+      await queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      message.success("Item deleted successfully");
+      setModalOpen(false);
+      setEditForm({ id: undefined, itemName: "", quantity: 0, purchasePrice: 0, retailPrice: 0 });
+    },
+  });
 
-  const userJson = typeof window !== 'undefined' ? localStorage.getItem('user') : null
-  const user = userJson ? JSON.parse(userJson) : null
+  const userJson =
+    typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const user = userJson ? JSON.parse(userJson) : null;
 
-  if (!user || (user.role !== 'OWNER' && user.role !== 'EMPLOYEE')) {
-    return <div className="p-6">Access denied — Owners and employees only</div>
+  if (!user || (user.role !== "OWNER" && user.role !== "EMPLOYEE")) {
+    return <div className="p-6">Access denied — Owners and employees only</div>;
   }
 
   return (
     <>
-      <Form layout="vertical" onFinish={submit} className="mb-6">
-        <Form.Item name="itemName" label="Item name" rules={[{ required: true }]}> 
-          <Input value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} />
+      <Form form={addFormInstance} layout="vertical" onFinish={submitAdd} className="mb-6">
+        <Form.Item
+          name="itemName"
+          label="Item name"
+          rules={[{ required: true }]}
+        >
+          <Input />
         </Form.Item>
 
         <Space size={8} className="mb-2">
-          <Form.Item name="quantity" label="Quantity" rules={[{ required: true }]}> 
-            <InputNumber min={1} value={form.quantity} onChange={(value) => setForm({ ...form, quantity: Number(value) })} />
+          <Form.Item
+            name="quantity"
+            label="Quantity"
+            rules={[{ required: true }]}
+          >
+            <InputNumber min={1} />
           </Form.Item>
 
-          <Form.Item name="purchasePrice" label="Purchase" rules={[{ required: true }]}> 
-            <InputNumber min={0} value={form.purchasePrice} onChange={(value) => setForm({ ...form, purchasePrice: Number(value) })} />
+          <Form.Item
+            name="purchasePrice"
+            label="Purchase Price"
+            rules={[{ required: true }]}
+          >
+            <InputNumber min={0} />
           </Form.Item>
 
-          <Form.Item name="retailPrice" label="Retail" rules={[{ required: true }]}> 
-            <InputNumber min={0} value={form.retailPrice} onChange={(value) => setForm({ ...form, retailPrice: Number(value) })} />
+          <Form.Item
+            name="retailPrice"
+            label="Retail Price"
+            rules={[{ required: true }]}
+          >
+            <InputNumber min={0} />
           </Form.Item>
         </Space>
 
         <Form.Item>
-          <Button type="primary" htmlType="submit">Add Item</Button>
+          <Space>
+            <Button type="primary" htmlType="submit" loading={addMutation.isPending}>
+              Add Item
+            </Button>
+              <Button onClick={() => addFormInstance.resetFields()}>
+                Clear
+              </Button>
+          </Space>
         </Form.Item>
       </Form>
 
-  <Typography.Title level={4}>Items</Typography.Title>
+      <Typography.Title level={4}>Items</Typography.Title>
 
       {isLoading ? (
         <div>Loading…</div>
       ) : (
         <Table dataSource={items} rowKey="id" pagination={false}>
-            <Table.Column title="Item" dataIndex="itemName" key="itemName" render={(text, record: InventoryItem) => text || record.variantId || 'Unnamed item'} />
-          <Table.Column title="Qty" dataIndex="quantity" key="quantity" />
-            <Table.Column title="Retail" dataIndex="retailPrice" key="retailPrice" render={(v: number) => `৳${v}`} />
+          <Table.Column
+            title="Actions"
+            key="actions"
+            render={(_, record: InventoryItem) => (
+              <Button
+                onClick={() => {
+                  setEditForm({
+                    id: record.id,
+                    itemName: record.itemName || "",
+                    quantity: record.quantity || 0,
+                    purchasePrice: record.purchasePrice || 0,
+                    retailPrice: record.retailPrice || 0,
+                  });
+                  setModalOpen(true);
+                }}
+              >
+                Edit
+              </Button>
+            )}
+          />
+          <Table.Column
+            title="Item Name"
+            dataIndex="itemName"
+            key="itemName"
+            render={(text, record: InventoryItem) =>
+              text || record.variantId || "Unnamed item"
+            }
+          />
+          <Table.Column title="Quantity" dataIndex="quantity" key="quantity" />
+          <Table.Column
+            title="Purchase Price"
+            dataIndex="purchasePrice"
+            key="purchasePrice"
+            render={(v: number) => `৳${v}`}
+          />
+          <Table.Column
+            title="Retail Price"
+            dataIndex="retailPrice"
+            key="retailPrice"
+            render={(v: number) => `৳${v}`}
+          />
         </Table>
       )}
+
+      <Modal
+        title="Edit Inventory Item"
+        open={modalOpen}
+        onCancel={() => {
+          setModalOpen(false);
+          setEditForm({ id: undefined, itemName: "", quantity: 0, purchasePrice: 0, retailPrice: 0 });
+        }}
+        footer={null}
+      >
+        <Form layout="vertical" onFinish={submitEdit} className="mt-4">
+          <Form.Item
+            name="itemName"
+            label="Item name"
+            rules={[{ required: true }]}
+            initialValue={editForm.itemName}
+          >
+            <Input
+              value={editForm.itemName}
+              onChange={(e) => setEditForm({ ...editForm, itemName: e.target.value })}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="quantity"
+            label="Quantity"
+            rules={[{ required: true }]}
+            initialValue={editForm.quantity}
+          >
+            <InputNumber
+              min={1}
+              value={editForm.quantity}
+              onChange={(value) =>
+                setEditForm({ ...editForm, quantity: Number(value) })
+              }
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="purchasePrice"
+            label="Purchase Price"
+            rules={[{ required: true }]}
+            initialValue={editForm.purchasePrice}
+          >
+            <InputNumber
+              min={0}
+              value={editForm.purchasePrice}
+              onChange={(value) =>
+                setEditForm({ ...editForm, purchasePrice: Number(value) })
+              }
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="retailPrice"
+            label="Retail Price"
+            rules={[{ required: true }]}
+            initialValue={editForm.retailPrice}
+          >
+            <InputNumber
+              min={0}
+              value={editForm.retailPrice}
+              onChange={(value) =>
+                setEditForm({ ...editForm, retailPrice: Number(value) })
+              }
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" loading={updateMutation.isPending}>
+                Update Item
+              </Button>
+              <Button
+                danger
+                onClick={handleDelete}
+                loading={deleteMutation.isPending}
+              >
+                Delete Item
+              </Button>
+              <Button
+                onClick={() => {
+                  setModalOpen(false);
+                  setEditForm({ id: undefined, itemName: "", quantity: 0, purchasePrice: 0, retailPrice: 0 });
+                }}
+              >
+                Cancel
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </>
-  )
+  );
 }

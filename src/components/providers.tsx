@@ -44,6 +44,28 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [mode])
 
+  // Apply theme class to document
+  useEffect(() => {
+    const root = document.documentElement
+    if (mode === 'dark') {
+      root.classList.remove('light')
+      root.classList.add('dark')
+    } else if (mode === 'light') {
+      root.classList.remove('dark')
+      root.classList.add('light')
+    } else {
+      // system mode
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      if (prefersDark) {
+        root.classList.remove('light')
+        root.classList.add('dark')
+      } else {
+        root.classList.remove('dark')
+        root.classList.add('light')
+      }
+    }
+  }, [mode])
+
   // Determine antd algorithm
   const prefersDark = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)').matches : false
   const isDark = mode === 'dark' || (mode === 'system' && prefersDark)

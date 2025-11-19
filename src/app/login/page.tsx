@@ -29,6 +29,18 @@ export default function LoginPage() {
       }
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user))
+        
+        // Fetch tenant info if user has a tenantId
+        if (data.user.tenantId) {
+          try {
+            const tenantResponse = await api.get('/tenants/me')
+            if (tenantResponse.data) {
+              localStorage.setItem('tenant', JSON.stringify(tenantResponse.data))
+            }
+          } catch (err) {
+            console.error('Failed to fetch tenant info:', err)
+          }
+        }
       }
 
       // Redirect to dashboard
