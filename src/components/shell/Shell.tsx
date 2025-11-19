@@ -14,6 +14,9 @@ import {
   DashboardOutlined,
   ShoppingCartOutlined,
   AppstoreOutlined,
+  ChromeOutlined,
+  SunOutlined,
+  MoonOutlined,
 } from "@ant-design/icons";
 
 const { Header, Sider, Content } = Layout;
@@ -147,7 +150,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           />
         </div>
         <Menu
-          theme={isDark ? "dark" : "light"}
           mode="inline"
           items={items}
           selectedKeys={[selectedKey]}
@@ -174,9 +176,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           >
             {tenantName}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
             {user && (
               <Dropdown
+                trigger={["click"]}
                 menu={{
                   items: [
                     {
@@ -214,10 +217,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               </Dropdown>
             )}
             <Segmented
+              shape="round"
               options={[
-                { label: "System", value: "system" },
-                { label: "Light", value: "light" },
-                { label: "Dark", value: "dark" },
+                { label: <ChromeOutlined />, value: "system" },
+                { label: <SunOutlined />, value: "light" },
+                { label: <MoonOutlined />, value: "dark" },
               ]}
               value={themeContext.mode}
               onChange={(val) =>
