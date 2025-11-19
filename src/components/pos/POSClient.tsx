@@ -148,13 +148,15 @@ export default function POSClient() {
           />
         </Col>
 
-        <Col span={12}>
-          <Typography.Text>Qty</Typography.Text>
+        <Col span={2}>
+          <Typography.Text>Quantity</Typography.Text>
           <InputNumber
+            variant="outlined"
             className="w-full"
             min={1}
             value={qty}
             onChange={(value) => setQty(Number(value))}
+            changeOnWheel
           />
         </Col>
       </Row>
@@ -183,12 +185,21 @@ export default function POSClient() {
               )?.itemName || "Item"
             }
           />
-          <Table.Column title="Qty" dataIndex="quantity" key="quantity" />
+          <Table.Column title="Quantity" dataIndex="quantity" key="quantity" />
           <Table.Column
-            title="Price"
+            title="Unit Price"
             dataIndex="unitPrice"
             key="unitPrice"
-            render={(v: number) => `৳${v}`}
+            render={(v: number) => `৳${v.toFixed(2)}`}
+          />
+          <Table.Column
+            title="Sub Total"
+            dataIndex="total"
+            key="total"
+            render={(
+              v: number,
+              record: { quantity: number; unitPrice: number }
+            ) => `৳${(record.quantity * record.unitPrice).toFixed(2)}`}
           />
         </Table>
       </div>
@@ -197,7 +208,8 @@ export default function POSClient() {
         <div style={{ fontWeight: 700 }}>Total: ৳{total.toFixed(2)}</div>
         <Button
           type="primary"
-          danger
+          color="green"
+          variant="solid"
           onClick={checkout}
           className="mt-2"
           disabled={cart.length === 0 || saleMutation.status === "pending"}

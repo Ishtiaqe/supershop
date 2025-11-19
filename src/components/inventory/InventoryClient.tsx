@@ -23,6 +23,7 @@ function fetchInventory(): Promise<InventoryItem[]> {
 export default function InventoryClient() {
   const queryClient = useQueryClient();
   const [addFormInstance] = Form.useForm();
+  const [editFormInstance] = Form.useForm();
   const { data: items = [], isLoading } = useQuery<InventoryItem[], Error>({
     queryKey: ["inventory"],
     queryFn: fetchInventory,
@@ -74,15 +75,10 @@ export default function InventoryClient() {
 
   const submitEdit = async () => {
     if (!editForm.id) return;
-    // enforce maxDiscount <= computed max before submitting
-    // const computed = computeMaxDiscount(
-    //   editForm.purchasePrice,
-    //   editForm.retailPrice
-    // );
+    const values = editFormInstance.getFieldsValue();
     const payload = {
       id: editForm.id,
-      ...editForm,
-      // maxDiscount: Math.min(editForm.maxDiscount ?? computed, computed),
+      ...values,
     };
     await updateMutation.mutateAsync(payload);
   };
@@ -110,6 +106,14 @@ export default function InventoryClient() {
     async onSuccess() {
       await queryClient.invalidateQueries({ queryKey: ["inventory"] });
       message.success("Item updated successfully");
+      editFormInstance.resetFields();
+      setEditForm({
+        id: undefined,
+        itemName: "",
+        quantity: 0,
+        purchasePrice: 0,
+        retailPrice: 0,
+      });
       setModalOpen(false);
     },
   });
@@ -120,7 +124,7 @@ export default function InventoryClient() {
     async onSuccess() {
       await queryClient.invalidateQueries({ queryKey: ["inventory"] });
       message.success("Item deleted successfully");
-      setModalOpen(false);
+      editFormInstance.resetFields();
       setEditForm({
         id: undefined,
         itemName: "",
@@ -129,6 +133,7 @@ export default function InventoryClient() {
         retailPrice: 0,
         // maxDiscount: undefined,
       });
+      setModalOpen(false);
     },
   });
 
@@ -232,6 +237,8 @@ export default function InventoryClient() {
           <Space>
             <Button
               type="primary"
+              color="green"
+              variant="solid"
               htmlType="submit"
               loading={addMutation.isPending}
             >
@@ -253,9 +260,17 @@ export default function InventoryClient() {
             key="actions"
             render={(_, record: InventoryItem) => (
               <Button
+                color="cyan"
+                variant="filled"
                 onClick={() => {
                   setEditForm({
                     id: record.id,
+                    itemName: record.itemName || "",
+                    quantity: record.quantity || 0,
+                    purchasePrice: record.purchasePrice || 0,
+                    retailPrice: record.retailPrice || 0,
+                  });
+                  editFormInstance.setFieldsValue({
                     itemName: record.itemName || "",
                     quantity: record.quantity || 0,
                     purchasePrice: record.purchasePrice || 0,
@@ -310,7 +325,7 @@ export default function InventoryClient() {
         title="Edit Inventory Item"
         open={modalOpen}
         onCancel={() => {
-          setModalOpen(false);
+          editFormInstance.resetFields();
           setEditForm({
             id: undefined,
             itemName: "",
@@ -318,36 +333,26 @@ export default function InventoryClient() {
             purchasePrice: 0,
             retailPrice: 0,
           });
+          setModalOpen(false);
         }}
         footer={null}
       >
-        <Form layout="vertical" onFinish={submitEdit} className="mt-4">
+        <Form form={editFormInstance} layout="vertical" onFinish={submitEdit} className="mt-4">
           <Form.Item
             name="itemName"
             label="Item name"
             rules={[{ required: true }]}
-            initialValue={editForm.itemName}
           >
-            <Input
-              value={editForm.itemName}
-              onChange={(e) =>
-                setEditForm({ ...editForm, itemName: e.target.value })
-              }
-            />
+            <Input />
           </Form.Item>
 
           <Form.Item
             name="quantity"
             label="Quantity"
             rules={[{ required: true }]}
-            initialValue={editForm.quantity}
           >
             <InputNumber
               min={1}
-              value={editForm.quantity}
-              onChange={(value) =>
-                setEditForm({ ...editForm, quantity: Number(value) })
-              }
               style={{ width: "100%" }}
             />
           </Form.Item>
@@ -356,15 +361,10 @@ export default function InventoryClient() {
             name="purchasePrice"
             label="Purchase/unit"
             rules={[{ required: true }]}
-            initialValue={editForm.purchasePrice}
           >
             <InputNumber
               prefix="৳"
               min={0}
-              value={editForm.purchasePrice}
-              onChange={(value) =>
-                setEditForm({ ...editForm, purchasePrice: Number(value) })
-              }
               style={{ width: "100%" }}
             />
           </Form.Item>
@@ -373,15 +373,10 @@ export default function InventoryClient() {
             name="retailPrice"
             label="Retail/unit"
             rules={[{ required: true }]}
-            initialValue={editForm.retailPrice}
           >
             <InputNumber
               prefix="৳"
               min={0}
-              value={editForm.retailPrice}
-              onChange={(value) =>
-                setEditForm({ ...editForm, retailPrice: Number(value) })
-              }
               style={{ width: "100%" }}
             />
           </Form.Item>
@@ -397,6 +392,8 @@ export default function InventoryClient() {
               </Button>
               <Button
                 danger
+                color="red"
+                variant="filled"
                 onClick={handleDelete}
                 loading={deleteMutation.isPending}
               >
@@ -404,7 +401,7 @@ export default function InventoryClient() {
               </Button>
               <Button
                 onClick={() => {
-                  setModalOpen(false);
+                  editFormInstance.resetFields();
                   setEditForm({
                     id: undefined,
                     itemName: "",
@@ -412,6 +409,7 @@ export default function InventoryClient() {
                     purchasePrice: 0,
                     retailPrice: 0,
                   });
+                  setModalOpen(false);
                 }}
               >
                 Cancel

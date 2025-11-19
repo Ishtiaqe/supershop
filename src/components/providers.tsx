@@ -81,7 +81,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       colorBorder: '#334155',
       colorBgLayout: '#0f172a',
     } : {
-      colorPrimary: '#1e40af',
+      colorPrimary: '#73D13D',
       colorBgContainer: '#ffffff',
       colorBgElevated: '#ffffff',
       colorText: '#0f172a',
