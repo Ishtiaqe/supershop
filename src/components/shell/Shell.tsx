@@ -9,10 +9,11 @@ import { useTheme } from "@/components/providers";
 
 import {
   MenuOutlined,
-  ShopOutlined,
   FileTextOutlined,
   UserOutlined,
   DashboardOutlined,
+  ShoppingCartOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 
 const { Header, Sider, Content } = Layout;
@@ -50,8 +51,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Determine if dark mode is active
-  const prefersDark = typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)").matches : false;
-  const isDark = themeContext.mode === "dark" || (themeContext.mode === "system" && prefersDark);
+  const prefersDark =
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+      : false;
+  const isDark =
+    themeContext.mode === "dark" ||
+    (themeContext.mode === "system" && prefersDark);
 
   const userJson =
     typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -69,12 +75,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     },
     {
       key: "/dashboard/inventory",
-      icon: <ShopOutlined />,
+      icon: <AppstoreOutlined />,
       label: <Link href="/dashboard/inventory">Inventory</Link>,
     },
     {
       key: "/dashboard/pos",
-      icon: <FileTextOutlined />,
+      icon: <ShoppingCartOutlined />,
       label: <Link href="/dashboard/pos">Sales Portal</Link>,
     },
     {
@@ -126,7 +132,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             background: isDark ? token.colorBgContainer : "#ffffff",
             padding: 16,
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             justifyContent: "center",
             gap: 8,
           }}
@@ -145,7 +151,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           mode="inline"
           items={items}
           selectedKeys={[selectedKey]}
-          />
+        />
       </Sider>
 
       <Layout>
@@ -159,11 +165,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             background: token.colorBgElevated,
           }}
         >
-          <div style={{ 
-            fontWeight: 700, 
-            fontSize: "1.25rem",
-            color: token.colorText 
-          }}>
+          <div
+            style={{
+              fontWeight: 700,
+              fontSize: "1.25rem",
+              color: token.colorText,
+            }}
+          >
             {tenantName}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -199,7 +207,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                   <Avatar style={{ backgroundColor: "#1890ff" }}>
                     {(user?.fullName || "U")[0]}
                   </Avatar>
-                  <div style={{ color: token.colorText }}>{user?.fullName || user?.email}</div>
+                  <div style={{ color: token.colorText }}>
+                    {user?.fullName || user?.email}
+                  </div>
                 </div>
               </Dropdown>
             )}
@@ -217,7 +227,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </Header>
 
-        <Content style={{ margin: 16, padding: 16, background: token.colorBgContainer }}>
+        <Content
+          style={{
+            margin: 16,
+            padding: 16,
+            background: token.colorBgContainer,
+          }}
+        >
           {children}
         </Content>
       </Layout>

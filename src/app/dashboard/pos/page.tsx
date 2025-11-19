@@ -7,8 +7,8 @@ const POSClient = dynamic(() => import("@/components/pos/POSClient"), {
 
 export default function POSPage() {
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto" }}>
-      <Card title="Sales Portal" bordered>
+    <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+      <Card title="Sales Portal">
         <POSClient />
       </Card>
     </div>

@@ -7,8 +7,8 @@ const InventoryClient = dynamic(() => import('@/components/inventory/InventoryCl
 
 export default function InventoryPage() {
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        <Card title="Inventory" bordered>
+    <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+        <Card title="Inventory">
           <InventoryClient />
         </Card>
       </div>
