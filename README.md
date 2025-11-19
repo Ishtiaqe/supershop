@@ -89,9 +89,12 @@ npm run dev
 ### **Environment Variables**
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
+NEXT_PUBLIC_API_URL=https://api.shomaj.one/api/v1
+NEXT_PUBLIC_API_URL_BACKUP=https://supershop-backend-531309434570.asia-southeast1.run.app/api/v1
 NEXT_PUBLIC_APP_NAME=SuperShop
 ```
+
+**Note:** The app includes automatic fallback to the backup API URL if the primary domain is unavailable.
 
 ## 🔐 **Authentication Flow**
 
@@ -121,7 +124,9 @@ NEXT_PUBLIC_APP_NAME=SuperShop
 2. Import project in Vercel
 3. Set environment variable:
    - `NEXT_PUBLIC_API_URL=https://api.shomaj.one/api/v1`
-4. Deploy (automatic on every push to `main`)
+   - `NEXT_PUBLIC_API_URL_BACKUP=https://supershop-backend-531309434570.asia-southeast1.run.app/api/v1`
+4. Configure custom domain: `supershop.shomaj.one`
+5. Deploy (automatic on every push to `main`)
 
 **Zero configuration required!**
 

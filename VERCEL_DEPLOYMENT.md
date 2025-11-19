@@ -34,10 +34,20 @@ Add the following environment variables in Vercel dashboard:
 
 ```env
 NEXT_PUBLIC_API_URL=https://api.shomaj.one/api/v1
+NEXT_PUBLIC_API_URL_BACKUP=https://supershop-backend-531309434570.asia-southeast1.run.app/api/v1
 NEXT_PUBLIC_APP_NAME=SuperShop
 ```
 
-**Important:** Make sure these are set as **"Production"**, **"Preview"**, and **"Development"** environments.
+**Note:** The app will automatically fallback to the backup URL if the primary API is unavailable (network errors, server errors, or connection issues).
+
+### 4. Fallback Mechanism
+
+The application includes automatic API fallback functionality:
+
+- **Primary URL:** `https://api.shomaj.one/api/v1` (preferred)
+- **Backup URL:** `https://supershop-backend-531309434570.asia-southeast1.run.app/api/v1`
+- **Fallback Triggers:** Network errors, server errors (5xx), connection failures
+- **Logging:** Console warnings when switching to backup URL
 
 ### 4. Deploy
 
@@ -49,10 +59,11 @@ NEXT_PUBLIC_APP_NAME=SuperShop
 
 ### Custom Domain (Optional)
 
-1. Go to your Vercel project dashboard
+1. Go to Vercel project dashboard
 2. Navigate to **"Settings"** → **"Domains"**
-3. Add your custom domain (e.g., `shop.yourdomain.com`)
+3. Add your domain: `supershop.shomaj.one`
 4. Follow DNS configuration instructions
+5. **Update CORS** on both backend deployments to allow: `https://supershop.shomaj.one`
 
 ### Environment-Specific Variables
 
@@ -210,6 +221,6 @@ Consider integrating error monitoring:
 
 ---
 
-**Deployment URL:** `https://supershop.vercel.app`  
+**Deployment URL:** `https://supershop.shomaj.one`  
 **API Endpoint:** `https://api.shomaj.one/api/v1`  
 **Last Updated:** November 2025

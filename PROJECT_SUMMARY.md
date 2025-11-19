@@ -126,8 +126,19 @@ supershop/
 
 ```env
 NEXT_PUBLIC_API_URL=https://api.shomaj.one/api/v1
+NEXT_PUBLIC_API_URL_BACKUP=https://supershop-backend-531309434570.asia-southeast1.run.app/api/v1
 NEXT_PUBLIC_APP_NAME=SuperShop
 ```
+
+### Custom Domain
+
+**Primary Domain:** `https://supershop.shomaj.one`
+
+**CORS Configuration Required:**
+- Allow `https://supershop.shomaj.one` on both backend deployments
+- Allow `http://localhost:3000` for development
+
+**Automatic Fallback:** The application will automatically switch to the backup API URL if the primary domain experiences connectivity issues.
 
 ## 📊 Performance Optimizations
 
