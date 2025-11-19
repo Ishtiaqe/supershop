@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "Cloud Run: Run/Debug Locally",
+            "type": "cloudcode.cloudrun",
+            "request": "launch",
+            "build": {
+                "docker": {
+                    "path": "backend/Dockerfile"
+                }
+            },
+            "image": "supershop",
+            "service": {
+                "name": "supershop",
+                "containerPort": 8080,
+                "envFile": "backend/.env",
+                "resources": {
+                    "limits": {
+                        "memory": "256Mi"
+                    }
+                }
+            },
+            "target": {
+                "minikube": {}
+            },
+            "watch": true
+        }
+    ]
+}
