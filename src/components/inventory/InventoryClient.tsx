@@ -137,9 +137,7 @@ export default function InventoryClient() {
     const r = Number(retailPrice ?? 0);
     if (!r || r <= 0) return 0;
     const discount = ((r - p) / r) * 100;
-    return Number.isFinite(discount)
-      ? Math.max(0, Math.floor(discount))
-      : 0;
+    return Number.isFinite(discount) ? Math.max(0, Math.floor(discount)) : 0;
   }
 
   const userJson =
@@ -192,7 +190,7 @@ export default function InventoryClient() {
             label="Purchase/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber min={0} />
+            <InputNumber min={0} prefix="৳" />
           </Form.Item>
 
           <Form.Item
@@ -200,7 +198,7 @@ export default function InventoryClient() {
             label="Retail/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber min={0} />
+            <InputNumber min={0} prefix="৳" />
           </Form.Item>
           {/* <Form.Item
             name="maxDiscount"
@@ -356,11 +354,12 @@ export default function InventoryClient() {
 
           <Form.Item
             name="purchasePrice"
-            label="Purchase Price"
+            label="Purchase/unit"
             rules={[{ required: true }]}
             initialValue={editForm.purchasePrice}
           >
             <InputNumber
+              prefix="৳"
               min={0}
               value={editForm.purchasePrice}
               onChange={(value) =>
@@ -372,11 +371,12 @@ export default function InventoryClient() {
 
           <Form.Item
             name="retailPrice"
-            label="Retail Price"
+            label="Retail/unit"
             rules={[{ required: true }]}
             initialValue={editForm.retailPrice}
           >
             <InputNumber
+              prefix="৳"
               min={0}
               value={editForm.retailPrice}
               onChange={(value) =>
