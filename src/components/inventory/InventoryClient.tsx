@@ -33,14 +33,14 @@ export default function InventoryClient() {
     quantity: number;
     purchasePrice: number;
     retailPrice: number;
-    maxDiscount?: number;
+    // maxDiscount?: number;
   }>({
     id: undefined,
     itemName: "",
     quantity: 0,
     purchasePrice: 0,
     retailPrice: 0,
-    maxDiscount: undefined,
+    // maxDiscount: undefined,
   });
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -75,14 +75,14 @@ export default function InventoryClient() {
   const submitEdit = async () => {
     if (!editForm.id) return;
     // enforce maxDiscount <= computed max before submitting
-    const computed = computeMaxDiscount(
-      editForm.purchasePrice,
-      editForm.retailPrice
-    );
+    // const computed = computeMaxDiscount(
+    //   editForm.purchasePrice,
+    //   editForm.retailPrice
+    // );
     const payload = {
       id: editForm.id,
       ...editForm,
-      maxDiscount: Math.min(editForm.maxDiscount ?? computed, computed),
+      // maxDiscount: Math.min(editForm.maxDiscount ?? computed, computed),
     };
     await updateMutation.mutateAsync(payload);
   };
@@ -127,7 +127,7 @@ export default function InventoryClient() {
         quantity: 0,
         purchasePrice: 0,
         retailPrice: 0,
-        maxDiscount: undefined,
+        // maxDiscount: undefined,
       });
     },
   });
@@ -189,7 +189,7 @@ export default function InventoryClient() {
 
           <Form.Item
             name="purchasePrice"
-            label="Purchase Price"
+            label="Purchase/unit"
             rules={[{ required: true }]}
           >
             <InputNumber min={0} />
@@ -197,12 +197,12 @@ export default function InventoryClient() {
 
           <Form.Item
             name="retailPrice"
-            label="Retail Price"
+            label="Retail/unit"
             rules={[{ required: true }]}
           >
             <InputNumber min={0} />
           </Form.Item>
-          <Form.Item
+          {/* <Form.Item
             name="maxDiscount"
             label="Max Discount (%)"
             rules={[
@@ -226,8 +226,8 @@ export default function InventoryClient() {
               max={100}
               formatter={(v) => `${v}%`}
               parser={(v: string | undefined) => parseFloat((v || '').replace('%', '')) || 0}
-            />
-          </Form.Item>
+            /> */}
+          {/* </Form.Item> */}
         </Space>
 
         <Form.Item>
@@ -239,7 +239,7 @@ export default function InventoryClient() {
             >
               Add Item
             </Button>
-            <Button onClick={() => addFormInstance.resetFields()}>Clear</Button>
+            {/* <Button onClick={() => addFormInstance.resetFields()}>Clear</Button> */}
           </Space>
         </Form.Item>
       </Form>
@@ -280,18 +280,18 @@ export default function InventoryClient() {
           />
           <Table.Column title="Quantity" dataIndex="quantity" key="quantity" />
           <Table.Column
-            title="Purchase Price"
+            title="Purchase/unit"
             dataIndex="purchasePrice"
             key="purchasePrice"
             render={(v: number) => `৳${v}`}
           />
           <Table.Column
-            title="Retail Price"
+            title="Retail/unit"
             dataIndex="retailPrice"
             key="retailPrice"
             render={(v: number) => `৳${v}`}
           />
-          <Table.Column
+          {/* <Table.Column
             title="Max Discount (%)"
             key="maxDiscount"
             render={(_, record: InventoryItem) => {
@@ -304,7 +304,7 @@ export default function InventoryClient() {
               }
               return 100;
             }}
-          />
+          /> */}
         </Table>
       )}
 
