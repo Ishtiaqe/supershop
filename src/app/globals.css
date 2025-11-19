@@ -11,12 +11,12 @@
     --card-foreground: #0f172a;
     --popover: #ffffff;
     --popover-foreground: #0f172a;
-    --primary: #2563eb;
+    --primary: #1e40af;
     --primary-foreground: #f8fafc;
     --secondary: #f1f5f9;
     --secondary-foreground: #0f172a;
     --muted: #f1f5f9;
-    --muted-foreground: #64748b;
+    --muted-foreground: #475569;
     --accent: #f1f5f9;
     --accent-foreground: #0f172a;
     --destructive: #dc2626;
@@ -25,7 +25,7 @@
     --destructive-foreground-hex: #fcfeff; /* Hex equivalent — use directly as var(--destructive-foreground-hex) */
     --border: #e2e8f0;
     --input: #e2e8f0;
-    --ring: #2563eb;
+    --ring: #1e40af;
     --radius: 0.5rem;
     /* Status colors */
     --success: #16a34a;
@@ -44,19 +44,19 @@
     --card-foreground: #0f172a;
     --popover: #ffffff;
     --popover-foreground: #0f172a;
-    --primary: #2563eb;
+    --primary: #1e40af;
     --primary-foreground: #f8fafc;
     --secondary: #f1f5f9;
     --secondary-foreground: #0f172a;
     --muted: #f1f5f9;
-    --muted-foreground: #64748b;
+    --muted-foreground: #475569;
     --accent: #f1f5f9;
     --accent-foreground: #0f172a;
     --destructive: #dc2626;
     --destructive-foreground: #f8fafc;
     --border: #e2e8f0;
     --input: #e2e8f0;
-    --ring: #2563eb;
+    --ring: #1e40af;
     /* --radius is inherited from :root */
     /* Status colors */
     --success: #16a34a;
@@ -80,7 +80,7 @@
     --secondary: #1e293b;
     --secondary-foreground: #f8fafc;
     --muted: #1e293b;
-    --muted-foreground: #cbd5e1;
+    --muted-foreground: #e2e8f0;
     --accent: #334155;
     --accent-foreground: #f8fafc;
     --destructive: #dc2626;

@@ -66,14 +66,35 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [mode])
 
-  // Determine antd algorithm
+  // Determine antd algorithm and tokens
   const prefersDark = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)').matches : false
   const isDark = mode === 'dark' || (mode === 'system' && prefersDark)
+
+  const themeConfig = {
+    algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+    token: isDark ? {
+      colorPrimary: '#3b82f6',
+      colorBgContainer: '#0f172a',
+      colorBgElevated: '#1e293b',
+      colorText: '#f8fafc',
+      colorTextSecondary: '#e2e8f0',
+      colorBorder: '#334155',
+      colorBgLayout: '#0f172a',
+    } : {
+      colorPrimary: '#1e40af',
+      colorBgContainer: '#ffffff',
+      colorBgElevated: '#ffffff',
+      colorText: '#0f172a',
+      colorTextSecondary: '#475569',
+      colorBorder: '#e2e8f0',
+      colorBgLayout: '#ffffff',
+    },
+  }
 
   return (
     <ThemeContext.Provider value={{ mode, setMode }}>
       <ConfigProvider
-        theme={{ algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm }}
+        theme={themeConfig}
       >
         <QueryClientProvider client={queryClient}>
           {children}
