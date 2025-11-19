@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Table } from 'antd'
+import type { Sale } from '@/types'
 
 function fetchSales() {
   return api.get('/sales').then((rowData) => rowData.data)
@@ -28,7 +29,7 @@ export default function SalesClient() {
           title="Employee"
           dataIndex="employee"
           key="employee"
-          render={(e: string | { fullName?: string } | undefined, record: any) => {
+          render={(e: string | { fullName?: string } | undefined, record: Sale) => {
             if (typeof e === 'string') return e
             if (e && typeof e === 'object' && 'fullName' in e && e.fullName) return e.fullName
             // fallbacks if employee info is stored differently on the record

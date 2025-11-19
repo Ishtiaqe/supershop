@@ -33,12 +33,14 @@ export default function InventoryClient() {
     quantity: number;
     purchasePrice: number;
     retailPrice: number;
+    maxDiscount?: number;
   }>({
     id: undefined,
     itemName: "",
     quantity: 0,
     purchasePrice: 0,
     retailPrice: 0,
+    maxDiscount: undefined,
   });
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -54,6 +56,17 @@ export default function InventoryClient() {
 
   const submitAdd = async () => {
     const values = addFormInstance.getFieldsValue();
+    // ensure maxDiscount is not greater than computed max
+    const computed = computeMaxDiscount(
+      values.purchasePrice,
+      values.retailPrice
+    );
+    if (
+      typeof values.maxDiscount === "number" &&
+      values.maxDiscount > computed
+    ) {
+      values.maxDiscount = computed;
+    }
     await addMutation.mutateAsync(values);
     addFormInstance.resetFields();
     message.success("Item added successfully");
@@ -61,7 +74,17 @@ export default function InventoryClient() {
 
   const submitEdit = async () => {
     if (!editForm.id) return;
-    await updateMutation.mutateAsync({ id: editForm.id, ...editForm });
+    // enforce maxDiscount <= computed max before submitting
+    const computed = computeMaxDiscount(
+      editForm.purchasePrice,
+      editForm.retailPrice
+    );
+    const payload = {
+      id: editForm.id,
+      ...editForm,
+      maxDiscount: Math.min(editForm.maxDiscount ?? computed, computed),
+    };
+    await updateMutation.mutateAsync(payload);
   };
 
   const handleDelete = async () => {
@@ -77,7 +100,11 @@ export default function InventoryClient() {
     });
   };
 
-  const updateMutation = useMutation<InventoryItem, Error, Partial<InventoryItem>>({
+  const updateMutation = useMutation<
+    InventoryItem,
+    Error,
+    Partial<InventoryItem>
+  >({
     mutationFn: (payload: Partial<InventoryItem>) =>
       api.put(`/inventory/${payload.id}`, payload).then((r) => r.data),
     async onSuccess() {
@@ -94,9 +121,26 @@ export default function InventoryClient() {
       await queryClient.invalidateQueries({ queryKey: ["inventory"] });
       message.success("Item deleted successfully");
       setModalOpen(false);
-      setEditForm({ id: undefined, itemName: "", quantity: 0, purchasePrice: 0, retailPrice: 0 });
+      setEditForm({
+        id: undefined,
+        itemName: "",
+        quantity: 0,
+        purchasePrice: 0,
+        retailPrice: 0,
+        maxDiscount: undefined,
+      });
     },
   });
+
+  function computeMaxDiscount(purchasePrice?: number, retailPrice?: number) {
+    const p = Number(purchasePrice ?? 0);
+    const r = Number(retailPrice ?? 0);
+    if (!r || r <= 0) return 0;
+    const discount = ((r - p) / r) * 100;
+    return Number.isFinite(discount)
+      ? Math.max(0, Math.floor(discount))
+      : 0;
+  }
 
   const userJson =
     typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -108,7 +152,24 @@ export default function InventoryClient() {
 
   return (
     <>
-      <Form form={addFormInstance} layout="vertical" onFinish={submitAdd} className="mb-6">
+      <Form
+        form={addFormInstance}
+        layout="vertical"
+        onFinish={submitAdd}
+        className="mb-6"
+        onValuesChange={(changedValues, allValues) => {
+          if (
+            "purchasePrice" in changedValues ||
+            "retailPrice" in changedValues
+          ) {
+            const computed = computeMaxDiscount(
+              allValues.purchasePrice,
+              allValues.retailPrice
+            );
+            addFormInstance.setFieldsValue({ maxDiscount: computed });
+          }
+        }}
+      >
         <Form.Item
           name="itemName"
           label="Item name"
@@ -141,16 +202,44 @@ export default function InventoryClient() {
           >
             <InputNumber min={0} />
           </Form.Item>
+          <Form.Item
+            name="maxDiscount"
+            label="Max Discount (%)"
+            rules={[
+              { required: true },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  const pp = getFieldValue("purchasePrice");
+                  const rp = getFieldValue("retailPrice");
+                  const computed = computeMaxDiscount(pp, rp);
+                  if (value == null) return Promise.resolve();
+                  if (value <= computed) return Promise.resolve();
+                  return Promise.reject(
+                    new Error(`Max discount cannot exceed ${computed}%`)
+                  );
+                },
+              }),
+            ]}
+          >
+            <InputNumber
+              min={0}
+              max={100}
+              formatter={(v) => `${v}%`}
+              parser={(v: string | undefined) => parseFloat((v || '').replace('%', '')) || 0}
+            />
+          </Form.Item>
         </Space>
 
         <Form.Item>
           <Space>
-            <Button type="primary" htmlType="submit" loading={addMutation.isPending}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={addMutation.isPending}
+            >
               Add Item
             </Button>
-              <Button onClick={() => addFormInstance.resetFields()}>
-                Clear
-              </Button>
+            <Button onClick={() => addFormInstance.resetFields()}>Clear</Button>
           </Space>
         </Form.Item>
       </Form>
@@ -202,6 +291,20 @@ export default function InventoryClient() {
             key="retailPrice"
             render={(v: number) => `৳${v}`}
           />
+          <Table.Column
+            title="Max Discount (%)"
+            key="maxDiscount"
+            render={(_, record: InventoryItem) => {
+              if (record.purchasePrice && record.retailPrice) {
+                const discount =
+                  ((record.retailPrice - record.purchasePrice) /
+                    record.retailPrice) *
+                  100;
+                return discount.toFixed(2);
+              }
+              return 100;
+            }}
+          />
         </Table>
       )}
 
@@ -210,7 +313,13 @@ export default function InventoryClient() {
         open={modalOpen}
         onCancel={() => {
           setModalOpen(false);
-          setEditForm({ id: undefined, itemName: "", quantity: 0, purchasePrice: 0, retailPrice: 0 });
+          setEditForm({
+            id: undefined,
+            itemName: "",
+            quantity: 0,
+            purchasePrice: 0,
+            retailPrice: 0,
+          });
         }}
         footer={null}
       >
@@ -223,7 +332,9 @@ export default function InventoryClient() {
           >
             <Input
               value={editForm.itemName}
-              onChange={(e) => setEditForm({ ...editForm, itemName: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, itemName: e.target.value })
+              }
             />
           </Form.Item>
 
@@ -277,7 +388,11 @@ export default function InventoryClient() {
 
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit" loading={updateMutation.isPending}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={updateMutation.isPending}
+              >
                 Update Item
               </Button>
               <Button
@@ -290,7 +405,13 @@ export default function InventoryClient() {
               <Button
                 onClick={() => {
                   setModalOpen(false);
-                  setEditForm({ id: undefined, itemName: "", quantity: 0, purchasePrice: 0, retailPrice: 0 });
+                  setEditForm({
+                    id: undefined,
+                    itemName: "",
+                    quantity: 0,
+                    purchasePrice: 0,
+                    retailPrice: 0,
+                  });
                 }}
               >
                 Cancel

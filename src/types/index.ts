@@ -65,6 +65,9 @@ export interface Sale {
   paymentMethod: 'CASH' | 'CARD' | 'MOBILE_PAYMENT' | 'OTHER'
   discountType?: 'PERCENTAGE' | 'FIXED'
   discountValue?: number
+  employee?: { fullName?: string }
+  employeeName?: string
+  employeeFullName?: string
 }
 
 export interface SaleItem {
