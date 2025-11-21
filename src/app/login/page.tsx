@@ -9,6 +9,8 @@ import {
   ShoppingOutlined,
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
+import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
 import api from "@/lib/api";
 
 export default function LoginPage() {
@@ -17,13 +19,22 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (values: { email: string; password: string }) => {
+    if (!auth) {
+      setError("Authentication not configured");
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
     try {
-      const { data } = await api.post("/auth/login", {
-        email: values.email,
-        password: values.password,
+      // Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const idToken = await userCredential.user.getIdToken();
+
+      // Send token to backend
+      const { data } = await api.post("/auth/firebase", {
+        idToken,
       });
 
       // Store tokens and user info
@@ -55,8 +66,62 @@ export default function LoginPage() {
       // Redirect to dashboard
       router.push("/dashboard");
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      setError(e?.response?.data?.message || "Login failed");
+      const e = err as { message?: string };
+      setError(e?.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!auth || !googleProvider) {
+      setError("Google authentication not configured");
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const idToken = await result.user.getIdToken();
+
+      // Send token to backend
+      const { data } = await api.post("/auth/firebase", {
+        idToken,
+      });
+
+      // Store tokens and user info
+      if (data.accessToken) {
+        localStorage.setItem("accessToken", data.accessToken);
+      }
+      if (data.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+      }
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        // Fetch tenant info if user has a tenantId
+        if (data.user.tenantId) {
+          try {
+            const tenantResponse = await api.get("/tenants/me");
+            if (tenantResponse.data) {
+              localStorage.setItem(
+                "tenant",
+                JSON.stringify(tenantResponse.data)
+              );
+            }
+          } catch (err) {
+            console.error("Failed to fetch tenant info:", err);
+          }
+        }
+      }
+
+      // Redirect to dashboard
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setError(e?.message || "Google sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -285,10 +350,7 @@ export default function LoginPage() {
                     block
                     size="large"
                     className="h-12 rounded-lg font-semibold border-2 border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 flex items-center justify-center gap-3"
-                    onClick={() => {
-                      // Redirect to backend Google OAuth endpoint
-                      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
-                    }}
+                    onClick={handleGoogleSignIn}
                   >
                     <svg
                       width="20"
