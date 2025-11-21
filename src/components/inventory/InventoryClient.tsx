@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { InventoryItem } from "@/types";
+import type { InventoryItem, ProductVariant, Product } from "@/types";
 import api from "@/lib/api";
 import {
   Table,
@@ -228,6 +228,53 @@ export default function InventoryClient() {
     return <div className="p-6">Access denied — Owners and employees only</div>;
   }
 
+  const dataSource = useMemo(() => {
+    const grouped = items.reduce(
+      (
+        acc: Record<
+          string,
+          {
+            key: string;
+            itemName?: string;
+            variant?: ProductVariant & { product: Product };
+            children: InventoryItem[];
+            totalQuantity: number;
+            batches: string[];
+          }
+        >,
+        item
+      ) => {
+        const key = item.variantId || item.itemName || "unknown";
+        if (!acc[key]) {
+          acc[key] = {
+            key,
+            itemName: item.itemName,
+            variant: item.variant,
+            children: [],
+            totalQuantity: 0,
+            batches: [],
+          };
+        }
+        acc[key].children.push(item);
+        acc[key].totalQuantity += item.quantity;
+        if (item.batchNo && !acc[key].batches.includes(item.batchNo)) acc[key].batches.push(item.batchNo);
+        return acc;
+      },
+      {}
+    );
+
+    return Object.values(grouped).map((item) => {
+      const prices = item.children.map(c => c.retailPrice);
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      return {
+        ...item,
+        batchInfo: item.batches.length > 1 ? `${item.batches.length} Batches` : item.children[0]?.batchNo || "-",
+        retailPriceRange: min === max ? `৳${min}` : `৳${min} - ৳${max}`,
+      };
+    });
+  }, [items]);
+
   return (
     <>
       <Form
@@ -361,47 +408,18 @@ export default function InventoryClient() {
         <div>Loading…</div>
       ) : (
         <Table
-          dataSource={Object.values(
-            items.reduce(
-              (
-                acc: Record<
-                  string,
-                  {
-                    key: string;
-                    children: InventoryItem[];
-                    totalQuantity: number;
-                    batches: Set<string>;
-                    [key: string]: unknown;
-                  }
-                >,
-                item
-              ) => {
-                const key = item.variantId || item.itemName || "unknown";
-                if (!acc[key]) {
-                  acc[key] = {
-                    ...item,
-                    key,
-                    children: [],
-                    totalQuantity: 0,
-                    batches: new Set(),
-                  };
-                }
-                acc[key].children.push(item);
-                acc[key].totalQuantity += item.quantity;
-                if (item.batchNo) acc[key].batches.add(item.batchNo);
-                return acc;
-              },
-              {}
-            )
-          )}
+          dataSource={dataSource}
           rowKey="key"
           pagination={{ pageSize: 20 }}
           expandable={{
-            expandedRowRender: (record: { children: InventoryItem[] }) => (
+            expandedRowRender: (record: {
+              children: InventoryItem[];
+            }) => (
               <Table
                 dataSource={record.children}
                 rowKey="id"
                 pagination={false}
+                size="small"
                 columns={[
                   {
                     title: "Batch #",
@@ -481,15 +499,9 @@ export default function InventoryClient() {
             render={(
               _,
               record: {
-                batches: Set<string>;
-                children: Array<{ batchNo?: string }>;
+                batchInfo: string;
               }
-            ) => {
-              const count = record.batches.size;
-              return count > 1
-                ? `${count} Batches`
-                : record.children[0]?.batchNo || "-";
-            }}
+            ) => record.batchInfo}
           />
           <Table.Column
             title="Total Stock"
@@ -501,15 +513,8 @@ export default function InventoryClient() {
             key="retailPrice"
             render={(
               _,
-              record: { children: Array<{ retailPrice: number }> }
-            ) => {
-              const prices = record.children.map(
-                (c: { retailPrice: number }) => c.retailPrice
-              );
-              const min = Math.min(...prices);
-              const max = Math.max(...prices);
-              return min === max ? `৳${min}` : `৳${min} - ৳${max}`;
-            }}
+              record: { retailPriceRange: string }
+            ) => record.retailPriceRange}
           />
         </Table>
       )}
