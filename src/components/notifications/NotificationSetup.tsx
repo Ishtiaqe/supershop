@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
 import { Button, message } from "antd";
 import { BellOutlined } from "@ant-design/icons";
 import api from "@/lib/api";
@@ -52,8 +52,16 @@ export default function NotificationSetup() {
         applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY),
       });
 
+      // Allow UI to update before API call
+      await new Promise(resolve => setTimeout(resolve, 0));
+
       await api.post("/notifications/subscribe", subscription);
-      setIsSubscribed(true);
+
+      // Use startTransition for state updates
+      startTransition(() => {
+        setIsSubscribed(true);
+      });
+
       message.success("Notifications enabled!");
     } catch (error) {
       console.error("Failed to subscribe:", error);
@@ -63,8 +71,15 @@ export default function NotificationSetup() {
 
   const requestPermission = async () => {
     const result = await Notification.requestPermission();
-    setPermission(result);
+
+    // Use startTransition for state updates
+    startTransition(() => {
+      setPermission(result);
+    });
+
     if (result === "granted") {
+      // Allow UI to update before subscribing
+      await new Promise(resolve => setTimeout(resolve, 0));
       subscribeUser();
     }
   };

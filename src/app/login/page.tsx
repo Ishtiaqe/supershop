@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, startTransition } from "react";
 import { Form, Input, Button, Alert } from "antd";
 import {
   UserOutlined,
@@ -28,48 +28,61 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Sign in with Firebase Auth
+      // Firebase authentication (this can be slow)
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       const idToken = await userCredential.user.getIdToken();
+
+      // Allow UI to update before making API calls
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       // Send token to backend
       const { data } = await api.post("/auth/firebase", {
         idToken,
       });
 
-      // Store tokens and user info
+      // Store tokens immediately (critical for auth)
       if (data.accessToken) {
         localStorage.setItem("accessToken", data.accessToken);
       }
       if (data.refreshToken) {
         localStorage.setItem("refreshToken", data.refreshToken);
       }
-      if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
 
-        // Fetch tenant info if user has a tenantId
-        if (data.user.tenantId) {
-          try {
-            const tenantResponse = await api.get("/tenants/me");
-            if (tenantResponse.data) {
-              localStorage.setItem(
-                "tenant",
-                JSON.stringify(tenantResponse.data)
-              );
-            }
-          } catch (err) {
-            console.error("Failed to fetch tenant info:", err);
+      // Use startTransition for non-urgent updates
+      startTransition(() => {
+        if (data.user) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+
+          // Fetch tenant info asynchronously (non-blocking)
+          if (data.user.tenantId) {
+            fetchTenantInfo();
           }
         }
-      }
+      });
 
-      // Redirect to dashboard
+      // Allow UI to update before navigation
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Navigate to dashboard
       router.push("/dashboard");
     } catch (err: unknown) {
       const e = err as { message?: string };
       setError(e?.message || "Login failed");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Separate function for tenant info fetching (non-blocking)
+  const fetchTenantInfo = async () => {
+    try {
+      const tenantResponse = await api.get("/tenants/me");
+      if (tenantResponse.data) {
+        localStorage.setItem("tenant", JSON.stringify(tenantResponse.data));
+      }
+    } catch (err) {
+      console.error("Failed to fetch tenant info:", err);
+      // Non-critical error, don't show to user
     }
   };
 
@@ -83,41 +96,42 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // Firebase Google sign-in (can be slow due to popup)
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
+
+      // Allow UI to update before making API calls
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       // Send token to backend
       const { data } = await api.post("/auth/firebase", {
         idToken,
       });
 
-      // Store tokens and user info
+      // Store tokens immediately (critical for auth)
       if (data.accessToken) {
         localStorage.setItem("accessToken", data.accessToken);
       }
       if (data.refreshToken) {
         localStorage.setItem("refreshToken", data.refreshToken);
       }
-      if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
 
-        // Fetch tenant info if user has a tenantId
-        if (data.user.tenantId) {
-          try {
-            const tenantResponse = await api.get("/tenants/me");
-            if (tenantResponse.data) {
-              localStorage.setItem(
-                "tenant",
-                JSON.stringify(tenantResponse.data)
-              );
-            }
-          } catch (err) {
-            console.error("Failed to fetch tenant info:", err);
+      // Use startTransition for non-urgent updates
+      startTransition(() => {
+        if (data.user) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+
+          // Fetch tenant info asynchronously (non-blocking)
+          if (data.user.tenantId) {
+            fetchTenantInfo();
           }
         }
-      }
+      });
 
-      // Redirect to dashboard
+      // Allow UI to update before navigation
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Navigate to dashboard
       router.push("/dashboard");
     } catch (err: unknown) {
       const e = err as { message?: string };

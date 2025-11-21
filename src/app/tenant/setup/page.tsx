@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, startTransition } from 'react'
 import api from '@/lib/api'
 import { Input, Button, Form, Alert, Card } from 'antd'
 import { useRouter } from 'next/navigation'
@@ -13,20 +13,28 @@ export default function TenantSetupPage() {
   const router = useRouter()
 
   const onFinish = async (values: Record<string, unknown>) => {
-    setLoading(true)
-    setError(null)
-    setSuccess(null)
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
 
     try {
-  await api.post('/tenants/setup', values)
-      setSuccess('Tenant created successfully')
+      await api.post('/tenants/setup', values);
+
+      // Use startTransition for success state update
+      startTransition(() => {
+        setSuccess('Tenant created successfully');
+      });
+
+      // Allow UI to update before navigation
+      await new Promise(resolve => setTimeout(resolve, 0));
+
       // Redirect to dashboard after a short delay
-      setTimeout(() => router.push('/dashboard'), 1000)
+      setTimeout(() => router.push('/dashboard'), 1000);
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } }
-      setError(e?.response?.data?.message || 'Failed to setup tenant')
+      const e = err as { response?: { data?: { message?: string } } };
+      setError(e?.response?.data?.message || 'Failed to setup tenant');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 

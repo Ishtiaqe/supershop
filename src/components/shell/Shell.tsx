@@ -99,7 +99,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     {
       key: "/dashboard/sales",
       icon: <BarChartOutlined />,
-      label: <Link href="/dashboard/sales">Sales</Link>,
+      label: <Link href="/dashboard/sales">Sales History</Link>,
     },
     {
       key: "/dashboard/inventory",
@@ -191,10 +191,16 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 danger: true,
                 label: (
                   <a
-                    onClick={() => {
+                    onClick={async () => {
+                      // Clear localStorage items
                       localStorage.removeItem("accessToken");
                       localStorage.removeItem("refreshToken");
                       localStorage.removeItem("user");
+
+                      // Allow UI to update before navigation
+                      await new Promise((resolve) => setTimeout(resolve, 0));
+
+                      // Navigate to login
                       router.push("/login");
                     }}
                     className="flex items-center gap-2"

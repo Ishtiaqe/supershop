@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, startTransition } from 'react'
 import { Card, Avatar, Button, Form, Input, message, Tabs } from 'antd'
 import type { User } from '@/types'
 import api from '@/lib/api'
@@ -21,9 +21,15 @@ export default function ProfilePage() {
         fullName: values.fullName,
         email: values.email,
       })
+
       const updatedUser = response.data
-      localStorage.setItem('user', JSON.stringify(updatedUser))
-      setUser(updatedUser)
+
+      // Use startTransition for state updates
+      startTransition(() => {
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+        setUser(updatedUser)
+      });
+
       message.success('Profile saved')
     } catch (error) {
       message.error('Failed to update profile')
@@ -39,6 +45,10 @@ export default function ProfilePage() {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
       })
+
+      // Allow UI to update before showing success message
+      await new Promise(resolve => setTimeout(resolve, 0));
+
       message.success('Password changed successfully')
     } catch (error) {
       message.error('Failed to change password')
