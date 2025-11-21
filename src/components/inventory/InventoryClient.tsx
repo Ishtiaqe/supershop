@@ -4,6 +4,8 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { InventoryItem, ProductVariant, Product } from "@/types";
 import api from "@/lib/api";
+import { offlineApi } from "@/lib/api-offline";
+import { useOffline } from "@/hooks/useOffline";
 import {
   Table,
   Form,
@@ -32,19 +34,34 @@ interface CatalogItem {
   purchasePrice?: number;
 }
 
-function fetchInventory(): Promise<InventoryItem[]> {
-  return api.get("/inventory").then((r) => r.data);
+// Define a common interface for both online and offline clients
+interface ApiClient {
+  get: (url: string) => Promise<{ data: unknown }>;
+  post: (url: string, data?: unknown) => Promise<{ data: unknown }>;
+  put: (url: string, data?: unknown) => Promise<{ data: unknown }>;
+  delete: (url: string) => Promise<{ data: unknown }>;
 }
 
-async function searchCatalog(query: string): Promise<CatalogItem[]> {
+function fetchInventory(isOnline: boolean): Promise<InventoryItem[]> {
+  const client = (isOnline ? api : offlineApi) as unknown as ApiClient;
+  return client.get("/inventory").then((r) => r.data as InventoryItem[]);
+}
+
+async function searchCatalog(
+  query: string,
+  isOnline: boolean
+): Promise<CatalogItem[]> {
   if (!query || query.length < 2) return [];
+  // Catalog search might only be available online for now, or we need to implement offline search
+  if (!isOnline) return [];
   const response = await api.get(
     `/catalog/search?q=${encodeURIComponent(query)}`
   );
-  return response.data;
+  return response.data as CatalogItem[];
 }
 
 export default function InventoryClient() {
+  const { isOnline } = useOffline();
   const queryClient = useQueryClient();
   const [addFormInstance] = Form.useForm();
   const [editFormInstance] = Form.useForm();
@@ -52,10 +69,20 @@ export default function InventoryClient() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (
+        event.key === "/" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
         // Only trigger if not typing in an input
         const activeElement = document.activeElement as HTMLElement;
-        if (activeElement && (activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA" || activeElement.contentEditable === "true")) {
+        if (
+          activeElement &&
+          (activeElement.tagName === "INPUT" ||
+            activeElement.tagName === "TEXTAREA" ||
+            activeElement.contentEditable === "true")
+        ) {
           return;
         }
         event.preventDefault();
@@ -68,8 +95,9 @@ export default function InventoryClient() {
   }, []);
 
   const { data: items = [], isLoading } = useQuery<InventoryItem[], Error>({
-    queryKey: ["inventory"],
-    queryFn: fetchInventory,
+    queryKey: ["inventory", isOnline], // Add isOnline to queryKey to refetch on status change
+    queryFn: () => fetchInventory(isOnline),
+    select: (data) => (Array.isArray(data) ? data : []), // Ensure data is always an array
   });
 
   const [editForm, setEditForm] = useState<{
@@ -93,18 +121,24 @@ export default function InventoryClient() {
 
   const addMutation = useMutation<InventoryItem, Error, Partial<InventoryItem>>(
     {
-      mutationFn: (payload: Partial<InventoryItem>) =>
-        api.post("/inventory", payload).then((r) => r.data),
+      mutationFn: (payload: Partial<InventoryItem>) => {
+        const client = (isOnline ? api : offlineApi) as unknown as ApiClient;
+        return client
+          .post("/inventory", payload)
+          .then((r) => r.data as InventoryItem);
+      },
       async onSuccess() {
         await queryClient.invalidateQueries({ queryKey: ["inventory"] });
-        await queryClient.invalidateQueries({ queryKey: ["catalog"] });
+        if (isOnline) {
+          await queryClient.invalidateQueries({ queryKey: ["catalog"] });
+        }
       },
     }
   );
 
   const handleCatalogSearch = debounce(async (searchText: string) => {
     if (searchText && searchText.length >= 2) {
-      const results = await searchCatalog(searchText);
+      const results = await searchCatalog(searchText, isOnline);
       setCatalogOptions(results);
     } else {
       setCatalogOptions([]);
@@ -191,8 +225,12 @@ export default function InventoryClient() {
     Error,
     Partial<InventoryItem>
   >({
-    mutationFn: (payload: Partial<InventoryItem>) =>
-      api.put(`/inventory/${payload.id}`, payload).then((r) => r.data),
+    mutationFn: (payload: Partial<InventoryItem>) => {
+      const client = (isOnline ? api : offlineApi) as unknown as ApiClient;
+      return client
+        .put(`/inventory/${payload.id}`, payload)
+        .then((r) => r.data as InventoryItem);
+    },
     async onSuccess() {
       await queryClient.invalidateQueries({ queryKey: ["inventory"] });
       message.success("Item updated successfully");
@@ -209,8 +247,10 @@ export default function InventoryClient() {
   });
 
   const deleteMutation = useMutation<void, Error, string>({
-    mutationFn: (id: string) =>
-      api.delete(`/inventory/${id}`).then((r) => r.data),
+    mutationFn: (id: string) => {
+      const client = (isOnline ? api : offlineApi) as unknown as ApiClient;
+      return client.delete(`/inventory/${id}`).then((r) => r.data as void);
+    },
     async onSuccess() {
       await queryClient.invalidateQueries({ queryKey: ["inventory"] });
       message.success("Item deleted successfully");
@@ -239,6 +279,12 @@ export default function InventoryClient() {
   const user = userJson ? JSON.parse(userJson) : null;
 
   const dataSource = useMemo(() => {
+    // Ensure items is an array before processing
+    if (!Array.isArray(items)) {
+      console.error("Items is not an array:", items);
+      return [];
+    }
+
     const grouped = items.reduce(
       (
         acc: Record<
@@ -267,19 +313,23 @@ export default function InventoryClient() {
         }
         acc[key].children.push(item);
         acc[key].totalQuantity += item.quantity;
-        if (item.batchNo && !acc[key].batches.includes(item.batchNo)) acc[key].batches.push(item.batchNo);
+        if (item.batchNo && !acc[key].batches.includes(item.batchNo))
+          acc[key].batches.push(item.batchNo);
         return acc;
       },
       {}
     );
 
     return Object.values(grouped).map((item) => {
-      const prices = item.children.map(c => c.retailPrice);
+      const prices = item.children.map((c) => c.retailPrice);
       const min = Math.min(...prices);
       const max = Math.max(...prices);
       return {
         ...item,
-        batchInfo: item.batches.length > 1 ? `${item.batches.length} Batches` : item.children[0]?.batchNo || "-",
+        batchInfo:
+          item.batches.length > 1
+            ? `${item.batches.length} Batches`
+            : item.children[0]?.batchNo || "-",
         retailPriceRange: min === max ? `৳${min}` : `৳${min} - ৳${max}`,
       };
     });
@@ -382,15 +432,25 @@ export default function InventoryClient() {
             label="Purchase/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber min={0} prefix="৳" style={{ width: 140 }} inputMode="numeric" />
+            <InputNumber
+              min={0}
+              prefix="৳"
+              style={{ width: 140 }}
+              inputMode="numeric"
+            />
           </Form.Item>
 
           <Form.Item
             name="retailPrice"
-            label="Retail/unit"
+            label="MRP/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber min={0} prefix="৳" style={{ width: 140 }} inputMode="numeric" />
+            <InputNumber
+              min={0}
+              prefix="৳"
+              style={{ width: 140 }}
+              inputMode="numeric"
+            />
           </Form.Item>
 
           {/* <Form.Item name="expiryDate" label="Expiry Date (Optional)">
@@ -424,9 +484,7 @@ export default function InventoryClient() {
           rowKey="key"
           pagination={{ pageSize: 20 }}
           expandable={{
-            expandedRowRender: (record: {
-              children: InventoryItem[];
-            }) => (
+            expandedRowRender: (record: { children: InventoryItem[] }) => (
               <Table
                 dataSource={record.children}
                 rowKey="id"
@@ -523,10 +581,9 @@ export default function InventoryClient() {
           <Table.Column
             title="Retail Price"
             key="retailPrice"
-            render={(
-              _,
-              record: { retailPriceRange: string }
-            ) => record.retailPriceRange}
+            render={(_, record: { retailPriceRange: string }) =>
+              record.retailPriceRange
+            }
           />
         </Table>
       )}
@@ -566,7 +623,11 @@ export default function InventoryClient() {
             label="Quantity"
             rules={[{ required: true }]}
           >
-            <InputNumber min={1} style={{ width: "100%" }} inputMode="numeric" />
+            <InputNumber
+              min={1}
+              style={{ width: "100%" }}
+              inputMode="numeric"
+            />
           </Form.Item>
 
           <Form.Item
@@ -574,15 +635,25 @@ export default function InventoryClient() {
             label="Purchase/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber prefix="৳" min={0} style={{ width: "100%" }} inputMode="numeric" />
+            <InputNumber
+              prefix="৳"
+              min={0}
+              style={{ width: "100%" }}
+              inputMode="numeric"
+            />
           </Form.Item>
 
           <Form.Item
             name="retailPrice"
-            label="Retail/unit"
+            label="MRP/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber prefix="৳" min={0} style={{ width: "100%" }} inputMode="numeric" />
+            <InputNumber
+              prefix="৳"
+              min={0}
+              style={{ width: "100%" }}
+              inputMode="numeric"
+            />
           </Form.Item>
 
           <Form.Item>

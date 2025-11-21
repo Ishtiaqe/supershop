@@ -7,6 +7,7 @@ import { ConfigProvider, theme as antdTheme } from "antd";
 import React from "react";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+import { OfflineProvider } from "./providers/OfflineProvider";
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -115,21 +116,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeContext.Provider value={{ mode, setMode }}>
       <ConfigProvider theme={themeConfig}>
-        {persister ? (
-          <PersistQueryClientProvider
-            client={queryClient}
-            persistOptions={{ persister }}
-          >
-            {children}
-            <ReactQueryDevtools initialIsOpen={false} />
-          </PersistQueryClientProvider>
-        ) : (
-          // Fallback for SSR or if persistence fails
-          <QueryClientProvider client={queryClient}>
-            {children}
-            <ReactQueryDevtools initialIsOpen={false} />
-          </QueryClientProvider>
-        )}
+        <OfflineProvider>
+          {persister ? (
+            <PersistQueryClientProvider
+              client={queryClient}
+              persistOptions={{ persister }}
+            >
+              {children}
+              <ReactQueryDevtools initialIsOpen={false} />
+            </PersistQueryClientProvider>
+          ) : (
+            // Fallback for SSR or if persistence fails
+            <QueryClientProvider client={queryClient}>
+              {children}
+              <ReactQueryDevtools initialIsOpen={false} />
+            </QueryClientProvider>
+          )}
+        </OfflineProvider>
       </ConfigProvider>
     </ThemeContext.Provider>
   );
