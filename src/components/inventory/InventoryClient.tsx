@@ -224,10 +224,6 @@ export default function InventoryClient() {
     typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const user = userJson ? JSON.parse(userJson) : null;
 
-  if (!user || (user.role !== "OWNER" && user.role !== "EMPLOYEE")) {
-    return <div className="p-6">Access denied — Owners and employees only</div>;
-  }
-
   const dataSource = useMemo(() => {
     const grouped = items.reduce(
       (
@@ -274,6 +270,10 @@ export default function InventoryClient() {
       };
     });
   }, [items]);
+
+  if (!user || (user.role !== "OWNER" && user.role !== "EMPLOYEE")) {
+    return <div className="p-6">Access denied — Owners and employees only</div>;
+  }
 
   return (
     <>
