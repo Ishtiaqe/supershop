@@ -1,5 +1,11 @@
 import dynamic from "next/dynamic";
 import { Card } from "antd";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Point of Sale - SuperShop",
+  description: "Process sales and manage transactions",
+};
 
 const POSClient = dynamic(() => import("@/components/pos/POSClient"), {
   ssr: false,

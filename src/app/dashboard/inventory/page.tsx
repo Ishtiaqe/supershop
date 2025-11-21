@@ -1,17 +1,25 @@
-import dynamic from 'next/dynamic'
-import { Card } from 'antd'
+import dynamic from "next/dynamic";
+import { Card } from "antd";
+import { Metadata } from "next";
 
-const InventoryClient = dynamic(() => import('@/components/inventory/InventoryClient'), {
-  ssr: false,
-})
+export const metadata: Metadata = {
+  title: "Inventory Management - SuperShop",
+  description: "Manage stock levels and batch tracking",
+};
+
+const InventoryClient = dynamic(
+  () => import("@/components/inventory/InventoryClient"),
+  {
+    ssr: false,
+  }
+);
 
 export default function InventoryPage() {
   return (
-    <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-        <Card title="Inventory">
-          <InventoryClient />
-        </Card>
-      </div>
-  
-  )
+    <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+      <Card title="Inventory">
+        <InventoryClient />
+      </Card>
+    </div>
+  );
 }

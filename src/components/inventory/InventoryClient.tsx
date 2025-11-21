@@ -14,36 +14,69 @@ import {
   Typography,
   Modal,
   message,
+  AutoComplete,
+  Select,
+  DatePicker,
 } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
+import { debounce } from "lodash";
+import dayjs from "dayjs";
+
+interface CatalogItem {
+  variantId: string;
+  productName: string;
+  variantName: string;
+  sku: string;
+  retailPrice: number;
+  productType?: string;
+  genericName?: string;
+  manufacturerName?: string;
+  purchasePrice?: number;
+}
 
 function fetchInventory(): Promise<InventoryItem[]> {
   return api.get("/inventory").then((r) => r.data);
+}
+
+async function searchCatalog(query: string): Promise<CatalogItem[]> {
+  if (!query || query.length < 2) return [];
+  const response = await api.get(
+    `/catalog/search?q=${encodeURIComponent(query)}`
+  );
+  return response.data;
 }
 
 export default function InventoryClient() {
   const queryClient = useQueryClient();
   const [addFormInstance] = Form.useForm();
   const [editFormInstance] = Form.useForm();
+
   const { data: items = [], isLoading } = useQuery<InventoryItem[], Error>({
     queryKey: ["inventory"],
     queryFn: fetchInventory,
   });
+
   const [editForm, setEditForm] = useState<{
     id?: string;
     itemName: string;
     quantity: number;
     purchasePrice: number;
     retailPrice: number;
-    // maxDiscount?: number;
   }>({
     id: undefined,
     itemName: "",
     quantity: 0,
     purchasePrice: 0,
     retailPrice: 0,
-    // maxDiscount: undefined,
   });
+
   const [modalOpen, setModalOpen] = useState(false);
+  const [catalogOptions, setCatalogOptions] = useState<CatalogItem[]>([]);
+  const [selectedFromCatalog, setSelectedFromCatalog] =
+    useState<CatalogItem | null>(null);
+  const [productType, setProductType] = useState<"GENERAL" | "MEDICINE">(
+    "GENERAL"
+  );
 
   const addMutation = useMutation<InventoryItem, Error, Partial<InventoryItem>>(
     {
@@ -51,13 +84,42 @@ export default function InventoryClient() {
         api.post("/inventory", payload).then((r) => r.data),
       async onSuccess() {
         await queryClient.invalidateQueries({ queryKey: ["inventory"] });
+        await queryClient.invalidateQueries({ queryKey: ["catalog"] });
       },
     }
   );
 
+  const handleCatalogSearch = debounce(async (searchText: string) => {
+    if (searchText && searchText.length >= 2) {
+      const results = await searchCatalog(searchText);
+      setCatalogOptions(results);
+    } else {
+      setCatalogOptions([]);
+    }
+  }, 300);
+
+  const handleCatalogSelect = (value: string) => {
+    const selected = catalogOptions.find(
+      (item) => `${item.productName} - ${item.variantName}` === value
+    );
+
+    if (selected) {
+      setSelectedFromCatalog(selected);
+      setProductType(
+        (selected.productType as "GENERAL" | "MEDICINE") || "GENERAL"
+      );
+      addFormInstance.setFieldsValue({
+        retailPrice: selected.retailPrice,
+        purchasePrice: selected.purchasePrice,
+        productType: selected.productType || "GENERAL",
+        genericName: selected.genericName,
+        manufacturerName: selected.manufacturerName,
+      });
+    }
+  };
+
   const submitAdd = async () => {
     const values = addFormInstance.getFieldsValue();
-    // ensure maxDiscount is not greater than computed max
     const computed = computeMaxDiscount(
       values.purchasePrice,
       values.retailPrice
@@ -68,8 +130,22 @@ export default function InventoryClient() {
     ) {
       values.maxDiscount = computed;
     }
-    await addMutation.mutateAsync(values);
+
+    // Convert dates to ISO strings if present
+    const payload = {
+      ...values,
+      variantId: selectedFromCatalog?.variantId,
+      expiryDate: values.expiryDate
+        ? dayjs(values.expiryDate).toISOString()
+        : undefined,
+      mfgDate: values.mfgDate ? dayjs(values.mfgDate).toISOString() : undefined,
+    };
+
+    await addMutation.mutateAsync(payload);
     addFormInstance.resetFields();
+    setSelectedFromCatalog(null);
+    setCatalogOptions([]);
+    setProductType("GENERAL");
     message.success("Item added successfully");
   };
 
@@ -131,7 +207,6 @@ export default function InventoryClient() {
         quantity: 0,
         purchasePrice: 0,
         retailPrice: 0,
-        // maxDiscount: undefined,
       });
       setModalOpen(false);
     },
@@ -171,23 +246,76 @@ export default function InventoryClient() {
             );
             addFormInstance.setFieldsValue({ maxDiscount: computed });
           }
+          if ("productType" in changedValues) {
+            setProductType(changedValues.productType);
+          }
         }}
       >
         <Form.Item
           name="itemName"
-          label="Item name"
-          rules={[{ required: true }]}
+          label="Item Name (Search catalog or enter new)"
+          rules={[{ required: true, message: "Please enter item name" }]}
         >
-          <Input />
+          <AutoComplete
+            options={catalogOptions.map((item) => ({
+              value: `${item.productName} - ${item.variantName}`,
+              label: (
+                <div>
+                  <div className="font-medium">
+                    {item.productName} - {item.variantName}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    SKU: {item.sku} | ৳{item.retailPrice}
+                    {item.genericName && ` | ${item.genericName}`}
+                  </div>
+                </div>
+              ),
+            }))}
+            onSearch={handleCatalogSearch}
+            onSelect={handleCatalogSelect}
+            placeholder="Type to search catalog or enter new product name"
+            notFoundContent="No matches found - will create new catalog entry"
+            suffixIcon={<SearchOutlined />}
+          />
         </Form.Item>
 
-        <Space size={8} className="mb-2">
+        <Space size={8} className="mb-2 flex-wrap">
+          <Form.Item
+            name="productType"
+            label="Product Type"
+            initialValue="GENERAL"
+          >
+            <Select style={{ width: 140 }}>
+              <Select.Option value="GENERAL">General</Select.Option>
+              <Select.Option value="MEDICINE">Medicine</Select.Option>
+            </Select>
+          </Form.Item>
+
+          {productType === "MEDICINE" && (
+            <Form.Item name="genericName" label="Generic Name">
+              <Input placeholder="e.g., Acetaminophen" style={{ width: 200 }} />
+            </Form.Item>
+          )}
+
+          <Form.Item name="manufacturerName" label="Manufacturer">
+            <Input placeholder="e.g., Square" style={{ width: 200 }} />
+          </Form.Item>
+
+          <Form.Item name="batchNo" label="Batch Number">
+            <Input
+              placeholder="Auto-generated if empty"
+              style={{ width: 200 }}
+            />
+          </Form.Item>
+        </Space>
+
+        <Space size={8} className="mb-2 flex-wrap">
           <Form.Item
             name="quantity"
             label="Quantity"
             rules={[{ required: true }]}
           >
-            <InputNumber min={1} />
+            <InputNumber min={1} style={{ width: 120 }} />
           </Form.Item>
 
           <Form.Item
@@ -195,7 +323,7 @@ export default function InventoryClient() {
             label="Purchase/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber min={0} prefix="৳" />
+            <InputNumber min={0} prefix="৳" style={{ width: 140 }} />
           </Form.Item>
 
           <Form.Item
@@ -203,121 +331,186 @@ export default function InventoryClient() {
             label="Retail/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber min={0} prefix="৳" />
+            <InputNumber min={0} prefix="৳" style={{ width: 140 }} />
           </Form.Item>
-          {/* <Form.Item
-            name="maxDiscount"
-            label="Max Discount (%)"
-            rules={[
-              { required: true },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  const pp = getFieldValue("purchasePrice");
-                  const rp = getFieldValue("retailPrice");
-                  const computed = computeMaxDiscount(pp, rp);
-                  if (value == null) return Promise.resolve();
-                  if (value <= computed) return Promise.resolve();
-                  return Promise.reject(
-                    new Error(`Max discount cannot exceed ${computed}%`)
-                  );
-                },
-              }),
-            ]}
-          >
-            <InputNumber
-              min={0}
-              max={100}
-              formatter={(v) => `${v}%`}
-              parser={(v: string | undefined) => parseFloat((v || '').replace('%', '')) || 0}
-            /> */}
-          {/* </Form.Item> */}
+
+          <Form.Item name="expiryDate" label="Expiry Date (Optional)">
+            <DatePicker style={{ width: 160 }} format="YYYY-MM-DD" />
+          </Form.Item>
+
+          <Form.Item name="mfgDate" label="Mfg Date (Optional)">
+            <DatePicker style={{ width: 160 }} format="YYYY-MM-DD" />
+          </Form.Item>
         </Space>
 
         <Form.Item>
-          <Space>
-            <Button
-              type="primary"
-              color="green"
-              variant="solid"
-              htmlType="submit"
-              loading={addMutation.isPending}
-            >
-              Add Item
-            </Button>
-            {/* <Button onClick={() => addFormInstance.resetFields()}>Clear</Button> */}
-          </Space>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={addMutation.isPending}
+            size="large"
+          >
+            Add Item
+          </Button>
         </Form.Item>
       </Form>
 
-      <Typography.Title level={4}>Items</Typography.Title>
+      <Typography.Title level={4}>Inventory Items</Typography.Title>
 
       {isLoading ? (
         <div>Loading…</div>
       ) : (
-        <Table dataSource={items} rowKey="id" pagination={false}>
-          <Table.Column
-            title="Actions"
-            key="actions"
-            render={(_, record: InventoryItem) => (
-              <Button
-                color="cyan"
-                variant="filled"
-                onClick={() => {
-                  setEditForm({
-                    id: record.id,
-                    itemName: record.itemName || "",
-                    quantity: record.quantity || 0,
-                    purchasePrice: record.purchasePrice || 0,
-                    retailPrice: record.retailPrice || 0,
-                  });
-                  editFormInstance.setFieldsValue({
-                    itemName: record.itemName || "",
-                    quantity: record.quantity || 0,
-                    purchasePrice: record.purchasePrice || 0,
-                    retailPrice: record.retailPrice || 0,
-                  });
-                  setModalOpen(true);
-                }}
-              >
-                Edit
-              </Button>
-            )}
-          />
+        <Table
+          dataSource={Object.values(
+            items.reduce(
+              (
+                acc: Record<
+                  string,
+                  {
+                    key: string;
+                    children: InventoryItem[];
+                    totalQuantity: number;
+                    batches: Set<string>;
+                    [key: string]: unknown;
+                  }
+                >,
+                item
+              ) => {
+                const key = item.variantId || item.itemName || "unknown";
+                if (!acc[key]) {
+                  acc[key] = {
+                    ...item,
+                    key,
+                    children: [],
+                    totalQuantity: 0,
+                    batches: new Set(),
+                  };
+                }
+                acc[key].children.push(item);
+                acc[key].totalQuantity += item.quantity;
+                if (item.batchNo) acc[key].batches.add(item.batchNo);
+                return acc;
+              },
+              {}
+            )
+          )}
+          rowKey="key"
+          pagination={{ pageSize: 20 }}
+          expandable={{
+            expandedRowRender: (record: { children: InventoryItem[] }) => (
+              <Table
+                dataSource={record.children}
+                rowKey="id"
+                pagination={false}
+                columns={[
+                  {
+                    title: "Batch #",
+                    dataIndex: "batchNo",
+                    render: (t) => t || "-",
+                  },
+                  { title: "Quantity", dataIndex: "quantity" },
+                  {
+                    title: "Purchase",
+                    dataIndex: "purchasePrice",
+                    render: (v) => `৳${v}`,
+                  },
+                  {
+                    title: "Retail",
+                    dataIndex: "retailPrice",
+                    render: (v) => `৳${v}`,
+                  },
+                  {
+                    title: "Expiry",
+                    dataIndex: "expiryDate",
+                    render: (d) => (d ? dayjs(d).format("YYYY-MM-DD") : "-"),
+                  },
+                  {
+                    title: "Actions",
+                    render: (_, subRecord: InventoryItem) => (
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setEditForm({
+                            id: subRecord.id,
+                            itemName: subRecord.itemName || "",
+                            quantity: subRecord.quantity || 0,
+                            purchasePrice: subRecord.purchasePrice || 0,
+                            retailPrice: subRecord.retailPrice || 0,
+                          });
+                          editFormInstance.setFieldsValue({
+                            itemName: subRecord.itemName || "",
+                            quantity: subRecord.quantity || 0,
+                            purchasePrice: subRecord.purchasePrice || 0,
+                            retailPrice: subRecord.retailPrice || 0,
+                          });
+                          setModalOpen(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    ),
+                  },
+                ]}
+              />
+            ),
+          }}
+        >
           <Table.Column
             title="Item Name"
-            dataIndex="itemName"
             key="itemName"
-            render={(text, record: InventoryItem) =>
-              text || record.variantId || "Unnamed item"
-            }
-          />
-          <Table.Column title="Quantity" dataIndex="quantity" key="quantity" />
-          <Table.Column
-            title="Purchase/unit"
-            dataIndex="purchasePrice"
-            key="purchasePrice"
-            render={(v: number) => `৳${v}`}
-          />
-          <Table.Column
-            title="Retail/unit"
-            dataIndex="retailPrice"
-            key="retailPrice"
-            render={(v: number) => `৳${v}`}
-          />
-          {/* <Table.Column
-            title="Max Discount (%)"
-            key="maxDiscount"
-            render={(_, record: InventoryItem) => {
-              if (record.purchasePrice && record.retailPrice) {
-                const discount =
-                  ((record.retailPrice - record.purchasePrice) /
-                    record.retailPrice) *
-                  100;
-                return discount.toFixed(2);
+            render={(
+              _,
+              record: {
+                variant?: { product: { name: string }; variantName: string };
+                itemName?: string;
               }
-              return 100;
+            ) => {
+              if (record.variant) {
+                const productName = record.variant.product.name;
+                const variantName = record.variant.variantName;
+                return variantName === "Standard"
+                  ? productName
+                  : `${productName} - ${variantName}`;
+              }
+              return record.itemName || "Unnamed item";
             }}
-          /> */}
+          />
+          <Table.Column
+            title="Batch Info"
+            key="batchInfo"
+            render={(
+              _,
+              record: {
+                batches: Set<string>;
+                children: Array<{ batchNo?: string }>;
+              }
+            ) => {
+              const count = record.batches.size;
+              return count > 1
+                ? `${count} Batches`
+                : record.children[0]?.batchNo || "-";
+            }}
+          />
+          <Table.Column
+            title="Total Stock"
+            dataIndex="totalQuantity"
+            key="totalQuantity"
+          />
+          <Table.Column
+            title="Retail Price"
+            key="retailPrice"
+            render={(
+              _,
+              record: { children: Array<{ retailPrice: number }> }
+            ) => {
+              const prices = record.children.map(
+                (c: { retailPrice: number }) => c.retailPrice
+              );
+              const min = Math.min(...prices);
+              const max = Math.max(...prices);
+              return min === max ? `৳${min}` : `৳${min} - ৳${max}`;
+            }}
+          />
         </Table>
       )}
 
@@ -337,7 +530,12 @@ export default function InventoryClient() {
         }}
         footer={null}
       >
-        <Form form={editFormInstance} layout="vertical" onFinish={submitEdit} className="mt-4">
+        <Form
+          form={editFormInstance}
+          layout="vertical"
+          onFinish={submitEdit}
+          className="mt-4"
+        >
           <Form.Item
             name="itemName"
             label="Item name"
@@ -351,10 +549,7 @@ export default function InventoryClient() {
             label="Quantity"
             rules={[{ required: true }]}
           >
-            <InputNumber
-              min={1}
-              style={{ width: "100%" }}
-            />
+            <InputNumber min={1} style={{ width: "100%" }} />
           </Form.Item>
 
           <Form.Item
@@ -362,11 +557,7 @@ export default function InventoryClient() {
             label="Purchase/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber
-              prefix="৳"
-              min={0}
-              style={{ width: "100%" }}
-            />
+            <InputNumber prefix="৳" min={0} style={{ width: "100%" }} />
           </Form.Item>
 
           <Form.Item
@@ -374,11 +565,7 @@ export default function InventoryClient() {
             label="Retail/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber
-              prefix="৳"
-              min={0}
-              style={{ width: "100%" }}
-            />
+            <InputNumber prefix="৳" min={0} style={{ width: "100%" }} />
           </Form.Item>
 
           <Form.Item>
@@ -392,8 +579,6 @@ export default function InventoryClient() {
               </Button>
               <Button
                 danger
-                color="red"
-                variant="filled"
                 onClick={handleDelete}
                 loading={deleteMutation.isPending}
               >

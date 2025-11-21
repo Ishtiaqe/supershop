@@ -49,6 +49,7 @@ export interface InventoryItem {
   expiryDate?: Date
   mfgDate?: Date
   batchNo?: string
+  variant?: ProductVariant & { product: Product }
 }
 
 export interface Sale {

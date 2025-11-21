@@ -1,10 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
-import { InventoryItem, ProductVariant, Product } from "@/types";
-import { Select, InputNumber, Button, Table, Row, Col, Typography } from "antd";
+import { InventoryItem } from "@/types";
+import {
+  Select,
+  InputNumber,
+  Button,
+  Table,
+  Row,
+  Col,
+  Typography,
+  message,
+  Input,
+} from "antd";
 
 function fetchInventory(q?: string) {
   try {
@@ -55,14 +65,81 @@ export default function POSClient() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data: items = [], isFetching: itemsLoading } = useQuery({
+  const { data: rawItems = [], isFetching: itemsLoading } = useQuery({
     queryKey: ["inventory", debouncedSearch],
     queryFn: () => fetchInventory(debouncedSearch),
   });
-  const [selected, setSelected] = useState<string | null>(null);
+
+  // Aggregate items by variant/product
+  const aggregatedItems = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        key: string;
+        name: string;
+        sku: string;
+        totalQty: number;
+        retailPrice: number; // Using the price of the first batch (usually oldest or latest depending on sort)
+        batches: InventoryItem[];
+      }
+    >();
+
+    // Sort raw items by expiry date (FIFO)
+    const sortedRaw = [...(rawItems as InventoryItem[])].sort((a, b) => {
+      if (!a.expiryDate) return 1;
+      if (!b.expiryDate) return -1;
+      return (
+        new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime()
+      );
+    });
+
+    sortedRaw.forEach((item) => {
+      const variantId = item.variantId;
+      const itemName = item.itemName;
+      // Key: prefer variantId, fallback to itemName for ad-hoc
+      const key = variantId || itemName || "unknown";
+
+      if (!map.has(key)) {
+        const name = item.variant
+          ? `${item.variant.product.name}${
+              item.variant.variantName !== "Standard"
+                ? ` - ${item.variant.variantName}`
+                : ""
+            }`
+          : item.itemName || "Unknown Item";
+
+        const sku = item.variant?.sku || "-";
+
+        map.set(key, {
+          key,
+          name,
+          sku,
+          totalQty: 0,
+          retailPrice: item.retailPrice,
+          batches: [],
+        });
+      }
+
+      const entry = map.get(key)!;
+      entry.totalQty += item.quantity;
+      entry.batches.push(item);
+    });
+
+    return Array.from(map.values());
+  }, [rawItems]);
+
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [qty, setQty] = useState<number>(1);
+  const [customerName, setCustomerName] = useState<string>("");
+  const [customerPhone, setCustomerPhone] = useState<string>("");
   const [cart, setCart] = useState<
-    Array<{ inventoryId: string; unitPrice: number; quantity: number }>
+    Array<{
+      key: string;
+      name: string;
+      unitPrice: number;
+      quantity: number;
+      batches: InventoryItem[];
+    }>
   >([]);
 
   const saleMutation = useMutation({
@@ -72,6 +149,8 @@ export default function POSClient() {
         quantity: number;
         unitPrice: number;
       }>;
+      customerName?: string;
+      customerPhone?: string;
     }) => api.post("/sales", payload).then((r) => r.data),
     onSuccess() {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
@@ -86,35 +165,116 @@ export default function POSClient() {
       } catch {
         // ignore sessionStorage errors
       }
+      message.success("Sale completed successfully!");
+    },
+    onError(err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      message.error(error.response?.data?.message || "Sale failed");
     },
   });
 
   function addToCart() {
-    if (!selected) return;
-    const inventory = items.find((i: { id: string }) => i.id === selected);
-    if (!inventory) return;
-    setCart([
-      ...cart,
-      {
-        inventoryId: inventory.id,
-        unitPrice: inventory.retailPrice,
-        quantity: qty,
-      },
-    ]);
-    setSelected(null);
+    if (!selectedKey) return;
+    const item = aggregatedItems.find((i) => i.key === selectedKey);
+    if (!item) return;
+
+    // Check if already in cart
+    const existingIdx = cart.findIndex((c) => c.key === selectedKey);
+    if (existingIdx >= 0) {
+      const newCart = [...cart];
+      newCart[existingIdx].quantity += qty;
+      setCart(newCart);
+    } else {
+      setCart([
+        ...cart,
+        {
+          key: item.key,
+          name: item.name,
+          unitPrice: item.retailPrice,
+          quantity: qty,
+          batches: item.batches,
+        },
+      ]);
+    }
+
+    setSelectedKey(null);
     setQty(1);
+    setSearch(""); // Clear search
+  }
+
+  function removeFromCart(index: number) {
+    const newCart = [...cart];
+    newCart.splice(index, 1);
+    setCart(newCart);
   }
 
   function checkout() {
-    const payload = { items: cart };
-    saleMutation.mutate(payload);
+    const payloadItems: Array<{
+      inventoryId: string;
+      quantity: number;
+      unitPrice: number;
+    }> = [];
+
+    // Allocate stock from batches (FIFO)
+    for (const cartItem of cart) {
+      let remainingQty = cartItem.quantity;
+
+      // Batches are already sorted by expiry (FIFO) in aggregation
+      for (const batch of cartItem.batches) {
+        if (remainingQty <= 0) break;
+
+        const take = Math.min(remainingQty, batch.quantity);
+        if (take > 0) {
+          payloadItems.push({
+            inventoryId: batch.id,
+            quantity: take,
+            unitPrice: batch.retailPrice, // Use batch specific price
+          });
+          remainingQty -= take;
+        }
+      }
+
+      if (remainingQty > 0) {
+        message.error(
+          `Insufficient stock for ${cartItem.name}. Short by ${remainingQty}.`
+        );
+        return;
+      }
+    }
+
+    saleMutation.mutate({
+      items: payloadItems,
+      customerName: customerName || undefined,
+      customerPhone: customerPhone || undefined,
+    });
     setCart([]);
+    setCustomerName("");
+    setCustomerPhone("");
   }
 
   const total = cart.reduce((s, it) => s + it.quantity * it.unitPrice, 0);
 
   return (
     <div>
+      <Row gutter={16} className="mb-4">
+        <Col span={12}>
+          <Typography.Text>Customer Name (Optional)</Typography.Text>
+          <Input
+            placeholder="Enter customer name"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+          />
+        </Col>
+        <Col span={12}>
+          <Typography.Text>Customer Phone (Optional)</Typography.Text>
+          <Input
+            placeholder="Enter phone number"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+          />
+        </Col>
+      </Row>
+
       <Row gutter={16} align="bottom">
         <Col span={12}>
           <Typography.Text>Select Item</Typography.Text>
@@ -124,31 +284,42 @@ export default function POSClient() {
             allowClear
             placeholder="Type to search inventory or SKU..."
             style={{ width: "100%" }}
-            value={selected ?? undefined}
+            value={selectedKey ?? undefined}
             onSearch={(val) => setSearch(val)}
-            onChange={(val) => {
-              setSelected(val);
-              // clear the search box when an item is selected
-              setSearch("");
-            }}
+            onChange={(val) => setSelectedKey(val)}
             notFoundContent={itemsLoading ? "Searching..." : "No results"}
-            options={(
-              items as (InventoryItem & {
-                variant?: ProductVariant & { product?: Product };
-              })[]
-            ).map((it) => ({
-              label: `${
-                it.itemName ||
-                it.variant?.variantName ||
-                it.variant?.product?.name ||
-                it.variant?.sku
-              } (Qty: ${it.quantity})`,
-              value: it.id,
+            options={aggregatedItems.map((it) => ({
+              label: (
+                <div className="flex justify-between items-center w-full">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-900">{it.name}</span>
+                    <span className="text-xs text-gray-500">SKU: {it.sku}</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="font-bold text-blue-600">
+                      ৳{it.retailPrice}
+                    </span>
+                    <span
+                      className={`text-xs ${
+                        it.totalQty > 0 ? "text-green-600" : "text-red-500"
+                      }`}
+                    >
+                      {it.totalQty > 0
+                        ? `${it.totalQty} in stock`
+                        : "Out of stock"}
+                    </span>
+                  </div>
+                </div>
+              ),
+              value: it.key,
+              displayLabel: it.name,
+              disabled: it.totalQty <= 0,
             }))}
+            optionLabelProp="displayLabel"
           />
         </Col>
 
-        <Col span={2}>
+        <Col span={8}>
           <Typography.Text>Quantity</Typography.Text>
           <InputNumber
             variant="outlined"
@@ -162,30 +333,31 @@ export default function POSClient() {
       </Row>
 
       <div style={{ marginTop: 16 }}>
-        <Button type="primary" onClick={addToCart}>
+        <Button type="primary" onClick={addToCart} disabled={!selectedKey}>
           Add to cart
         </Button>
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <Table
-          dataSource={cart}
-          rowKey={(row) =>
-            `${row.inventoryId}-${row.quantity}-${Math.random()}`
-          }
-          pagination={false}
-        >
+        <Table dataSource={cart} rowKey="key" pagination={false}>
+          <Table.Column title="Item" dataIndex="name" key="name" />
           <Table.Column
-            title="Item"
-            dataIndex="inventoryId"
-            key="inventoryId"
-            render={(val: string) =>
-              items.find(
-                (it: { id: string; itemName?: string }) => it.id === val
-              )?.itemName || "Item"
-            }
+            title="Quantity"
+            dataIndex="quantity"
+            key="quantity"
+            render={(qty: number, _record: unknown, index: number) => (
+              <InputNumber
+                min={1}
+                value={qty}
+                onChange={(value) => {
+                  const newCart = [...cart];
+                  newCart[index].quantity = Number(value) || 1;
+                  setCart(newCart);
+                }}
+                style={{ width: 80 }}
+              />
+            )}
           />
-          <Table.Column title="Quantity" dataIndex="quantity" key="quantity" />
           <Table.Column
             title="Unit Price"
             dataIndex="unitPrice"
@@ -201,20 +373,31 @@ export default function POSClient() {
               record: { quantity: number; unitPrice: number }
             ) => `৳${(record.quantity * record.unitPrice).toFixed(2)}`}
           />
+          <Table.Column
+            title="Action"
+            key="action"
+            render={(_, __, index) => (
+              <Button danger size="small" onClick={() => removeFromCart(index)}>
+                Remove
+              </Button>
+            )}
+          />
         </Table>
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <div style={{ fontWeight: 700 }}>Total: ৳{total.toFixed(2)}</div>
+        <div style={{ fontWeight: 700, fontSize: "1.2em" }}>
+          Total: ৳{total.toFixed(2)}
+        </div>
         <Button
           type="primary"
-          color="green"
-          variant="solid"
+          size="large"
           onClick={checkout}
-          className="mt-2"
-          disabled={cart.length === 0 || saleMutation.status === "pending"}
+          className="mt-4 w-full"
+          disabled={cart.length === 0 || saleMutation.isPending}
+          loading={saleMutation.isPending}
         >
-          {saleMutation.status === "pending" ? "Processing…" : "Complete Sale"}
+          {saleMutation.isPending ? "Processing Sale..." : "Complete Sale"}
         </Button>
       </div>
     </div>
