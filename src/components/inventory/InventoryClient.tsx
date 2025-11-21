@@ -15,8 +15,6 @@ import {
   Modal,
   message,
   AutoComplete,
-  Select,
-  DatePicker,
 } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { debounce } from "lodash";
@@ -92,9 +90,6 @@ export default function InventoryClient() {
   const [catalogOptions, setCatalogOptions] = useState<CatalogItem[]>([]);
   const [selectedFromCatalog, setSelectedFromCatalog] =
     useState<CatalogItem | null>(null);
-  const [productType, setProductType] = useState<"GENERAL" | "MEDICINE">(
-    "GENERAL"
-  );
 
   const addMutation = useMutation<InventoryItem, Error, Partial<InventoryItem>>(
     {
@@ -123,9 +118,6 @@ export default function InventoryClient() {
 
     if (selected) {
       setSelectedFromCatalog(selected);
-      setProductType(
-        (selected.productType as "GENERAL" | "MEDICINE") || "GENERAL"
-      );
       addFormInstance.setFieldsValue({
         retailPrice: selected.retailPrice,
         purchasePrice: selected.purchasePrice,
@@ -163,7 +155,6 @@ export default function InventoryClient() {
     addFormInstance.resetFields();
     setSelectedFromCatalog(null);
     setCatalogOptions([]);
-    setProductType("GENERAL");
     message.success("Item added successfully");
 
     // Focus back to Item Name field for quick successive additions
@@ -316,9 +307,6 @@ export default function InventoryClient() {
             );
             addFormInstance.setFieldsValue({ maxDiscount: computed });
           }
-          if ("productType" in changedValues) {
-            setProductType(changedValues.productType);
-          }
         }}
       >
         <Form.Item
@@ -386,7 +374,7 @@ export default function InventoryClient() {
             label="Quantity"
             rules={[{ required: true }]}
           >
-            <InputNumber min={1} style={{ width: 120 }} />
+            <InputNumber min={1} style={{ width: 120 }} inputMode="numeric" />
           </Form.Item>
 
           <Form.Item
@@ -394,7 +382,7 @@ export default function InventoryClient() {
             label="Purchase/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber min={0} prefix="৳" style={{ width: 140 }} />
+            <InputNumber min={0} prefix="৳" style={{ width: 140 }} inputMode="numeric" />
           </Form.Item>
 
           <Form.Item
@@ -402,7 +390,7 @@ export default function InventoryClient() {
             label="Retail/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber min={0} prefix="৳" style={{ width: 140 }} />
+            <InputNumber min={0} prefix="৳" style={{ width: 140 }} inputMode="numeric" />
           </Form.Item>
 
           {/* <Form.Item name="expiryDate" label="Expiry Date (Optional)">
@@ -578,7 +566,7 @@ export default function InventoryClient() {
             label="Quantity"
             rules={[{ required: true }]}
           >
-            <InputNumber min={1} style={{ width: "100%" }} />
+            <InputNumber min={1} style={{ width: "100%" }} inputMode="numeric" />
           </Form.Item>
 
           <Form.Item
@@ -586,7 +574,7 @@ export default function InventoryClient() {
             label="Purchase/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber prefix="৳" min={0} style={{ width: "100%" }} />
+            <InputNumber prefix="৳" min={0} style={{ width: "100%" }} inputMode="numeric" />
           </Form.Item>
 
           <Form.Item
@@ -594,7 +582,7 @@ export default function InventoryClient() {
             label="Retail/unit"
             rules={[{ required: true }]}
           >
-            <InputNumber prefix="৳" min={0} style={{ width: "100%" }} />
+            <InputNumber prefix="৳" min={0} style={{ width: "100%" }} inputMode="numeric" />
           </Form.Item>
 
           <Form.Item>
