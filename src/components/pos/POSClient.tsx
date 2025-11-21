@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { InventoryItem } from "@/types";
@@ -58,6 +58,7 @@ export default function POSClient() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const selectRef = useRef<React.ComponentRef<typeof Select>>(null);
 
   // debounce input so we don't call the API on every keystroke
   useEffect(() => {
@@ -200,6 +201,11 @@ export default function POSClient() {
     setSelectedKey(null);
     setQty(1);
     setSearch(""); // Clear search
+
+    // Focus back to the item select
+    setTimeout(() => {
+      selectRef.current?.focus();
+    }, 0);
   }
 
   function removeFromCart(index: number) {
@@ -279,6 +285,7 @@ export default function POSClient() {
         <Col span={12}>
           <Typography.Text>Select Item</Typography.Text>
           <Select
+            ref={selectRef}
             showSearch
             filterOption={false}
             allowClear
@@ -327,6 +334,7 @@ export default function POSClient() {
             min={1}
             value={qty}
             onChange={(value) => setQty(Number(value))}
+            onPressEnter={addToCart}
             changeOnWheel
           />
         </Col>

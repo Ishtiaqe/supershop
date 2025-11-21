@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { InventoryItem, ProductVariant, Product } from "@/types";
 import api from "@/lib/api";
@@ -50,6 +50,24 @@ export default function InventoryClient() {
   const queryClient = useQueryClient();
   const [addFormInstance] = Form.useForm();
   const [editFormInstance] = Form.useForm();
+  const itemNameRef = useRef<React.ComponentRef<typeof AutoComplete>>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        // Only trigger if not typing in an input
+        const activeElement = document.activeElement as HTMLElement;
+        if (activeElement && (activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA" || activeElement.contentEditable === "true")) {
+          return;
+        }
+        event.preventDefault();
+        itemNameRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const { data: items = [], isLoading } = useQuery<InventoryItem[], Error>({
     queryKey: ["inventory"],
@@ -147,6 +165,11 @@ export default function InventoryClient() {
     setCatalogOptions([]);
     setProductType("GENERAL");
     message.success("Item added successfully");
+
+    // Focus back to Item Name field for quick successive additions
+    setTimeout(() => {
+      itemNameRef.current?.focus();
+    }, 100);
   };
 
   const submitEdit = async () => {
@@ -304,6 +327,7 @@ export default function InventoryClient() {
           rules={[{ required: true, message: "Please enter item name" }]}
         >
           <AutoComplete
+            ref={itemNameRef}
             options={catalogOptions.map((item) => ({
               value: `${item.productName} - ${item.variantName}`,
               label: (
