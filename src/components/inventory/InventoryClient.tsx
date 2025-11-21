@@ -350,7 +350,7 @@ export default function InventoryClient() {
           />
         </Form.Item>
 
-        <Space size={8} className="mb-2 flex-wrap">
+        {/* <Space size={8} className="mb-2 flex-wrap">
           <Form.Item
             name="productType"
             label="Product Type"
@@ -378,7 +378,7 @@ export default function InventoryClient() {
               style={{ width: 200 }}
             />
           </Form.Item>
-        </Space>
+        </Space> */}
 
         <Space size={8} className="mb-2 flex-wrap">
           <Form.Item
@@ -405,13 +405,13 @@ export default function InventoryClient() {
             <InputNumber min={0} prefix="৳" style={{ width: 140 }} />
           </Form.Item>
 
-          <Form.Item name="expiryDate" label="Expiry Date (Optional)">
+          {/* <Form.Item name="expiryDate" label="Expiry Date (Optional)">
             <DatePicker style={{ width: 160 }} format="YYYY-MM-DD" />
           </Form.Item>
 
           <Form.Item name="mfgDate" label="Mfg Date (Optional)">
             <DatePicker style={{ width: 160 }} format="YYYY-MM-DD" />
-          </Form.Item>
+          </Form.Item> */}
         </Space>
 
         <Form.Item>
