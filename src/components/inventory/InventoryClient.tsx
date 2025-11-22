@@ -20,8 +20,8 @@ import {
 } from "antd";
 import {
   SearchOutlined,
-  EditOutlined,
-  DeleteOutlined,
+  // EditOutlined,
+  // DeleteOutlined,
 } from "@ant-design/icons";
 import { debounce } from "lodash";
 import dayjs from "dayjs";
@@ -122,6 +122,7 @@ export default function InventoryClient() {
   const [catalogOptions, setCatalogOptions] = useState<CatalogItem[]>([]);
   const [selectedFromCatalog, setSelectedFromCatalog] =
     useState<CatalogItem | null>(null);
+  const [search, setSearch] = useState("");
 
   const addMutation = useMutation<InventoryItem, Error, Partial<InventoryItem>>(
     {
@@ -339,6 +340,16 @@ export default function InventoryClient() {
     });
   }, [items]);
 
+  const filteredDataSource = useMemo(() => {
+    if (!search) return dataSource;
+    return dataSource.filter(item => {
+      const name = item.variant
+        ? `${item.variant.product.name} ${item.variant.variantName === "Standard" ? "" : item.variant.variantName}`
+        : item.itemName || "";
+      return name.toLowerCase().includes(search.toLowerCase());
+    });
+  }, [dataSource, search]);
+
   if (!user || (user.role !== "OWNER" && user.role !== "EMPLOYEE")) {
     return <div className="p-6">Access denied — Owners and employees only</div>;
   }
@@ -480,12 +491,20 @@ export default function InventoryClient() {
 
       <Typography.Title level={4}>Inventory Items</Typography.Title>
 
+      <Input
+        placeholder="Search inventory..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ marginBottom: 16, width: 300 }}
+        allowClear
+      />
+
       {isLoading ? (
         <div>Loading…</div>
       ) : (
         <div className="overflow-x-auto">
           <Table
-            dataSource={dataSource}
+            dataSource={filteredDataSource}
             rowKey="key"
             pagination={{ pageSize: 20 }}
             expandable={{

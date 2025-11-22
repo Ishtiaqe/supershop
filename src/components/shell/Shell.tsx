@@ -31,6 +31,7 @@ import {
   MoonOutlined,
   LogoutOutlined,
   UserSwitchOutlined,
+  MedicineBoxOutlined,
 } from "@ant-design/icons";
 import NotificationSetup from "@/components/notifications/NotificationSetup";
 
@@ -110,6 +111,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       key: "/dashboard/catalog",
       icon: <AppstoreOutlined />,
       label: <Link href="/dashboard/catalog">Catalog</Link>,
+    },
+    {
+      key: "/dashboard/medicine-database",
+      icon: <MedicineBoxOutlined />,
+      label: <Link href="/dashboard/medicine-database">Medicine Database</Link>,
     },
     {
       key: "/dashboard/categories",

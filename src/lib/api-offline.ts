@@ -105,6 +105,8 @@ class OfflineApiClient {
         return this.handleSalesRequest<T>(method, data, tenantId);
       case 'products':
         return this.handleProductRequest<T>(method, data, tenantId);
+      case 'medicine':
+        return this.handleMedicineRequest<T>(method, data, config);
       default:
         // For other requests, queue them for later
         if (method && ['post', 'put', 'delete'].includes(method.toLowerCase())) {
@@ -240,10 +242,30 @@ class OfflineApiClient {
     }
   }
 
+  private async handleMedicineRequest<T>(method: string | undefined, data: unknown, config: AxiosRequestConfig): Promise<ApiResponse<T>> {
+    switch (method?.toLowerCase()) {
+      case 'get':
+        // Extract search parameter from config
+        const search = config.params?.search as string;
+        const medicines = await offlineDb.getAllMedicines(search);
+        return {
+          data: medicines as T,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config
+        };
+
+      default:
+        throw new Error(`Unsupported method: ${method}`);
+    }
+  }
+
   private getEntityTypeFromUrl(url: string): string {
     if (url.includes('/inventory')) return 'inventory';
     if (url.includes('/sales')) return 'sales';
     if (url.includes('/products')) return 'products';
+    if (url.includes('/medicine')) return 'medicine';
     return 'unknown';
   }
 

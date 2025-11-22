@@ -77,7 +77,59 @@ export interface SaleItem {
   inventoryId: string
   quantity: number
   unitPrice: number
+  discount: number
   subtotal: number
+}
+
+export interface MedicineGeneric {
+  id: string
+  genericId?: number
+  genericName: string
+  slug: string
+  monographLink?: string
+  indicationDescription?: string
+  therapeuticClassDescription?: string
+  pharmacologyDescription?: string
+  dosageDescription?: string
+  administrationDescription?: string
+  interactionDescription?: string
+  contraindicationsDescription?: string
+  sideEffectsDescription?: string
+  pregnancyAndLactationDescription?: string
+  precautionsDescription?: string
+  pediatricUsageDescription?: string
+  overdoseEffectsDescription?: string
+  durationOfTreatmentDescription?: string
+  reconstitutionDescription?: string
+  storageConditionsDescription?: string
+  descriptionsCount: number
+  drugClassId?: string
+  indicationId?: string
+}
+
+export interface MedicineManufacturer {
+  id: string
+  manufacturerId?: number
+  manufacturerName: string
+  slug: string
+  genericsCount?: number
+  brandNamesCount?: number
+}
+
+export interface Medicine {
+  id: string
+  brandId?: number
+  brandName: string
+  type: string
+  slug: string
+  dosageForm?: string
+  strength?: string
+  packageContainer?: string
+  packSizeInfo?: string
+  genericId?: string
+  manufacturerId?: string
+  generic?: MedicineGeneric
+  manufacturer?: MedicineManufacturer
 }
 
 export interface DashboardMetrics {

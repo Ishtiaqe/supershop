@@ -1,6 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { OfflineQueueItem, SyncMetadata } from '@/types/offline';
-import { User, Tenant, Product, ProductVariant, InventoryItem, Sale, SaleItem } from '@/types';
+import { User, Tenant, Product, ProductVariant, InventoryItem, Sale, SaleItem, Medicine, MedicineGeneric, MedicineManufacturer } from '@/types';
 
 interface SuperShopDBSchema extends DBSchema {
   // Core entity stores
@@ -37,6 +37,23 @@ interface SuperShopDBSchema extends DBSchema {
     key: string;
     value: SaleItem & { _lastModified: number; _syncStatus: 'synced' | 'pending' | 'conflict'; _serverVersion?: number };
     indexes: { 'by-sale': string; 'by-inventory': string; 'by-tenant': string };
+  };
+
+  // Medicine database stores
+  medicines: {
+    key: string;
+    value: Medicine & { _lastModified: number; _syncStatus: 'synced' | 'pending' | 'conflict' };
+    indexes: { 'by-brand': string; 'by-generic': string; 'by-manufacturer': string };
+  };
+  medicineGenerics: {
+    key: string;
+    value: MedicineGeneric & { _lastModified: number; _syncStatus: 'synced' | 'pending' | 'conflict' };
+    indexes: { 'by-name': string; 'by-class': string };
+  };
+  medicineManufacturers: {
+    key: string;
+    value: MedicineManufacturer & { _lastModified: number; _syncStatus: 'synced' | 'pending' | 'conflict' };
+    indexes: { 'by-name': string };
   };
 
   // Offline operation management
@@ -120,6 +137,25 @@ class OfflineDatabase {
           saleItemStore.createIndex('by-sale', 'saleId');
           saleItemStore.createIndex('by-inventory', 'inventoryId');
           saleItemStore.createIndex('by-tenant', 'tenantId');
+        }
+
+        // Medicine stores
+        if (!db.objectStoreNames.contains('medicines')) {
+          const medicineStore = db.createObjectStore('medicines', { keyPath: 'id' });
+          medicineStore.createIndex('by-brand', 'brandName');
+          medicineStore.createIndex('by-generic', 'genericId');
+          medicineStore.createIndex('by-manufacturer', 'manufacturerId');
+        }
+
+        if (!db.objectStoreNames.contains('medicineGenerics')) {
+          const genericStore = db.createObjectStore('medicineGenerics', { keyPath: 'id' });
+          genericStore.createIndex('by-name', 'genericName');
+          genericStore.createIndex('by-class', 'drugClassId');
+        }
+
+        if (!db.objectStoreNames.contains('medicineManufacturers')) {
+          const manufacturerStore = db.createObjectStore('medicineManufacturers', { keyPath: 'id' });
+          manufacturerStore.createIndex('by-name', 'manufacturerName');
         }
 
         // Offline queue store
@@ -242,6 +278,68 @@ class OfflineDatabase {
     await this.db!.delete('sales', id);
   }
 
+  // Medicine CRUD operations
+  async getMedicine(id: string): Promise<Medicine & { _lastModified: number; _syncStatus: string } | undefined> {
+    if (!this.db) await this.init();
+    return this.db!.get('medicines', id);
+  }
+
+  async getAllMedicines(search?: string): Promise<Array<Medicine & { _lastModified: number; _syncStatus: string }>> {
+    if (!this.db) await this.init();
+    if (search) {
+      // Simple search implementation - in a real app, you might want more sophisticated search
+      const allMedicines = await this.db!.getAll('medicines');
+      return allMedicines.filter(med =>
+        med.brandName.toLowerCase().includes(search.toLowerCase()) ||
+        med.generic?.genericName.toLowerCase().includes(search.toLowerCase()) ||
+        med.manufacturer?.manufacturerName.toLowerCase().includes(search.toLowerCase()) ||
+        med.strength?.toLowerCase().includes(search.toLowerCase()) ||
+        med.dosageForm?.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    return this.db!.getAll('medicines');
+  }
+
+  async putMedicine(medicine: Medicine & { _lastModified: number; _syncStatus: 'synced' | 'pending' | 'conflict' }): Promise<void> {
+    if (!this.db) await this.init();
+    await this.db!.put('medicines', medicine);
+  }
+
+  async deleteMedicine(id: string): Promise<void> {
+    if (!this.db) await this.init();
+    await this.db!.delete('medicines', id);
+  }
+
+  async getMedicineGeneric(id: string): Promise<MedicineGeneric & { _lastModified: number; _syncStatus: string } | undefined> {
+    if (!this.db) await this.init();
+    return this.db!.get('medicineGenerics', id);
+  }
+
+  async getAllMedicineGenerics(): Promise<Array<MedicineGeneric & { _lastModified: number; _syncStatus: string }>> {
+    if (!this.db) await this.init();
+    return this.db!.getAll('medicineGenerics');
+  }
+
+  async putMedicineGeneric(generic: MedicineGeneric & { _lastModified: number; _syncStatus: 'synced' | 'pending' | 'conflict' }): Promise<void> {
+    if (!this.db) await this.init();
+    await this.db!.put('medicineGenerics', generic);
+  }
+
+  async getMedicineManufacturer(id: string): Promise<MedicineManufacturer & { _lastModified: number; _syncStatus: string } | undefined> {
+    if (!this.db) await this.init();
+    return this.db!.get('medicineManufacturers', id);
+  }
+
+  async getAllMedicineManufacturers(): Promise<Array<MedicineManufacturer & { _lastModified: number; _syncStatus: string }>> {
+    if (!this.db) await this.init();
+    return this.db!.getAll('medicineManufacturers');
+  }
+
+  async putMedicineManufacturer(manufacturer: MedicineManufacturer & { _lastModified: number; _syncStatus: 'synced' | 'pending' | 'conflict' }): Promise<void> {
+    if (!this.db) await this.init();
+    await this.db!.put('medicineManufacturers', manufacturer);
+  }
+
   // Specialized methods for offline operations
   async addToQueue(item: OfflineQueueItem): Promise<void> {
     if (!this.db) await this.init();
@@ -338,7 +436,7 @@ class OfflineDatabase {
 
   async clearAllData(): Promise<void> {
     if (!this.db) await this.init();
-    const tx = this.db!.transaction(['users', 'tenants', 'products', 'variants', 'inventory', 'sales', 'saleItems', 'offlineQueue', 'syncMetadata', 'apiCache'], 'readwrite');
+    const tx = this.db!.transaction(['users', 'tenants', 'products', 'variants', 'inventory', 'sales', 'saleItems', 'medicines', 'medicineGenerics', 'medicineManufacturers', 'offlineQueue', 'syncMetadata', 'apiCache'], 'readwrite');
 
     await tx.objectStore('users').clear();
     await tx.objectStore('tenants').clear();
@@ -347,6 +445,9 @@ class OfflineDatabase {
     await tx.objectStore('inventory').clear();
     await tx.objectStore('sales').clear();
     await tx.objectStore('saleItems').clear();
+    await tx.objectStore('medicines').clear();
+    await tx.objectStore('medicineGenerics').clear();
+    await tx.objectStore('medicineManufacturers').clear();
     await tx.objectStore('offlineQueue').clear();
     await tx.objectStore('syncMetadata').clear();
     await tx.objectStore('apiCache').clear();
@@ -365,13 +466,17 @@ class OfflineDatabase {
     const inventory = await this.db!.getAll('inventory');
     const sales = await this.db!.getAll('sales');
     const saleItems = await this.db!.getAll('saleItems');
+    const medicines = await this.db!.getAll('medicines');
+    const medicineGenerics = await this.db!.getAll('medicineGenerics');
+    const medicineManufacturers = await this.db!.getAll('medicineManufacturers');
     const queue = await this.db!.getAll('offlineQueue');
     const metadata = await this.db!.getAll('syncMetadata');
     const cache = await this.db!.getAll('apiCache');
 
     const allData = [
       ...users, ...tenants, ...products, ...variants,
-      ...inventory, ...sales, ...saleItems, ...queue, ...metadata, ...cache
+      ...inventory, ...sales, ...saleItems, ...medicines,
+      ...medicineGenerics, ...medicineManufacturers, ...queue, ...metadata, ...cache
     ];
 
     return JSON.stringify(allData).length;

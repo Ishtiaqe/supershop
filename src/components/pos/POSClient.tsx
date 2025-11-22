@@ -139,6 +139,8 @@ export default function POSClient() {
       name: string;
       unitPrice: number;
       quantity: number;
+      discount: number;
+      maxDiscount: number;
       batches: InventoryItem[];
     }>
   >([]);
@@ -149,6 +151,7 @@ export default function POSClient() {
         inventoryId: string;
         quantity: number;
         unitPrice: number;
+        discount: number;
       }>;
       customerName?: string;
       customerPhone?: string;
@@ -179,6 +182,13 @@ export default function POSClient() {
     const item = aggregatedItems.find((i) => i.key === selectedKey);
     if (!item) return;
 
+    // Calculate average purchase price
+    const totalPurchase = item.batches.reduce((sum, b) => sum + b.purchasePrice * b.quantity, 0);
+    const totalQty = item.batches.reduce((sum, b) => sum + b.quantity, 0);
+    const avgPurchase = totalQty > 0 ? totalPurchase / totalQty : 0;
+    const minPrice = avgPurchase * 1.04;
+    const maxDiscountPercent = item.retailPrice > 0 ? ((item.retailPrice - minPrice) / item.retailPrice) * 100 : 0;
+
     // Check if already in cart
     const existingIdx = cart.findIndex((c) => c.key === selectedKey);
     if (existingIdx >= 0) {
@@ -193,6 +203,8 @@ export default function POSClient() {
           name: item.name,
           unitPrice: item.retailPrice,
           quantity: qty,
+          discount: 0, // percentage
+          maxDiscount: maxDiscountPercent,
           batches: item.batches,
         },
       ]);
@@ -219,6 +231,7 @@ export default function POSClient() {
       inventoryId: string;
       quantity: number;
       unitPrice: number;
+      discount: number;
     }> = [];
 
     // Allocate stock from batches (FIFO)
@@ -235,6 +248,7 @@ export default function POSClient() {
             inventoryId: batch.id,
             quantity: take,
             unitPrice: batch.retailPrice, // Use batch specific price
+            discount: cartItem.discount, // Apply per item discount
           });
           remainingQty -= take;
         }
@@ -258,7 +272,7 @@ export default function POSClient() {
     setCustomerPhone("");
   }
 
-  const total = cart.reduce((s, it) => s + it.quantity * it.unitPrice, 0);
+  const total = cart.reduce((s, it) => s + it.quantity * (it.unitPrice * (1 - it.discount / 100)), 0);
 
   return (
     <div>
@@ -374,13 +388,35 @@ export default function POSClient() {
               render={(v: number) => `৳${v.toFixed(2)}`}
             />
             <Table.Column
+              title="Discount (%)"
+              dataIndex="discount"
+              key="discount"
+              render={(discount: number, _record: unknown, index: number) => (
+                <InputNumber
+                  min={0}
+                  max={cart[index].maxDiscount}
+                  value={discount}
+                  onChange={(value) => {
+                    const newCart = [...cart];
+                    newCart[index].discount = Number(value) || 0;
+                    setCart(newCart);
+                  }}
+                  style={{ width: 80 }}
+                  suffix="%"
+                />
+              )}
+            />
+            <Table.Column
               title="Sub Total"
               dataIndex="total"
               key="total"
               render={(
                 v: number,
-                record: { quantity: number; unitPrice: number }
-              ) => `৳${(record.quantity * record.unitPrice).toFixed(2)}`}
+                record: { quantity: number; unitPrice: number; discount: number }
+              ) => {
+                const effectivePrice = record.unitPrice * (1 - record.discount / 100);
+                return `৳${(record.quantity * effectivePrice).toFixed(2)}`;
+              }}
             />
             <Table.Column
               title="Action"

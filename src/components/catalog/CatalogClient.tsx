@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
@@ -12,7 +12,7 @@ import {
   Select,
   message,
   Popconfirm,
-  Tag,
+  // Tag,
 } from "antd";
 import {
   PlusOutlined,
@@ -46,11 +46,23 @@ export default function CatalogClient() {
   const [productType, setProductType] = useState<"GENERAL" | "MEDICINE">(
     "GENERAL"
   );
+  const [search, setSearch] = useState("");
 
   const { data: catalogItems = [], isLoading } = useQuery<CatalogItem[]>({
     queryKey: ["catalog"],
     queryFn: () => api.get("/catalog").then((res) => res.data),
   });
+
+  const filteredCatalogItems = useMemo(() => {
+    if (!search) return catalogItems;
+    return catalogItems.filter(item =>
+      item.productName.toLowerCase().includes(search.toLowerCase()) ||
+      item.variantName.toLowerCase().includes(search.toLowerCase()) ||
+      item.sku.toLowerCase().includes(search.toLowerCase()) ||
+      item.genericName?.toLowerCase().includes(search.toLowerCase()) ||
+      item.manufacturerName?.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [catalogItems, search]);
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => api.post("/catalog", data),
@@ -90,9 +102,14 @@ export default function CatalogClient() {
       setEditingItem(item);
       setProductType((item.productType as "GENERAL" | "MEDICINE") || "GENERAL");
       form.setFieldsValue({
+        productName: item.productName,
+        productType: item.productType || "GENERAL",
+        genericName: item.genericName,
+        manufacturerName: item.manufacturerName,
         variantName: item.variantName,
         sku: item.sku,
         retailPrice: item.retailPrice,
+        description: item.description,
       });
     } else {
       setEditingItem(null);
@@ -150,32 +167,32 @@ export default function CatalogClient() {
         </div>
       ),
     },
-    {
-      title: "Variant",
-      dataIndex: "variantName",
-      key: "variantName",
-    },
-    {
-      title: "SKU",
-      dataIndex: "sku",
-      key: "sku",
-    },
-    {
-      title: "Type",
-      dataIndex: "productType",
-      key: "productType",
-      render: (type: string) => (
-        <Tag color={type === "MEDICINE" ? "blue" : "default"}>
-          {type || "General"}
-        </Tag>
-      ),
-    },
-    {
-      title: "Manufacturer",
-      dataIndex: "manufacturerName",
-      key: "manufacturerName",
-      render: (text: string) => text || "-",
-    },
+      // {
+      //   title: "Variant",
+      //   dataIndex: "variantName",
+      //   key: "variantName",
+      // },
+    // {
+    //   title: "SKU",
+    //   dataIndex: "sku",
+    //   key: "sku",
+    // },
+    // {
+    //   title: "Type",
+    //   dataIndex: "productType",
+    //   key: "productType",
+    //   render: (type: string) => (
+    //     <Tag color={type === "MEDICINE" ? "blue" : "default"}>
+    //       {type || "General"}
+    //     </Tag>
+    //   ),
+    // },
+    // {
+    //   title: "Manufacturer",
+    //   dataIndex: "manufacturerName",
+    //   key: "manufacturerName",
+    //   render: (text: string) => text || "-",
+    // },
     {
       title: "Price",
       dataIndex: "retailPrice",
@@ -227,8 +244,16 @@ export default function CatalogClient() {
         </Button>
       </div>
 
+      <Input
+        placeholder="Search catalog..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ marginBottom: 16, width: 300 }}
+        allowClear
+      />
+
       <Table
-        dataSource={catalogItems}
+        dataSource={filteredCatalogItems}
         columns={columns}
         rowKey="variantId"
         loading={isLoading}
