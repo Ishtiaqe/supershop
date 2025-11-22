@@ -1,13 +1,14 @@
 import { OfflineQueueItem } from '@/types/offline';
 import { offlineDb } from './offline-db';
 import { offlineUtils } from './offline-utils';
+import api from './api';
 
 export class OfflineQueue {
   private static instance: OfflineQueue;
   private processing = false;
   private listeners: ((item: OfflineQueueItem, status: 'added' | 'processed' | 'failed') => void)[] = [];
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): OfflineQueue {
     if (!OfflineQueue.instance) {
@@ -79,16 +80,51 @@ export class OfflineQueue {
   }
 
   private async processItem(item: OfflineQueueItem): Promise<void> {
-    // This will be implemented when we create the sync engine
-    // For now, just simulate processing
-    await new Promise(resolve => setTimeout(resolve, 100));
-
     if (!navigator.onLine) {
       throw new Error('Offline');
     }
 
-    // Here we would make the actual API call based on operation type
-    console.log('Processing queue item:', item);
+    const { operation, entityType, entityId, data, tenantId } = item;
+    const endpoint = this.getEndpoint(entityType);
+
+    // Add tenantId to query params or body as needed.
+    const payload = { ...data };
+    if (tenantId) {
+      (payload as any).tenantId = tenantId;
+    }
+
+    console.log(`Processing ${operation} ${entityType} ${entityId}`, payload);
+
+    try {
+      switch (operation) {
+        case 'CREATE':
+          await api.post(endpoint, payload);
+          break;
+        case 'UPDATE':
+          await api.put(`${endpoint}/${entityId}`, payload);
+          break;
+        case 'DELETE':
+          await api.delete(`${endpoint}/${entityId}`);
+          break;
+        default:
+          throw new Error(`Unknown operation: ${operation}`);
+      }
+    } catch (error) {
+      // If 404 on delete/update, maybe it was already deleted?
+      // For now, rethrow to trigger retry logic
+      throw error;
+    }
+  }
+
+  private getEndpoint(entityType: string): string {
+    switch (entityType) {
+      case 'inventory': return '/inventory';
+      case 'sale': return '/sales';
+      case 'product': return '/catalog/products';
+      case 'customer': return '/customers';
+      case 'variant': return '/catalog/variants';
+      default: return `/${entityType}s`; // Fallback pluralization
+    }
   }
 
   async getPendingItems(): Promise<OfflineQueueItem[]> {

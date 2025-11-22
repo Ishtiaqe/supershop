@@ -27,6 +27,11 @@ export default function OfflineReloadTest() {
     try {
       addResult("🚀 Starting offline reload test...");
 
+      // Step 0: Reset database to ensure clean state
+      addResult("🔄 Resetting IndexedDB...");
+      await offlineDb.resetDatabase();
+      addResult("✅ Database reset complete");
+
       // Step 1: Initialize IndexedDB
       addResult("📦 Initializing IndexedDB...");
       await offlineDb.init();
@@ -196,6 +201,23 @@ export default function OfflineReloadTest() {
               disabled={isTesting}
             >
               {isTesting ? "Running Test..." : "Run Offline Test"}
+            </Button>
+
+            <Button
+              danger
+              onClick={async () => {
+                try {
+                  addResult("🔄 Resetting database...");
+                  await offlineDb.resetDatabase();
+                  addResult("✅ Database reset successfully");
+                  setMedicineData([]);
+                } catch (error) {
+                  addResult(`❌ Database reset failed: ${error}`);
+                }
+              }}
+              disabled={isTesting}
+            >
+              Reset Database
             </Button>
 
             <Button
