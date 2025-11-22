@@ -43,7 +43,7 @@ registerRoute(
   new NetworkFirst({
     cacheName: 'pages',
     plugins: [{
-      handlerDidError: async ({ request }) => {
+      handlerDidError: async () => {
         // Return the offline HTML page from cache
         return caches.match('/offline');
       },
@@ -51,7 +51,7 @@ registerRoute(
   })
 );
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 

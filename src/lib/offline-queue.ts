@@ -90,7 +90,7 @@ export class OfflineQueue {
     // Add tenantId to query params or body as needed.
     const payload = { ...data };
     if (tenantId) {
-      (payload as any).tenantId = tenantId;
+      payload.tenantId = tenantId;
     }
 
     console.log(`Processing ${operation} ${entityType} ${entityId}`, payload);
