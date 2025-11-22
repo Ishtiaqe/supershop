@@ -143,18 +143,24 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       updatePendingCount();
     });
 
-    // Register service worker - use the workbox-generated one
+    // Register service worker
     if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
+      const registerSW = () => {
         navigator.serviceWorker
-          .register("/sw.js") // next-pwa generates sw.js
+          .register("/sw.js")
           .then((registration) => {
             console.log("✅ Service Worker registered:", registration.scope);
           })
           .catch((error) => {
             console.error("❌ Service Worker registration failed:", error);
           });
-      });
+      };
+
+      if (document.readyState === "complete") {
+        registerSW();
+      } else {
+        window.addEventListener("load", registerSW);
+      }
     }
 
     return () => {

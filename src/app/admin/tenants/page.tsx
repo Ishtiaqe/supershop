@@ -103,24 +103,26 @@ export default function AdminTenantsPage() {
         {loading && <div>Loading…</div>}
         {error && <Alert type="error" message={error} className="mb-4" />}
 
-        <Table
-          dataSource={tenants}
-          rowKey={(r) => r.id}
-          pagination={false}
-          className="mb-6"
-        >
-          <Table.Column title="Tenant" dataIndex="name" key="name" />
-          <Table.Column title="ID" dataIndex="id" key="id" />
-          <Table.Column
-            title="Actions"
-            key="actions"
-            render={(_text, record: Tenant) => (
-              <Button type="link" onClick={() => setEditingTenant(record)}>
-                Edit
-              </Button>
-            )}
-          />
-        </Table>
+        <div className="overflow-x-auto">
+          <Table
+            dataSource={tenants}
+            rowKey={(r) => r.id}
+            pagination={false}
+            className="mb-6"
+          >
+            <Table.Column title="Tenant" dataIndex="name" key="name" />
+            <Table.Column title="ID" dataIndex="id" key="id" />
+            <Table.Column
+              title="Actions"
+              key="actions"
+              render={(_text, record: Tenant) => (
+                <Button type="link" onClick={() => setEditingTenant(record)}>
+                  Edit
+                </Button>
+              )}
+            />
+          </Table>
+        </div>
 
         <Form
           layout="vertical"

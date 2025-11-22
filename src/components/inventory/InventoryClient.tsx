@@ -18,7 +18,11 @@ import {
   message,
   AutoComplete,
 } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import {
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import { debounce } from "lodash";
 import dayjs from "dayjs";
 
@@ -321,16 +325,16 @@ export default function InventoryClient() {
     );
 
     return Object.values(grouped).map((item) => {
-      const prices = item.children.map((c) => c.retailPrice);
-      const min = Math.min(...prices);
-      const max = Math.max(...prices);
+      // Since items are fetched ordered by createdAt desc, the first child is the latest
+      const latest = item.children[0];
       return {
         ...item,
         batchInfo:
           item.batches.length > 1
             ? `${item.batches.length} Batches`
             : item.children[0]?.batchNo || "-",
-        retailPriceRange: min === max ? `৳${min}` : `৳${min} - ৳${max}`,
+        latestPurchasePrice: latest.purchasePrice,
+        latestRetailPrice: latest.retailPrice,
       };
     });
   }, [items]);
@@ -479,113 +483,125 @@ export default function InventoryClient() {
       {isLoading ? (
         <div>Loading…</div>
       ) : (
-        <Table
-          dataSource={dataSource}
-          rowKey="key"
-          pagination={{ pageSize: 20 }}
-          expandable={{
-            expandedRowRender: (record: { children: InventoryItem[] }) => (
-              <Table
-                dataSource={record.children}
-                rowKey="id"
-                pagination={false}
-                size="small"
-                columns={[
-                  {
-                    title: "Batch #",
-                    dataIndex: "batchNo",
-                    render: (t) => t || "-",
-                  },
-                  { title: "Quantity", dataIndex: "quantity" },
-                  {
-                    title: "Purchase",
-                    dataIndex: "purchasePrice",
-                    render: (v) => `৳${v}`,
-                  },
-                  {
-                    title: "Retail",
-                    dataIndex: "retailPrice",
-                    render: (v) => `৳${v}`,
-                  },
-                  {
-                    title: "Expiry",
-                    dataIndex: "expiryDate",
-                    render: (d) => (d ? dayjs(d).format("YYYY-MM-DD") : "-"),
-                  },
-                  {
-                    title: "Actions",
-                    render: (_, subRecord: InventoryItem) => (
-                      <Button
-                        size="small"
-                        onClick={() => {
-                          setEditForm({
-                            id: subRecord.id,
-                            itemName: subRecord.itemName || "",
-                            quantity: subRecord.quantity || 0,
-                            purchasePrice: subRecord.purchasePrice || 0,
-                            retailPrice: subRecord.retailPrice || 0,
-                          });
-                          editFormInstance.setFieldsValue({
-                            itemName: subRecord.itemName || "",
-                            quantity: subRecord.quantity || 0,
-                            purchasePrice: subRecord.purchasePrice || 0,
-                            retailPrice: subRecord.retailPrice || 0,
-                          });
-                          setModalOpen(true);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                    ),
-                  },
-                ]}
-              />
-            ),
-          }}
-        >
-          <Table.Column
-            title="Item Name"
-            key="itemName"
-            render={(
-              _,
-              record: {
-                variant?: { product: { name: string }; variantName: string };
-                itemName?: string;
-              }
-            ) => {
-              if (record.variant) {
-                const productName = record.variant.product.name;
-                const variantName = record.variant.variantName;
-                return variantName === "Standard"
-                  ? productName
-                  : `${productName} - ${variantName}`;
-              }
-              return record.itemName || "Unnamed item";
+        <div className="overflow-x-auto">
+          <Table
+            dataSource={dataSource}
+            rowKey="key"
+            pagination={{ pageSize: 20 }}
+            expandable={{
+              expandedRowRender: (record: { children: InventoryItem[] }) => (
+                <div className="overflow-x-auto">
+                  <Table
+                    dataSource={record.children}
+                    rowKey="id"
+                    pagination={false}
+                    size="small"
+                    columns={[
+                      {
+                        title: "Batch #",
+                        dataIndex: "batchNo",
+                        render: (t) => t || "-",
+                      },
+                      { title: "Quantity", dataIndex: "quantity" },
+                      {
+                        title: "Purchase",
+                        dataIndex: "purchasePrice",
+                        render: (v) => `৳${v}`,
+                      },
+                      {
+                        title: "Retail",
+                        dataIndex: "retailPrice",
+                        render: (v) => `৳${v}`,
+                      },
+                      {
+                        title: "Expiry",
+                        dataIndex: "expiryDate",
+                        render: (d) =>
+                          d ? dayjs(d).format("YYYY-MM-DD") : "-",
+                      },
+                      {
+                        title: "Actions",
+                        render: (_, subRecord: InventoryItem) => (
+                          <Button
+                            size="small"
+                            onClick={() => {
+                              setEditForm({
+                                id: subRecord.id,
+                                itemName: subRecord.itemName || "",
+                                quantity: subRecord.quantity || 0,
+                                purchasePrice: subRecord.purchasePrice || 0,
+                                retailPrice: subRecord.retailPrice || 0,
+                              });
+                              editFormInstance.setFieldsValue({
+                                itemName: subRecord.itemName || "",
+                                quantity: subRecord.quantity || 0,
+                                purchasePrice: subRecord.purchasePrice || 0,
+                                retailPrice: subRecord.retailPrice || 0,
+                              });
+                              setModalOpen(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
+              ),
             }}
-          />
-          <Table.Column
-            title="Batch Info"
-            key="batchInfo"
-            render={(
-              _,
-              record: {
-                batchInfo: string;
+          >
+            <Table.Column
+              title="Item Name"
+              key="itemName"
+              render={(
+                _,
+                record: {
+                  variant?: { product: { name: string }; variantName: string };
+                  itemName?: string;
+                }
+              ) => {
+                if (record.variant) {
+                  const productName = record.variant.product.name;
+                  const variantName = record.variant.variantName;
+                  return variantName === "Standard"
+                    ? productName
+                    : `${productName} - ${variantName}`;
+                }
+                return record.itemName || "Unnamed item";
+              }}
+            />
+            {/* <Table.Column
+              title="Batch Info"
+              key="batchInfo"
+              render={(
+                _,
+                record: {
+                  batchInfo: string;
+                }
+              ) => record.batchInfo}
+            /> */}
+            <Table.Column
+              title="Total Stock"
+              dataIndex="totalQuantity"
+              key="totalQuantity"
+            />
+            <Table.Column
+              title="Purchase Price"
+              key="purchasePrice"
+              render={(_, record: { latestPurchasePrice: number }) =>
+                `৳${record.latestPurchasePrice}`
               }
-            ) => record.batchInfo}
-          />
-          <Table.Column
-            title="Total Stock"
-            dataIndex="totalQuantity"
-            key="totalQuantity"
-          />
-          <Table.Column
-            title="Retail Price"
-            key="retailPrice"
-            render={(_, record: { retailPriceRange: string }) =>
-              record.retailPriceRange
-            }
-          />
-        </Table>
+            />
+            <Table.Column
+              title="MRP/Unit"
+              key="retailPrice"
+              render={(_, record: { latestRetailPrice: number }) =>
+                `৳${record.latestRetailPrice}`
+              }
+            />
+          </Table>
+        </div>
       )}
 
       <Modal

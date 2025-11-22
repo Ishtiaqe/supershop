@@ -347,50 +347,56 @@ export default function POSClient() {
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <Table dataSource={cart} rowKey="key" pagination={false}>
-          <Table.Column title="Item" dataIndex="name" key="name" />
-          <Table.Column
-            title="Quantity"
-            dataIndex="quantity"
-            key="quantity"
-            render={(qty: number, _record: unknown, index: number) => (
-              <InputNumber
-                min={1}
-                value={qty}
-                onChange={(value) => {
-                  const newCart = [...cart];
-                  newCart[index].quantity = Number(value) || 1;
-                  setCart(newCart);
-                }}
-                style={{ width: 80 }}
-              />
-            )}
-          />
-          <Table.Column
-            title="Unit Price"
-            dataIndex="unitPrice"
-            key="unitPrice"
-            render={(v: number) => `৳${v.toFixed(2)}`}
-          />
-          <Table.Column
-            title="Sub Total"
-            dataIndex="total"
-            key="total"
-            render={(
-              v: number,
-              record: { quantity: number; unitPrice: number }
-            ) => `৳${(record.quantity * record.unitPrice).toFixed(2)}`}
-          />
-          <Table.Column
-            title="Action"
-            key="action"
-            render={(_, __, index) => (
-              <Button danger size="small" onClick={() => removeFromCart(index)}>
-                Remove
-              </Button>
-            )}
-          />
-        </Table>
+        <div className="overflow-x-auto">
+          <Table dataSource={cart} rowKey="key" pagination={false}>
+            <Table.Column title="Item" dataIndex="name" key="name" />
+            <Table.Column
+              title="Quantity"
+              dataIndex="quantity"
+              key="quantity"
+              render={(qty: number, _record: unknown, index: number) => (
+                <InputNumber
+                  min={1}
+                  value={qty}
+                  onChange={(value) => {
+                    const newCart = [...cart];
+                    newCart[index].quantity = Number(value) || 1;
+                    setCart(newCart);
+                  }}
+                  style={{ width: 80 }}
+                />
+              )}
+            />
+            <Table.Column
+              title="Unit Price"
+              dataIndex="unitPrice"
+              key="unitPrice"
+              render={(v: number) => `৳${v.toFixed(2)}`}
+            />
+            <Table.Column
+              title="Sub Total"
+              dataIndex="total"
+              key="total"
+              render={(
+                v: number,
+                record: { quantity: number; unitPrice: number }
+              ) => `৳${(record.quantity * record.unitPrice).toFixed(2)}`}
+            />
+            <Table.Column
+              title="Action"
+              key="action"
+              render={(_, __, index) => (
+                <Button
+                  danger
+                  size="small"
+                  onClick={() => removeFromCart(index)}
+                >
+                  Remove
+                </Button>
+              )}
+            />
+          </Table>
+        </div>
       </div>
 
       <div style={{ marginTop: 16 }}>
