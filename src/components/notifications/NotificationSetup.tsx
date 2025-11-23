@@ -28,8 +28,12 @@ export default function NotificationSetup() {
     useState<NotificationPermission>("default");
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      setPermission(Notification.permission);
+    if (
+      typeof window !== "undefined" &&
+      "serviceWorker" in navigator &&
+      "Notification" in window
+    ) {
+      setPermission(window.Notification.permission);
       checkSubscription();
     }
   }, []);
@@ -53,7 +57,7 @@ export default function NotificationSetup() {
       });
 
       // Allow UI to update before API call
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       await api.post("/notifications/subscribe", subscription);
 
@@ -70,7 +74,11 @@ export default function NotificationSetup() {
   };
 
   const requestPermission = async () => {
-    const result = await Notification.requestPermission();
+    if (!("Notification" in window)) {
+      message.error("Notifications not supported in this environment");
+      return;
+    }
+    const result = await window.Notification.requestPermission();
 
     // Use startTransition for state updates
     startTransition(() => {
@@ -79,7 +87,7 @@ export default function NotificationSetup() {
 
     if (result === "granted") {
       // Allow UI to update before subscribing
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
       subscribeUser();
     }
   };
