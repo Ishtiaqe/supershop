@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, startTransition } from "react";
+import { useState, startTransition, useEffect, useRef } from "react";
 import { Form, Input, Button, Alert } from "antd";
 import {
   UserOutlined,
@@ -9,14 +9,75 @@ import {
   ShoppingOutlined,
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
-import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, getRedirectResult, signInWithEmailAndPassword } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import api from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      (async () => {
+        const listener = await App.addListener('appUrlOpen', async (event) => {
+          if (event.url.startsWith('one.shomaj.supershop://')) {
+            // Handle Firebase redirect
+            try {
+              const result = await getRedirectResult(auth!);
+              if (result) {
+                const idToken = await result.user.getIdToken();
+
+                // Send token to backend
+                const { data } = await api.post("/auth/firebase", {
+                  idToken,
+                });
+
+                // Store tokens
+                if (data.accessToken) {
+                  localStorage.setItem("accessToken", data.accessToken);
+                }
+                if (data.refreshToken) {
+                  localStorage.setItem("refreshToken", data.refreshToken);
+                }
+
+                if (data.user) {
+                  localStorage.setItem("user", JSON.stringify(data.user));
+                  if (data.user.tenantId) {
+                    try {
+                      const tenantResponse = await api.get("/tenants/me");
+                      if (tenantResponse.data) {
+                        localStorage.setItem("tenant", JSON.stringify(tenantResponse.data));
+                      }
+                    } catch (err) {
+                      console.error("Failed to fetch tenant info:", err);
+                    }
+                  }
+                }
+
+                router.push("/dashboard");
+              }
+            } catch (err) {
+              console.error("Redirect result error:", err);
+              setError("Google sign-in failed");
+            }
+          }
+        });
+
+        cleanupRef.current = () => listener.remove();
+      })();
+    }
+
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
+    };
+  }, [router]);
 
   const submit = async (values: { email: string; password: string }) => {
     if (!auth) {
@@ -87,7 +148,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth || !googleProvider) {
+    if (!auth && !Capacitor.isNativePlatform()) {
       setError("Google authentication not configured");
       return;
     }
@@ -96,9 +157,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Firebase Google sign-in (can be slow due to popup)
-      const result = await signInWithPopup(auth, googleProvider);
-      const idToken = await result.user.getIdToken();
+      let idToken: string;
+
+      if (Capacitor.isNativePlatform()) {
+        // Use signInWithRedirect for mobile
+        await signInWithRedirect(auth!, googleProvider!);
+        // The redirect will happen, and the result will be handled in the listener
+        return;
+      } else {
+        // Use web Firebase Auth for browser
+        const result = await signInWithPopup(auth!, googleProvider!);
+        idToken = await result.user.getIdToken();
+      }
 
       // Allow UI to update before making API calls
       await new Promise(resolve => setTimeout(resolve, 0));

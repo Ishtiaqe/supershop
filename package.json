@@ -14,9 +14,10 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
-    "@capacitor/ios": "^7.4.4",
+    "@capacitor/app": "^7.1.0",
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
     "@hookform/resolvers": "^5.2.2",
     "@tanstack/query-sync-storage-persister": "^5.90.12",
     "@tanstack/react-query": "^5.17.9",

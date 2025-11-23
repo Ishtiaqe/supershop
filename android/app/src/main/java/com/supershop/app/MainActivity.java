@@ -1,4 +1,4 @@
-package com.supershop.app;
+package one.shomaj.supershop;
 
 import com.getcapacitor.BridgeActivity;
 
