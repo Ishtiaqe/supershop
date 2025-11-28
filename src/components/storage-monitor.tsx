@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Modal, Progress, Button, Space, Typography, Alert, List } from 'antd';
 import { DatabaseOutlined, DeleteOutlined } from '@ant-design/icons';
-import { useOffline } from './providers/offline-provider';
+import { useOffline } from '@/hooks/useOffline';
 
 const { Text, Title } = Typography;
 

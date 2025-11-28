@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useEffect, useState, ReactNode } from 'react';
 import { NetworkDetector } from '@/lib/offline-utils';
 import { offlineSync } from '@/lib/offline-sync';
 import { BackgroundSyncEvent, OfflineStatus } from '@/types/offline';
@@ -13,7 +13,7 @@ interface OfflineContextType {
   getStorageUsage: () => Promise<{ used: number; available: number } | null>;
 }
 
-const OfflineContext = createContext<OfflineContextType | undefined>(undefined);
+export const OfflineContext = createContext<OfflineContextType | undefined>(undefined);
 
 interface OfflineProviderProps {
   children: ReactNode;
@@ -143,14 +143,6 @@ export function OfflineProvider({ children }: OfflineProviderProps) {
       {children}
     </OfflineContext.Provider>
   );
-}
-
-export function useOffline() {
-  const context = useContext(OfflineContext);
-  if (context === undefined) {
-    throw new Error('useOffline must be used within an OfflineProvider');
-  }
-  return context;
 }
 
 // Progressive enhancement hook - works even without offline features

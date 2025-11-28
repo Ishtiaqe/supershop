@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { notification, Button, Progress, Modal, Space, Typography, Alert } from 'antd';
 import { WifiOutlined, DisconnectOutlined, SyncOutlined } from '@ant-design/icons';
-import { useOffline } from './providers/offline-provider';
+import { useOffline } from '@/hooks/useOffline';
 
 const { Text } = Typography;
 

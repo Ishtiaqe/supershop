@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { OfflineContext } from "@/components/providers/OfflineProvider";
+import { OfflineContext } from "@/components/providers/offline-provider";
 
 export function useOffline() {
     const context = useContext(OfflineContext);

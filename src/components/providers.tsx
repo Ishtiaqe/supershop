@@ -7,7 +7,8 @@ import { ConfigProvider, theme as antdTheme } from "antd";
 import React from "react";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
-import { OfflineProvider } from "./providers/OfflineProvider";
+import { OfflineProvider } from "./providers/offline-provider";
+import { getThemeColors } from "@/lib/theme";
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -92,23 +93,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
     algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
     token: isDark
       ? {
-          colorPrimary: "#6366f1", // Indigo 500
-          colorBgContainer: "#1e293b", // Slate 800
-          colorBgElevated: "#0f172a", // Slate 900
-          colorText: "#f8fafc", // Slate 50
-          colorTextSecondary: "#94a3b8", // Slate 400
-          colorBorder: "#334155", // Slate 700
-          colorBgLayout: "#0b1120", // Deep dark
+          colorPrimary: getThemeColors('dark').primary.hex,
+          colorBgContainer: getThemeColors('dark').card.hex,
+          colorBgElevated: getThemeColors('dark').background.hex,
+          colorText: getThemeColors('dark').foreground.hex,
+          colorTextSecondary: getThemeColors('dark').mutedForeground.hex,
+          colorBorder: getThemeColors('dark').border.hex,
+          colorBgLayout: getThemeColors('dark').background.hex,
           borderRadius: 8,
         }
       : {
-          colorPrimary: "#4f46e5", // Indigo 600
-          colorBgContainer: "#ffffff",
-          colorBgElevated: "#ffffff",
-          colorText: "#0f172a", // Slate 900
-          colorTextSecondary: "#64748b", // Slate 500
-          colorBorder: "#e2e8f0", // Slate 200
-          colorBgLayout: "#f9fafb", // Gray 50
+          colorPrimary: getThemeColors('light').primary.hex,
+          colorBgContainer: getThemeColors('light').card.hex,
+          colorBgElevated: getThemeColors('light').card.hex,
+          colorText: getThemeColors('light').foreground.hex,
+          colorTextSecondary: getThemeColors('light').mutedForeground.hex,
+          colorBorder: getThemeColors('light').border.hex,
+          colorBgLayout: getThemeColors('light').background.hex,
           borderRadius: 8,
         },
   };

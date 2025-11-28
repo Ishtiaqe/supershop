@@ -44,6 +44,9 @@
 
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
+    /* POS Select color defaults (used by pos-select dropdown) */
+    --pos-select-bg: rgba(98, 0, 255, 0.14);
+    /* --pos-select-color: rgb(255, 0, 0); */
   }
 
   /* 2. Light Theme (Explicit) */
@@ -74,6 +77,9 @@
     --warning-foreground: 48 96% 89%;
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
+    /* POS select highlight colors (light theme) */
+    --pos-select-bg: rgba(98, 0, 255, 0.14);
+    /* --pos-select-color: rgb(255, 0, 0); */
   }
 
   /* 3. Dark Theme */
@@ -112,6 +118,9 @@
     --warning-foreground: 38 92% 50%;
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
+    /* POS select highlight colors (dark theme) */
+    --pos-select-bg: rgba(98, 0, 255, 0.14);
+    /* --pos-select-color: rgb(255, 0, 0); */
   }
 
   /* 4. Base Styles Application */
@@ -130,5 +139,53 @@
 
   .glass-card {
     @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-sm;
+  }
+
+  /* Theme-aware text colors */
+  .text-theme-foreground {
+    color: hsl(var(--foreground));
+  }
+  .text-theme-muted {
+    color: hsl(var(--muted-foreground));
+  }
+  .text-theme-primary {
+    color: hsl(var(--primary));
+  }
+  .text-theme-destructive {
+    color: hsl(var(--destructive));
+  }
+  .text-theme-success {
+    color: hsl(var(--success));
+  }
+  .text-theme-warning {
+    color: hsl(var(--warning));
+  }
+  .text-theme-info {
+    color: hsl(var(--info));
+  }
+
+  /* POS Select dropdown highlight color: green (hover and keyboard-active) */
+  .pos-select-dropdown .ant-select-item-option-active,
+  .pos-select-dropdown .ant-select-item-option-selected,
+  .pos-select-dropdown .ant-select-item-option:hover {
+    background-color: var(--pos-select-bg) !important;
+  }
+
+  .pos-select-dropdown .ant-select-item-option-active .ant-select-item-option-content,
+  .pos-select-dropdown .ant-select-item-option-selected .ant-select-item-option-content,
+  .pos-select-dropdown .ant-select-item-option:hover .ant-select-item-option-content {
+    color: var(--pos-select-color) !important;
+  }
+
+  /* Selected value color and focus outline for the closed Select */
+  .pos-select .ant-select-selection-item {
+    color: var(--pos-select-color) !important;
+  }
+
+  .pos-select .ant-select-selector:focus,
+  .pos-select .ant-select-selector:focus-within,
+  .pos-select.ant-select-focused .ant-select-selector {
+    box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
+    border-color: var(--pos-select-color) !important;
   }
 }

@@ -60,6 +60,29 @@ export default function POSClient() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const selectRef = useRef<React.ComponentRef<typeof Select>>(null);
 
+  // Keyboard shortcut: focus the Select field when pressing '/'
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key === "/" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        // Focus the antd Select
+        try {
+          selectRef.current?.focus();
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   // debounce input so we don't call the API on every keystroke
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -102,11 +125,10 @@ export default function POSClient() {
 
       if (!map.has(key)) {
         const name = item.variant
-          ? `${item.variant.product.name}${
-              item.variant.variantName !== "Standard"
-                ? ` - ${item.variant.variantName}`
-                : ""
-            }`
+          ? `${item.variant.product.name}${item.variant.variantName !== "Standard"
+            ? ` - ${item.variant.variantName}`
+            : ""
+          }`
           : item.itemName || "Unknown Item";
 
         const sku = item.variant?.sku || "-";
@@ -276,29 +298,13 @@ export default function POSClient() {
 
   return (
     <div>
-      <Row gutter={16} className="mb-4">
-        <Col span={12}>
-          <Typography.Text>Customer Name (Optional)</Typography.Text>
-          <Input
-            placeholder="Enter customer name"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-          />
-        </Col>
-        <Col span={12}>
-          <Typography.Text>Customer Phone (Optional)</Typography.Text>
-          <Input
-            placeholder="Enter phone number"
-            value={customerPhone}
-            onChange={(e) => setCustomerPhone(e.target.value)}
-          />
-        </Col>
-      </Row>
 
       <Row gutter={16} align="bottom">
         <Col span={12}>
           <Typography.Text>Select Item</Typography.Text>
           <Select
+            className="pos-select"
+            dropdownClassName="pos-select-dropdown"
             ref={selectRef}
             showSearch
             filterOption={false}
@@ -313,17 +319,16 @@ export default function POSClient() {
               label: (
                 <div className="flex justify-between items-center w-full">
                   <div className="flex flex-col">
-                    <span className="font-medium text-gray-900">{it.name}</span>
-                    <span className="text-xs text-gray-500">SKU: {it.sku}</span>
+                    <span className="font-medium text-theme-foreground">{it.name}</span>
+                    <span className="text-xs text-theme-muted">SKU: {it.sku}</span>
                   </div>
                   <div className="flex flex-col items-end">
-                    <span className="font-bold text-blue-600">
+                    <span className="font-bold text-theme-primary">
                       ৳{it.retailPrice}
                     </span>
                     <span
-                      className={`text-xs ${
-                        it.totalQty > 0 ? "text-green-600" : "text-red-500"
-                      }`}
+                      className={`text-xs ${it.totalQty > 0 ? "text-theme-success" : "text-theme-destructive"
+                        }`}
                     >
                       {it.totalQty > 0
                         ? `${it.totalQty} in stock`
@@ -353,7 +358,25 @@ export default function POSClient() {
           />
         </Col>
       </Row>
-
+      
+      <Row gutter={16} className="mb-4">
+        <Col span={12}>
+          <Typography.Text>Customer Name (Optional)</Typography.Text>
+          <Input
+            placeholder="Enter customer name"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+          />
+        </Col>
+        <Col span={12}>
+          <Typography.Text>Customer Phone (Optional)</Typography.Text>
+          <Input
+            placeholder="Enter phone number"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+          />
+        </Col>
+      </Row>
       <div style={{ marginTop: 16 }}>
         <Button type="primary" onClick={addToCart} disabled={!selectedKey}>
           Add to cart

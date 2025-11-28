@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { useOffline } from '../components/providers/offline-provider';
+import { useOffline } from '@/hooks/useOffline';
 
 interface OfflineAnalyticsEvent {
   type: 'offline_start' | 'offline_end' | 'sync_start' | 'sync_success' | 'sync_error' | 'storage_warning' | 'storage_error';
