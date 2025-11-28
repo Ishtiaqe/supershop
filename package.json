@@ -8,7 +8,7 @@
     "build": "next build",
     "build-mobile": "npm run build && npx cap sync android",
     "build-mobile:ios": "npm run build && npx cap sync ios",
-    "start": "next start",
+    "start": "npx -y serve@latest out",
     "lint": "next lint",
     "type-check": "tsc --noEmit"
   },

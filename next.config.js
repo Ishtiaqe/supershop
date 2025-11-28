@@ -50,7 +50,7 @@ const withPWA = require('next-pwa')({
   skipWaiting: true,
   disable: false, // process.env.NODE_ENV === 'development',
   fallbacks: {
-    document: '/offline',
+    document: '/offline.html',
   },
   swSrc: 'src/sw.js',
   buildExcludes: [/middleware-manifest\.json$/, /app-build-manifest\.json$/]

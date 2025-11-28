@@ -45,7 +45,7 @@ registerRoute(
     plugins: [{
       handlerDidError: async () => {
         // Return the offline HTML page from cache
-        return caches.match('/offline');
+        return caches.match('/offline.html');
       },
     }],
   })
