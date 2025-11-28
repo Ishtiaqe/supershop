@@ -26,6 +26,25 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      try {
+        // Decode JWT payload
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Date.now() / 1000;
+
+        if (payload.exp > currentTime) {
+          router.push('/dashboard');
+          return;
+        }
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        // If token is invalid, stay on login page
+      }
+    }
+  }, [router]);
+
+  useEffect(() => {
     if (Capacitor.isNativePlatform()) {
       let listener: PluginListenerHandle;
       const setupListener = async () => {
