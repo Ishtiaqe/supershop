@@ -9,8 +9,6 @@ import Script from "next/script";
 
 const Shell = dynamic(() => import("@/components/shell/Shell"), { ssr: false });
 
-const Shell = dynamic(() => import("@/components/shell/Shell"), { ssr: false });
-
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
