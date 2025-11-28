@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, startTransition, useEffect, useRef } from "react";
+import { useState, startTransition, useEffect } from "react";
 import { Form, Input, Button, Alert } from "antd";
 import {
   UserOutlined,
@@ -9,23 +9,28 @@ import {
   ShoppingOutlined,
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
-import { signInWithPopup, signInWithRedirect, getRedirectResult, signInWithEmailAndPassword } from "firebase/auth";
+import {
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
-import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
+import { Capacitor, PluginListenerHandle } from "@capacitor/core";
+import { App } from "@capacitor/app";
 import api from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      (async () => {
-        const listener = await App.addListener('appUrlOpen', async (event) => {
-          if (event.url.startsWith('one.shomaj.supershop://')) {
+      let listener: PluginListenerHandle;
+      const setupListener = async () => {
+        listener = await App.addListener("appUrlOpen", async (event) => {
+          if (event.url.startsWith("one.shomaj.supershop://")) {
             // Handle Firebase redirect
             try {
               const result = await getRedirectResult(auth!);
@@ -51,7 +56,10 @@ export default function LoginPage() {
                     try {
                       const tenantResponse = await api.get("/tenants/me");
                       if (tenantResponse.data) {
-                        localStorage.setItem("tenant", JSON.stringify(tenantResponse.data));
+                        localStorage.setItem(
+                          "tenant",
+                          JSON.stringify(tenantResponse.data)
+                        );
                       }
                     } catch (err) {
                       console.error("Failed to fetch tenant info:", err);
@@ -67,16 +75,16 @@ export default function LoginPage() {
             }
           }
         });
+      };
 
-        cleanupRef.current = () => listener.remove();
-      })();
+      setupListener();
+
+      return () => {
+        if (listener) {
+          listener.remove();
+        }
+      };
     }
-
-    return () => {
-      if (cleanupRef.current) {
-        cleanupRef.current();
-      }
-    };
   }, [router]);
 
   const submit = async (values: { email: string; password: string }) => {
@@ -90,11 +98,15 @@ export default function LoginPage() {
 
     try {
       // Firebase authentication (this can be slow)
-      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
       const idToken = await userCredential.user.getIdToken();
 
       // Allow UI to update before making API calls
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Send token to backend
       const { data } = await api.post("/auth/firebase", {
@@ -122,7 +134,7 @@ export default function LoginPage() {
       });
 
       // Allow UI to update before navigation
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Navigate to dashboard
       router.push("/dashboard");
@@ -171,7 +183,7 @@ export default function LoginPage() {
       }
 
       // Allow UI to update before making API calls
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Send token to backend
       const { data } = await api.post("/auth/firebase", {
@@ -199,7 +211,7 @@ export default function LoginPage() {
       });
 
       // Allow UI to update before navigation
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Navigate to dashboard
       router.push("/dashboard");
