@@ -11,12 +11,33 @@ const api = axios.create({
   },
 })
 
+// Helper to read access token in a safe way (guarded for SSR)
+function getAccessToken(): string | null {
+  try {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem('accessToken')
+  } catch (e) {
+    // localStorage access may fail in some environments; fall back to null
+    console.warn('Unable to access localStorage for accessToken:', e)
+    return null
+  }
+}
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken')
+    const token = getAccessToken()
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      // Use bracket notation to protect against custom header implementations
+      ;(config.headers as Record<string, unknown>)['Authorization'] = `Bearer ${token}`
+      // Debugging info — remove in production
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('[api] Attaching Authorization header for request:', config.url)
+      }
+    } else {
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('[api] No access token found; request will be unauthenticated:', config.url)
+      }
     }
     return config
   },
@@ -27,9 +48,19 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('[api] Response error:', {
+        url: error.config?.url,
+        status: error.response?.status,
+        data: error.response?.data,
+      })
+    }
     const originalRequest = error.config
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('[api] Attempting token refresh for 401 on', originalRequest.url)
+      }
       originalRequest._retry = true
 
       const refreshToken = localStorage.getItem('refreshToken')
@@ -97,6 +128,13 @@ api.interceptors.response.use(
       }
     }
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('[api] Final response error (no auth/refresh):', {
+        url: originalRequest?.url,
+        status: error.response?.status,
+        data: error.response?.data,
+      })
+    }
     return Promise.reject(error)
   }
 )

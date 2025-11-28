@@ -14,7 +14,7 @@ import {
   Bar,
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import api from "@/lib/api";
 import { motion } from "framer-motion";
 
 const { Option } = Select;
@@ -26,13 +26,7 @@ interface GraphDataPoint {
 }
 
 async function fetchGraphData(period: string): Promise<GraphDataPoint[]> {
-  const token = localStorage.getItem("accessToken");
-  const response = await axios.get(
-    `${process.env.NEXT_PUBLIC_API_URL}/sales/analytics/graphs?period=${period}`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
+  const response = await api.get(`/sales/analytics/graphs?period=${period}`);
   return response.data;
 }
 

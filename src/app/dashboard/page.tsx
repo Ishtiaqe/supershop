@@ -9,7 +9,7 @@ import {
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import api from "@/lib/api";
 import DashboardCharts from "@/components/dashboard/DashboardCharts";
 
 const container = {
@@ -38,24 +38,12 @@ interface AssetValue {
 }
 
 async function fetchStatistics(): Promise<DashboardStatistics> {
-  const token = localStorage.getItem("accessToken");
-  const response = await axios.get(
-    `${process.env.NEXT_PUBLIC_API_URL}/sales/statistics/overall`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
+  const response = await api.get(`/sales/statistics/overall`);
   return response.data;
 }
 
 async function fetchAssetValue(): Promise<AssetValue> {
-  const token = localStorage.getItem("accessToken");
-  const response = await axios.get(
-    `${process.env.NEXT_PUBLIC_API_URL}/sales/analytics/asset-value`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
-  );
+  const response = await api.get(`/sales/analytics/asset-value`);
   return response.data;
 }
 
