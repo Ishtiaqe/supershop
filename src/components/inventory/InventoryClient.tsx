@@ -106,12 +106,14 @@ export default function InventoryClient() {
 
   const [editForm, setEditForm] = useState<{
     id?: string;
+    variantId?: string;
     itemName: string;
     quantity: number;
     purchasePrice: number;
     retailPrice: number;
   }>({
     id: undefined,
+    variantId: undefined,
     itemName: "",
     quantity: 0,
     purchasePrice: 0,
@@ -205,10 +207,14 @@ export default function InventoryClient() {
   const submitEdit = async () => {
     if (!editForm.id) return;
     const values = editFormInstance.getFieldsValue();
-    const payload = {
+    const payload: Record<string, any> = {
       id: editForm.id,
       ...values,
     };
+    // If this inventory item is attached to a product variant, we don't allow changing itemName (it comes from catalog)
+    if (editForm.variantId) {
+      delete payload.itemName;
+    }
     await updateMutation.mutateAsync(payload);
   };
 
@@ -546,6 +552,7 @@ export default function InventoryClient() {
                             onClick={() => {
                               setEditForm({
                                 id: subRecord.id,
+                                variantId: subRecord.variantId,
                                 itemName: subRecord.itemName || "",
                                 quantity: subRecord.quantity || 0,
                                 purchasePrice: subRecord.purchasePrice || 0,
@@ -650,7 +657,7 @@ export default function InventoryClient() {
             label="Item name"
             rules={[{ required: true }]}
           >
-            <Input />
+            <Input disabled={!!editForm.variantId} />
           </Form.Item>
 
           <Form.Item

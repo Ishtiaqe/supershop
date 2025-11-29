@@ -55,12 +55,13 @@ export default function CatalogClient() {
 
   const filteredCatalogItems = useMemo(() => {
     if (!search) return catalogItems;
-    return catalogItems.filter(item =>
-      item.productName.toLowerCase().includes(search.toLowerCase()) ||
-      item.variantName.toLowerCase().includes(search.toLowerCase()) ||
-      item.sku.toLowerCase().includes(search.toLowerCase()) ||
-      item.genericName?.toLowerCase().includes(search.toLowerCase()) ||
-      item.manufacturerName?.toLowerCase().includes(search.toLowerCase())
+    return catalogItems.filter(
+      (item) =>
+        item.productName.toLowerCase().includes(search.toLowerCase()) ||
+        item.variantName.toLowerCase().includes(search.toLowerCase()) ||
+        item.sku.toLowerCase().includes(search.toLowerCase()) ||
+        item.genericName?.toLowerCase().includes(search.toLowerCase()) ||
+        item.manufacturerName?.toLowerCase().includes(search.toLowerCase())
     );
   }, [catalogItems, search]);
 
@@ -82,7 +83,10 @@ export default function CatalogClient() {
       message.success("Product updated");
       handleCloseModal();
     },
-    onError: () => message.error("Failed to update product"),
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      message.error(err.response?.data?.message || "Failed to update product");
+    },
   });
 
   const deleteMutation = useMutation({
@@ -167,11 +171,11 @@ export default function CatalogClient() {
         </div>
       ),
     },
-      // {
-      //   title: "Variant",
-      //   dataIndex: "variantName",
-      //   key: "variantName",
-      // },
+    // {
+    //   title: "Variant",
+    //   dataIndex: "variantName",
+    //   key: "variantName",
+    // },
     // {
     //   title: "SKU",
     //   dataIndex: "sku",
