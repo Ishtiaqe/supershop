@@ -13,7 +13,6 @@ import {
   Col,
   Typography,
   message,
-  Input,
   Alert,
 } from "antd";
 
@@ -343,6 +342,7 @@ export default function POSClient({
                     type="error"
                     showIcon
                     message={
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       (itemsErrorObj as any)?.response?.status === 401
                         ? "Not signed in — please login to access inventory"
                         : "Failed to load inventory"

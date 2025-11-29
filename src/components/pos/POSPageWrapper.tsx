@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Result } from "antd";
+
 import POSClient from "./POSClient";
 import { Row, Col, Card, Input, Typography } from "antd";
 
 export default function POSPageWrapper() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [user, setUser] = useState<{ role?: string } | null | undefined>(undefined);
+  const [user, setUser] = useState<{ role?: string } | null | undefined>(
+    undefined
+  );
 
   // Guard for user role: OWNER or EMPLOYEE required
   useEffect(() => {
