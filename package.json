@@ -4,7 +4,7 @@
   "description": "SuperShop Frontend - Multi-tenant Shop Management Dashboard",
   "private": true,
   "scripts": {
-      "check:colors": "node ./scripts/check-color-vars.js",
+    "check:colors": "node ./scripts/check-color-vars.js",
     "dev": "next dev",
     "build": "next build",
     "build-mobile": "npm run build && npx cap sync android",
