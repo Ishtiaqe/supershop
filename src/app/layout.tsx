@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { themeColors } from '@/lib/theme';
+import { themeColors } from "@/lib/theme";
 import "./globals.css";
 // Ant Design styles
 import "antd/dist/reset.css";
 import { Providers } from "@/components/providers";
 import dynamic from "next/dynamic";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const Shell = dynamic(() => import("@/components/shell/Shell"), { ssr: false });
 
@@ -51,11 +53,13 @@ export default function RootLayout({
                   function gtag(){dataLayer.push(arguments);}
                   gtag('js', new Date());
                   gtag('config', '${process.env.NEXT_PUBLIC_GA_TRACKING_ID}');
-                `}
+                  `}
               </Script>
             </>
           )}
           <Shell>{children}</Shell>
+          <SpeedInsights />
+          <Analytics />
         </Providers>
       </body>
     </html>
