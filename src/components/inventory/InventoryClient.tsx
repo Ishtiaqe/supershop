@@ -388,7 +388,7 @@ export default function InventoryClient() {
                   <div className="font-medium">
                     {item.productName} - {item.variantName}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-muted-foreground">
                     SKU: {item.sku} | ৳{item.retailPrice}
                     {item.genericName && ` | ${item.genericName}`}
                   </div>

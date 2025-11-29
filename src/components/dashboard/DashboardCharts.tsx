@@ -102,8 +102,8 @@ export default function DashboardCharts() {
                 >
                   <defs>
                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -131,7 +131,7 @@ export default function DashboardCharts() {
                     ]}
                     labelFormatter={(label) => formatDate(label)}
                     contentStyle={{
-                      backgroundColor: "rgba(255, 255, 255, 0.8)",
+                      backgroundColor: "hsl(var(--card) / 0.8)",
                       backdropFilter: "blur(10px)",
                       borderRadius: "8px",
                       border: "none",
@@ -141,7 +141,7 @@ export default function DashboardCharts() {
                   <Area
                     type="monotone"
                     dataKey="sales"
-                    stroke="#8884d8"
+                    stroke="hsl(var(--primary))"
                     fillOpacity={1}
                     fill="url(#colorSales)"
                     strokeWidth={2}
@@ -193,16 +193,16 @@ export default function DashboardCharts() {
                       "Profit",
                     ]}
                     labelFormatter={(label) => formatDate(label)}
-                    cursor={{ fill: "rgba(0,0,0,0.05)" }}
+                    cursor={{ fill: "hsl(var(--outline) / 0.05)" }}
                     contentStyle={{
-                      backgroundColor: "rgba(255, 255, 255, 0.8)",
+                      backgroundColor: "hsl(var(--card) / 0.8)",
                       backdropFilter: "blur(10px)",
                       borderRadius: "8px",
                       border: "none",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                     }}
                   />
-                  <Bar dataKey="profit" fill="#82ca9d" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="profit" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

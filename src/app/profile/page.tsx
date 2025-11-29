@@ -65,10 +65,10 @@ export default function ProfilePage() {
       <Tabs defaultActiveKey="profile">
         <Tabs.TabPane tab="Profile" key="profile">
           <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
-            <Avatar style={{ backgroundColor: '#1890ff' }}>{(user.fullName || user.email || 'U')[0]}</Avatar>
+            <Avatar style={{ backgroundColor: 'hsl(var(--primary))' }}>{(user.fullName || user.email || 'U')[0]}</Avatar>
             <div>
               <div style={{ fontWeight: 700 }}>{user.fullName || user.email}</div>
-              <div style={{ color: '#666' }}>{user.email}</div>
+              <div style={{ color: 'hsl(var(--muted-foreground))' }}>{user.email}</div>
             </div>
           </div>
 

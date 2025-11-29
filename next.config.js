@@ -9,39 +9,40 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
-  async headers() {
-    return [
-      {
-        source: '/:all*(svg|jpg|png)',
-        locale: false,
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          }
-        ],
-      },
-      {
-        source: '/:all*(js|css|woff|woff2)',
-        locale: false,
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          }
-        ],
-      },
-      {
-        source: '/',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate',
-          }
-        ],
-      },
-    ]
-  },
+  // headers() is not supported with output: 'export'
+  // async headers() {
+  //   return [
+  //     {
+  //       source: '/:all*(svg|jpg|png)',
+  //       locale: false,
+  //       headers: [
+  //         {
+  //           key: 'Cache-Control',
+  //           value: 'public, max-age=31536000, immutable',
+  //         }
+  //       ],
+  //     },
+  //     {
+  //       source: '/:all*(js|css|woff|woff2)',
+  //       locale: false,
+  //       headers: [
+  //         {
+  //           key: 'Cache-Control',
+  //           value: 'public, max-age=31536000, immutable',
+  //         }
+  //       ],
+  //     },
+  //     {
+  //       source: '/',
+  //       headers: [
+  //         {
+  //           key: 'Cache-Control',
+  //           value: 'no-cache, no-store, must-revalidate',
+  //         }
+  //       ],
+  //     },
+  //   ]
+  // },
 }
 
 const withPWA = require('next-pwa')({

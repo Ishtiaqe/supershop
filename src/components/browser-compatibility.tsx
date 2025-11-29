@@ -130,28 +130,28 @@ export function BrowserCompatibilityCheck() {
             <Space direction="vertical" style={{ width: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>IndexedDB (Offline Storage)</Text>
-                <Text style={{ color: browserSupport.indexedDB ? '#52c41a' : '#ff4d4f' }}>
+                <Text style={{ color: browserSupport.indexedDB ? 'hsl(var(--success))' : 'hsl(var(--destructive))' }}>
                   {browserSupport.indexedDB ? '✅ Supported' : '❌ Not Supported'}
                 </Text>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>Service Workers (Background Processing)</Text>
-                <Text style={{ color: browserSupport.serviceWorker ? '#52c41a' : '#ff4d4f' }}>
+                <Text style={{ color: browserSupport.serviceWorker ? 'hsl(var(--success))' : 'hsl(var(--destructive))' }}>
                   {browserSupport.serviceWorker ? '✅ Supported' : '❌ Not Supported'}
                 </Text>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>Background Sync (Auto-sync)</Text>
-                <Text style={{ color: browserSupport.backgroundSync ? '#52c41a' : '#faad14' }}>
+                <Text style={{ color: browserSupport.backgroundSync ? 'hsl(var(--success))' : 'hsl(var(--warning))' }}>
                   {browserSupport.backgroundSync ? '✅ Supported' : '⚠️ Not Supported'}
                 </Text>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>Cache API (Asset Caching)</Text>
-                <Text style={{ color: browserSupport.cacheAPI ? '#52c41a' : '#ff4d4f' }}>
+                <Text style={{ color: browserSupport.cacheAPI ? 'hsl(var(--success))' : 'hsl(var(--destructive))' }}>
                   {browserSupport.cacheAPI ? '✅ Supported' : '❌ Not Supported'}
                 </Text>
               </div>
@@ -163,15 +163,15 @@ export function BrowserCompatibilityCheck() {
             description={
               <Space direction="vertical">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ChromeOutlined style={{ color: '#4285f4' }} />
+                  <ChromeOutlined style={{ color: 'hsl(var(--primary))' }} />
                   <Text>Chrome 90+ (Full support)</Text>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FireOutlined style={{ color: '#ff7139' }} />
+                  <FireOutlined style={{ color: 'hsl(var(--brand-firefox))' }} />
                   <Text>Firefox 88+ (Full support)</Text>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AppleOutlined style={{ color: '#000' }} />
+                  <AppleOutlined style={{ color: 'hsl(var(--foreground))' }} />
                   <Text>Safari 14+ (Limited support - no background sync)</Text>
                 </div>
               </Space>

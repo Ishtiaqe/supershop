@@ -93,7 +93,7 @@ export default function DashboardPage() {
                   title="Total Revenue"
                   value={stats?.totalRevenue || 0}
                   precision={2}
-                  valueStyle={{ color: "#3f8600" }}
+                  valueStyle={{ color: "hsl(var(--success))" }}
                   prefix={<DollarOutlined />}
                 />
                 <div className="text-xs text-muted-foreground mt-2">
@@ -131,7 +131,7 @@ export default function DashboardPage() {
                   title="Asset Value"
                   value={assetValue?.totalAssetValue || 0}
                   precision={2}
-                  valueStyle={{ color: "#1890ff" }}
+                  valueStyle={{ color: "hsl(var(--primary))" }}
                   prefix={<BankOutlined />}
                 />
                 <div className="text-xs text-muted-foreground mt-2">
@@ -149,7 +149,7 @@ export default function DashboardPage() {
                 <Statistic
                   title="Orders"
                   value={stats?.ordersCount || 0}
-                  valueStyle={{ color: "#cf1322" }}
+                  valueStyle={{ color: "hsl(var(--destructive))" }}
                   prefix={<ShoppingOutlined />}
                 />
                 <div className="text-xs text-muted-foreground mt-2">

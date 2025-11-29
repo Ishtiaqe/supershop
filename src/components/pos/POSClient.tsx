@@ -14,6 +14,7 @@ import {
   Typography,
   message,
   Input,
+  Alert,
 } from "antd";
 
 function fetchInventory(q?: string) {
@@ -54,15 +55,29 @@ function fetchInventory(q?: string) {
   }
 }
 
-export default function POSClient() {
+export default function POSClient({
+  customerName,
+  customerPhone,
+  setCustomerName,
+  setCustomerPhone,
+}: {
+  customerName?: string;
+  customerPhone?: string;
+  setCustomerName?: (v: string) => void;
+  setCustomerPhone?: (v: string) => void;
+}) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const selectRef = useRef<React.ComponentRef<typeof Select>>(null);
 
   // Keyboard shortcut: focus the Select field when pressing '/'
+  // Double Shift: focus the "Complete Sale" button
+  const completeSaleBtnRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Slash to focus search
       if (
         event.key === "/" &&
         !event.ctrlKey &&
@@ -70,17 +85,22 @@ export default function POSClient() {
         !event.altKey
       ) {
         event.preventDefault();
-        // Focus the antd Select
         try {
           selectRef.current?.focus();
         } catch {
           // ignore
         }
       }
+
+      // Ctrl + / to focus Complete Sale
+      if (event.key === "/" && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        completeSaleBtnRef.current?.focus();
+      }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, []);
 
   // debounce input so we don't call the API on every keystroke
@@ -89,7 +109,12 @@ export default function POSClient() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data: rawItems = [], isFetching: itemsLoading } = useQuery({
+  const {
+    data: rawItems = [],
+    isFetching: itemsLoading,
+    isError: itemsError,
+    error: itemsErrorObj,
+  } = useQuery({
     queryKey: ["inventory", debouncedSearch],
     queryFn: () => fetchInventory(debouncedSearch),
   });
@@ -125,10 +150,11 @@ export default function POSClient() {
 
       if (!map.has(key)) {
         const name = item.variant
-          ? `${item.variant.product.name}${item.variant.variantName !== "Standard"
-            ? ` - ${item.variant.variantName}`
-            : ""
-          }`
+          ? `${item.variant.product.name}${
+              item.variant.variantName !== "Standard"
+                ? ` - ${item.variant.variantName}`
+                : ""
+            }`
           : item.itemName || "Unknown Item";
 
         const sku = item.variant?.sku || "-";
@@ -153,8 +179,7 @@ export default function POSClient() {
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [qty, setQty] = useState<number>(1);
-  const [customerName, setCustomerName] = useState<string>("");
-  const [customerPhone, setCustomerPhone] = useState<string>("");
+  // customerName, customerPhone, and setters are now provided by parent (page)
   const [cart, setCart] = useState<
     Array<{
       key: string;
@@ -205,11 +230,17 @@ export default function POSClient() {
     if (!item) return;
 
     // Calculate average purchase price
-    const totalPurchase = item.batches.reduce((sum, b) => sum + b.purchasePrice * b.quantity, 0);
+    const totalPurchase = item.batches.reduce(
+      (sum, b) => sum + b.purchasePrice * b.quantity,
+      0
+    );
     const totalQty = item.batches.reduce((sum, b) => sum + b.quantity, 0);
     const avgPurchase = totalQty > 0 ? totalPurchase / totalQty : 0;
     const minPrice = avgPurchase * 1.04;
-    const maxDiscountPercent = item.retailPrice > 0 ? ((item.retailPrice - minPrice) / item.retailPrice) * 100 : 0;
+    const maxDiscountPercent =
+      item.retailPrice > 0
+        ? ((item.retailPrice - minPrice) / item.retailPrice) * 100
+        : 0;
 
     // Check if already in cart
     const existingIdx = cart.findIndex((c) => c.key === selectedKey);
@@ -290,98 +321,114 @@ export default function POSClient() {
       customerPhone: customerPhone || undefined,
     });
     setCart([]);
-    setCustomerName("");
-    setCustomerPhone("");
+    setCustomerName?.("");
+    setCustomerPhone?.("");
   }
 
-  const total = cart.reduce((s, it) => s + it.quantity * (it.unitPrice * (1 - it.discount / 100)), 0);
+  const total = cart.reduce(
+    (s, it) => s + it.quantity * (it.unitPrice * (1 - it.discount / 100)),
+    0
+  );
 
   return (
     <div>
-
       <Row gutter={16} align="bottom">
-        <Col span={12}>
-          <Typography.Text>Select Item</Typography.Text>
-          <Select
-            className="pos-select"
-            dropdownClassName="pos-select-dropdown"
-            ref={selectRef}
-            showSearch
-            filterOption={false}
-            allowClear
-            placeholder="Type to search inventory or SKU..."
-            style={{ width: "100%" }}
-            value={selectedKey ?? undefined}
-            onSearch={(val) => setSearch(val)}
-            onChange={(val) => setSelectedKey(val)}
-            notFoundContent={itemsLoading ? "Searching..." : "No results"}
-            options={aggregatedItems.map((it) => ({
-              label: (
-                <div className="flex justify-between items-center w-full">
-                  <div className="flex flex-col">
-                    <span className="font-medium text-theme-foreground">{it.name}</span>
-                    <span className="text-xs text-theme-muted">SKU: {it.sku}</span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="font-bold text-theme-primary">
-                      ৳{it.retailPrice}
-                    </span>
-                    <span
-                      className={`text-xs ${it.totalQty > 0 ? "text-theme-success" : "text-theme-destructive"
-                        }`}
-                    >
-                      {it.totalQty > 0
-                        ? `${it.totalQty} in stock`
-                        : "Out of stock"}
-                    </span>
-                  </div>
+        <Col xs={24} md={16} lg={16}>
+          {/* Left: Select, Quantity, Add to Cart, Cart Table, Total & Checkout */}
+          <Row gutter={16}>
+            <Col span={24}>
+              {itemsError && (
+                <div style={{ marginBottom: 8 }}>
+                  <Alert
+                    type="error"
+                    showIcon
+                    message={
+                      (itemsErrorObj as any)?.response?.status === 401
+                        ? "Not signed in — please login to access inventory"
+                        : "Failed to load inventory"
+                    }
+                  />
                 </div>
-              ),
-              value: it.key,
-              displayLabel: it.name,
-              disabled: it.totalQty <= 0,
-            }))}
-            optionLabelProp="displayLabel"
-          />
+              )}
+              <Typography.Text>Select Item</Typography.Text>
+              <Select
+                className="pos-select"
+                popupClassName="pos-select-dropdown"
+                ref={selectRef}
+                showSearch
+                filterOption={false}
+                allowClear
+                placeholder="Type to search inventory or SKU..."
+                style={{ width: "100%" }}
+                value={selectedKey ?? undefined}
+                onSearch={(val) => setSearch(val)}
+                onChange={(val) => setSelectedKey(val)}
+                notFoundContent={itemsLoading ? "Searching..." : "No results"}
+                options={aggregatedItems.map((it) => ({
+                  label: (
+                    <div className="flex justify-between items-center w-full">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-theme-foreground">
+                          {it.name}
+                        </span>
+                        <span className="text-xs text-theme-muted">
+                          SKU: {it.sku}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="font-bold text-theme-primary">
+                          ৳{it.retailPrice}
+                        </span>
+                        <span
+                          className={`text-xs ${
+                            it.totalQty > 0
+                              ? "text-theme-success"
+                              : "text-theme-destructive"
+                          }`}
+                        >
+                          {it.totalQty > 0
+                            ? `${it.totalQty} in stock`
+                            : "Out of stock"}
+                        </span>
+                      </div>
+                    </div>
+                  ),
+                  value: it.key,
+                  displayLabel: it.name,
+                  disabled: it.totalQty <= 0,
+                }))}
+                optionLabelProp="displayLabel"
+              />
+            </Col>
+            <Col span={8} className="mt-2">
+              <Typography.Text>Quantity</Typography.Text>
+              <InputNumber
+                variant="outlined"
+                className="w-full"
+                min={1}
+                value={qty}
+                onChange={(value) => setQty(Number(value))}
+                onPressEnter={addToCart}
+                changeOnWheel
+              />
+            </Col>
+            <Col span={24} style={{ marginTop: 12 }}>
+              <Button
+                type="primary"
+                onClick={addToCart}
+                disabled={!selectedKey}
+              >
+                Add to cart
+              </Button>
+            </Col>
+          </Row>
         </Col>
 
-        <Col span={8}>
-          <Typography.Text>Quantity</Typography.Text>
-          <InputNumber
-            variant="outlined"
-            className="w-full"
-            min={1}
-            value={qty}
-            onChange={(value) => setQty(Number(value))}
-            onPressEnter={addToCart}
-            changeOnWheel
-          />
-        </Col>
+        {/* Customer inputs are controlled by the parent page; moved to page layout */}
       </Row>
-      
-      <Row gutter={16} className="mb-4">
-        <Col span={12}>
-          <Typography.Text>Customer Name (Optional)</Typography.Text>
-          <Input
-            placeholder="Enter customer name"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-          />
-        </Col>
-        <Col span={12}>
-          <Typography.Text>Customer Phone (Optional)</Typography.Text>
-          <Input
-            placeholder="Enter phone number"
-            value={customerPhone}
-            onChange={(e) => setCustomerPhone(e.target.value)}
-          />
-        </Col>
-      </Row>
-      <div style={{ marginTop: 16 }}>
-        <Button type="primary" onClick={addToCart} disabled={!selectedKey}>
-          Add to cart
-        </Button>
-      </div>
+
+      {/* Customer fields moved into right-side card above */}
+      {/* Add to cart button is included in the left column above */}
 
       <div style={{ marginTop: 16 }}>
         <div className="overflow-x-auto">
@@ -435,9 +482,14 @@ export default function POSClient() {
               key="total"
               render={(
                 v: number,
-                record: { quantity: number; unitPrice: number; discount: number }
+                record: {
+                  quantity: number;
+                  unitPrice: number;
+                  discount: number;
+                }
               ) => {
-                const effectivePrice = record.unitPrice * (1 - record.discount / 100);
+                const effectivePrice =
+                  record.unitPrice * (1 - record.discount / 100);
                 return `৳${(record.quantity * effectivePrice).toFixed(2)}`;
               }}
             />
@@ -463,10 +515,13 @@ export default function POSClient() {
           Total: ৳{total.toFixed(2)}
         </div>
         <Button
+          ref={completeSaleBtnRef}
           type="primary"
           size="large"
           onClick={checkout}
-          className="mt-4 w-full"
+          className="mt-4 w-full complete-sale-btn"
+          color="lime"
+          variant="solid"
           disabled={cart.length === 0 || saleMutation.isPending}
           loading={saleMutation.isPending}
         >

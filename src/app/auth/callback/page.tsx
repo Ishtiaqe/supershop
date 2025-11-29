@@ -38,12 +38,12 @@ export default function AuthCallback() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
-      <div className="text-center bg-white/90 backdrop-blur-xl p-12 rounded-2xl shadow-2xl">
+      <div className="text-center bg-card/90 backdrop-blur-xl p-12 rounded-2xl shadow-2xl">
         <Spin size="large" />
-        <p className="mt-6 text-gray-700 text-lg font-medium">
+        <p className="mt-6 text-foreground text-lg font-medium">
           Completing sign in...
         </p>
-        <p className="mt-2 text-gray-500 text-sm">Please wait</p>
+        <p className="mt-2 text-muted-foreground text-sm">Please wait</p>
       </div>
     </div>
   );

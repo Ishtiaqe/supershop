@@ -27,7 +27,7 @@ export function NetworkStatus() {
   if (isOnline) {
     return (
       <Tooltip title="You are online">
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/10 text-green-500 border border-green-500/20">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-success/10 text-success border border-success/20">
           <WifiOutlined />
         </div>
       </Tooltip>
@@ -36,7 +36,7 @@ export function NetworkStatus() {
 
   return (
     <Tooltip title="You are offline. Changes will be saved locally.">
-      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse">
+      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-destructive/10 text-destructive border border-destructive/20 animate-pulse">
         <DisconnectOutlined />
       </div>
     </Tooltip>

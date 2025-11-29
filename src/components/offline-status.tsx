@@ -19,7 +19,7 @@ export function OfflineIndicator() {
         message: 'You are offline',
         description: 'Some features may be limited. Your data will sync when connection returns.',
         duration: 4,
-        icon: <DisconnectOutlined style={{ color: '#ff4d4f' }} />
+        icon: <DisconnectOutlined style={{ color: 'hsl(var(--destructive))' }} />
       });
       setLastNotification(now);
     }
@@ -30,15 +30,15 @@ export function OfflineIndicator() {
         message: 'Back online',
         description: 'Syncing your data...',
         duration: 3,
-        icon: <WifiOutlined style={{ color: '#52c41a' }} />
+        icon: <WifiOutlined style={{ color: 'hsl(var(--success))' }} />
       });
     }
   }, [isOnline, isSyncing, lastSyncTime, lastNotification]);
 
   const getStatusColor = () => {
-    if (!isOnline) return '#ff4d4f';
-    if (isSyncing) return '#faad14';
-    return '#52c41a';
+    if (!isOnline) return 'hsl(var(--destructive))';
+    if (isSyncing) return 'hsl(var(--info))';
+    return 'hsl(var(--success))';
   };
 
   const getStatusText = () => {
@@ -70,7 +70,7 @@ export function OfflineIndicator() {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            background: '#fff',
+            background: 'hsl(var(--surface))',
             padding: '8px 12px',
             borderRadius: '6px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -158,7 +158,7 @@ export function SyncStatus() {
         bottom: 24,
         right: 24,
         zIndex: 1000,
-        background: '#fff',
+        background: 'hsl(var(--surface))',
         padding: '16px',
         borderRadius: '8px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -167,14 +167,14 @@ export function SyncStatus() {
     >
       <Space direction="vertical" style={{ width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <SyncOutlined spin style={{ color: '#1890ff' }} />
+          <SyncOutlined spin style={{ color: 'hsl(var(--primary))' }} />
           <Text strong>Syncing data...</Text>
         </div>
 
         <Progress
           percent={Math.round(syncProgress)}
           status="active"
-          strokeColor="#1890ff"
+          strokeColor={'hsl(var(--primary))'}
           showInfo={false}
         />
 

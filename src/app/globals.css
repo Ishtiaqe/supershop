@@ -5,87 +5,121 @@
 @layer base {
   /* 1. Default Theme (Light Mode) */
   :root {
-    --background: 210 40% 98%; /* Gray 50/Slate 50 mix */
-    --foreground: 222 47% 11%; /* Slate 900 */
+    /* Neutrals */
+    --background: 234 100% 99%; /* #FDFBFF */
+    --surface: 0 0% 100%; /* #FFFFFF */
+    --foreground: 210 21% 11%; /* #1A1C1E */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    /* Primary: Azure Blue */
+    --primary: 217 100% 61%; /* #3a86ff */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF */
+    --primary-container: 219 100% 92%; /* #D6E4FF */
+    --primary-on-container: 210 100% 11%; /* #001C38 */
+    --primary-hover: 221 83% 53%; /* #2563EB */
+    --primary-active: 224 76% 48%; /* #1D4ED8 */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    /* Secondary: Blue Violet */
+    --secondary: 265 83% 57%; /* #8338ec */
+    --secondary-foreground: 0 0% 100%; /* #FFFFFF */
+    --secondary-container: 259 100% 93%; /* #E8DDFF */
+    --secondary-on-container: 261 100% 18%; /* #21005D */
+    --secondary-hover: 267 77% 60%; /* #7C3AED */
+    --secondary-active: 275 64% 45%; /* #6D28D9 */
 
-    --primary: 249 95% 60%; /* Indigo 600 - Vibrant */
-    --primary-foreground: 210 40% 98%;
+    /* Tertiary: Neon Pink */
+    --tertiary: 334 100% 50%; /* #ff006e */
+    --tertiary-foreground: 0 0% 100%; /* #FFFFFF */
+    --tertiary-container: 345 100% 92%; /* #FFD9E3 */
+    --tertiary-on-container: 345 100% 11%; /* #3E0018 */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11%;
+    /* Semantic */
+    --warning: 44 92% 52%; /* #ffbe0b */
+    --warning-foreground: 0 0% 0%; /* #000000 */
+    --warning-container: 48 100% 94%; /* #FFF5CC */
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --critical: 19 97% 50%; /* #fb5607 */
+    --critical-foreground: 0 0% 100%; /* #FFFFFF */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
+    /* Some existing tokens for compatibility */
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 249 95% 60%;
+    --ring: 217 100% 61%;
+    --focus: 217 100% 61%; /* Focus ring color (usually primary) */
+    --disabled: 0 0% 80%; /* Used for disabled backgrounds and text */
+    --outline: 230 7% 49%; /* #74777F */
 
     --radius: 0.5rem;
 
     /* Status colors */
     --success: 142 76% 36%;
-    --success-foreground: 355 100% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
-
+    --success-foreground: 0 0% 100%;
     --info: 199 89% 48%;
-    --info-foreground: 0 0% 100%;
-    /* POS Select color defaults (used by pos-select dropdown) */
-    --pos-select-bg: rgba(98, 0, 255, 0.14);
-    /* --pos-select-color: rgb(255, 0, 0); */
+    --pos-select-bg: rgba(255, 17, 0, 0.14);
+    --pos-select-color: hsl(var(--success));
+
+    /* Brand colors (useful for brand icons while keeping them centralized) */
+    --brand-google-blue: 221 89% 61%; /* #4285F4 */
+    --brand-google-green: 140 57% 46%; /* #34A853 */
+    --brand-google-yellow: 44 97% 53%; /* #FBBC04 */
+    --brand-google-red: 4 80% 58%; /* #EA4335 */
+    --brand-firefox: 17 100% 60%; /* #ff7139 */
+    --brand-apple-black: 0 0% 0%; /* #000000 */
+    --pos-select-color: hsl(var(--success));
   }
 
   /* 2. Light Theme (Explicit) */
   .light {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 234 100% 99%;
+    --foreground: 210 21% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 210 21% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 249 95% 60%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11%;
+    --popover-foreground: 210 21% 11%;
+
+    --primary: 217 100% 61%;
+    --primary-foreground: 0 0% 100%;
+    --primary-container: 219 100% 92%;
+    --primary-on-container: 210 100% 11%;
+    --primary-hover: 221 83% 53%;
+    --primary-active: 224 76% 48%;
+
+    --secondary: 265 83% 57%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-container: 259 100% 93%;
+    --secondary-on-container: 261 100% 18%;
+    --secondary-hover: 267 77% 60%;
+    --secondary-active: 275 64% 45%;
+
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11%;
+    --accent-foreground: 210 21% 11%;
+
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
+
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 249 95% 60%;
+    --ring: 217 100% 61%;
+    --focus: 217 100% 61%;
+    --disabled: 0 0% 80%;
+    --outline: 230 7% 49%;
 
     --success: 142 76% 36%;
-    --success-foreground: 355 100% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
+    --success-foreground: 0 0% 100%;
+    --warning: 44 92% 52%;
+    --warning-foreground: 0 0% 0%;
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
-    /* POS select highlight colors (light theme) */
-    --pos-select-bg: rgba(98, 0, 255, 0.14);
-    /* --pos-select-color: rgb(255, 0, 0); */
+    --pos-select-bg: rgba(255, 17, 0, 0.14);
   }
 
   /* 3. Dark Theme */
   .dark {
     --background: 222 47% 11%; /* Slate 950 */
     --foreground: 210 40% 98%;
+    --surface: 222 47% 11%;
+    --surface-foreground: 210 40% 98%;
 
     --card: 222 47% 11%;
     --card-foreground: 210 40% 98%;
@@ -93,11 +127,17 @@
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 249 95% 65%; /* Indigo 500 - Lighter for dark mode */
-    --primary-foreground: 222 47% 11%;
+    --primary: 217 100% 75%; /* lighter azure for dark */
+    --primary-foreground: 0 0% 10%;
+    --primary-container: 217 70% 20%;
+    --primary-on-container: 210 40% 98%;
+    --primary-hover: 221 83% 53%;
+    --primary-active: 224 76% 48%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 265 83% 50%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-container: 259 30% 12%;
+    --secondary-on-container: 261 100% 94%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
@@ -106,21 +146,21 @@
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 249 95% 65%;
+    --ring: 217 100% 75%;
+    --focus: 217 100% 75%;
+    --disabled: 0 0% 30%;
 
     --success: 142 70% 50%;
     --success-foreground: 144 100% 10%;
-    --warning: 48 96% 89%;
-    --warning-foreground: 38 92% 50%;
+    --warning: 44 92% 52%;
+    --warning-foreground: 0 0% 0%;
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
-    /* POS select highlight colors (dark theme) */
-    --pos-select-bg: rgba(98, 0, 255, 0.14);
-    /* --pos-select-color: rgb(255, 0, 0); */
+    --pos-select-bg: rgba(255, 17, 0, 0.14);
   }
 
   /* 4. Base Styles Application */
@@ -139,6 +179,30 @@
 
   .glass-card {
     @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-sm;
+  }
+
+  /* Primary CTA utility - use as an alternative to Ant's Button primary for custom buttons */
+  .btn-primary {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: 1px solid hsl(var(--primary));
+  }
+  .btn-primary:hover {
+    background-color: hsl(var(--primary-hover));
+    border-color: hsl(var(--primary-hover));
+  }
+  .btn-primary:active {
+    background-color: hsl(var(--primary-active));
+    border-color: hsl(var(--primary-active));
+  }
+
+  /* Input focus using theme focus/ring */
+  .ant-input:focus,
+  .ant-input-password:focus,
+  .ant-input-affix-wrapper:focus,
+  .ant-input-affix-wrapper-focused {
+    box-shadow: 0 0 0 3px hsl(var(--focus) / 0.12);
+    border-color: hsl(var(--focus));
   }
 
   /* Theme-aware text colors */
@@ -187,5 +251,13 @@
   .pos-select.ant-select-focused .ant-select-selector {
     box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
     border-color: var(--pos-select-color) !important;
+  }
+
+  /* Complete Sale Button Focus Override */
+  .complete-sale-btn:focus,
+  .complete-sale-btn:focus-visible {
+    box-shadow: 0 0 0 4px rgba(255, 0, 0, 0.6) !important;
+    border-color: red !important;
+    outline: none;
   }
 }

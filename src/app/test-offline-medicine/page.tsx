@@ -132,7 +132,7 @@ export default function TestOfflineMedicine() {
         disabled={loading}
         style={{
           padding: '10px 20px',
-          backgroundColor: loading ? '#ccc' : '#007bff',
+          backgroundColor: loading ? 'hsl(var(--muted))' : 'hsl(var(--primary))',
           color: 'white',
           border: 'none',
           borderRadius: '4px',
@@ -144,7 +144,7 @@ export default function TestOfflineMedicine() {
       </button>
 
       <div style={{
-        backgroundColor: '#f5f5f5',
+        backgroundColor: 'hsl(var(--muted))',
         padding: '10px',
         borderRadius: '4px',
         maxHeight: '400px',

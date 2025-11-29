@@ -75,9 +75,9 @@ export function StorageMonitor() {
 
   const getStatusColor = () => {
     switch (storageInfo.status) {
-      case 'error': return '#ff4d4f';
-      case 'warning': return '#faad14';
-      default: return '#52c41a';
+      case 'error': return 'hsl(var(--destructive))';
+      case 'warning': return 'hsl(var(--warning))';
+      default: return 'hsl(var(--success))';
     }
   };
 
@@ -109,7 +109,7 @@ export function StorageMonitor() {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            background: '#fff',
+            background: 'hsl(var(--surface))',
             padding: '8px 12px',
             borderRadius: '6px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',

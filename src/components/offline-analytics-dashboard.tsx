@@ -53,7 +53,7 @@ export function OfflineAnalyticsDashboard() {
                 value={analytics.getSyncSuccessRate()}
                 suffix="%"
                 prefix={<SyncOutlined />}
-                valueStyle={{ color: analytics.getSyncSuccessRate() > 80 ? '#3f8600' : '#cf1322' }}
+                valueStyle={{ color: analytics.getSyncSuccessRate() > 80 ? 'hsl(var(--success))' : 'hsl(var(--destructive))' }}
               />
             </Card>
           </Col>
@@ -72,7 +72,7 @@ export function OfflineAnalyticsDashboard() {
                 title="Storage Issues"
                 value={stats.storageWarnings + stats.storageErrors}
                 prefix={<WarningOutlined />}
-                valueStyle={{ color: stats.storageErrors > 0 ? '#cf1322' : '#faad14' }}
+                valueStyle={{ color: stats.storageErrors > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--warning))' }}
               />
             </Card>
           </Col>
@@ -110,7 +110,7 @@ export function OfflineAnalyticsDashboard() {
                 renderItem={(event) => (
                   <List.Item>
                     <Space>
-                      <Text style={{ fontSize: '12px', color: '#666' }}>
+                      <Text style={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
                         {new Date(event.timestamp).toLocaleTimeString()}
                       </Text>
                       <Text>{event.type.replace('_', ' ').toUpperCase()}</Text>

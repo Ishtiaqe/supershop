@@ -230,13 +230,13 @@ export default function SalesClient() {
               <Descriptions.Item label="Discount Value">
                 ৳{saleDetails.discountValue?.toFixed(2) || 0}
               </Descriptions.Item>
-              <Descriptions.Item label="Total Amount" span={2}>
-                <span className="text-lg font-bold text-green-600">
+                <Descriptions.Item label="Total Amount" span={2}>
+                <span className="text-lg font-bold text-success">
                   ৳{saleDetails.totalAmount?.toFixed(2)}
                 </span>
               </Descriptions.Item>
               <Descriptions.Item label="Total Profit" span={2}>
-                <span className="text-lg font-bold text-blue-600">
+                <span className="text-lg font-bold text-primary">
                   ৳{saleDetails.totalProfit?.toFixed(2)}
                 </span>
               </Descriptions.Item>

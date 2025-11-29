@@ -281,7 +281,7 @@ export default function LoginPage() {
       {/* Floating Shapes */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl"
+          className="absolute top-20 left-20 w-72 h-72 bg-surface/10 rounded-full blur-3xl"
           animate={{
             x: [0, 100, 0],
             y: [0, -50, 0],
@@ -293,7 +293,7 @@ export default function LoginPage() {
           }}
         />
         <motion.div
-          className="absolute bottom-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"
+          className="absolute bottom-20 right-20 w-96 h-96 bg-surface/10 rounded-full blur-3xl"
           animate={{
             x: [0, -100, 0],
             y: [0, 50, 0],
@@ -305,7 +305,7 @@ export default function LoginPage() {
           }}
         />
         <motion.div
-          className="absolute top-1/2 left-1/2 w-64 h-64 bg-white/5 rounded-full blur-3xl"
+          className="absolute top-1/2 left-1/2 w-64 h-64 bg-surface/5 rounded-full blur-3xl"
           animate={{
             scale: [1, 1.2, 1],
             rotate: [0, 180, 360],
@@ -326,7 +326,7 @@ export default function LoginPage() {
         animate="show"
         transition={cardTransition}
       >
-        <div className="glass-card rounded-2xl shadow-2xl p-8 backdrop-blur-xl bg-white/80 border border-white/20">
+        <div className="glass-card rounded-2xl shadow-2xl p-8 backdrop-blur-xl bg-card/80 border border-border/20">
           {/* Logo and Title */}
           <motion.div className="text-center mb-8" variants={itemVariants}>
             <motion.div
@@ -339,7 +339,7 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Welcome Back
             </h1>
-            <p className="text-gray-600 mt-2">Sign in to your account</p>
+            <p className="text-muted-foreground mt-2">Sign in to your account</p>
           </motion.div>
 
           {/* Error Alert */}
@@ -370,7 +370,7 @@ export default function LoginPage() {
                 <Form.Item
                   name="email"
                   label={
-                    <span className="text-gray-700 font-medium">Email</span>
+                    <span className="text-foreground font-medium">Email</span>
                   }
                   rules={[
                     {
@@ -381,10 +381,10 @@ export default function LoginPage() {
                   ]}
                 >
                   <Input
-                    prefix={<UserOutlined className="text-gray-400" />}
+                    prefix={<UserOutlined className="text-muted-foreground" />}
                     placeholder="Enter your email"
                     autoComplete="email"
-                    className="rounded-lg h-12 hover:border-blue-400 focus:border-blue-500 transition-all duration-300"
+                    className="rounded-lg h-12 hover:border-primary-hover focus:border-primary-active transition-all duration-300"
                   />
                 </Form.Item>
               </motion.div>
@@ -393,17 +393,17 @@ export default function LoginPage() {
                 <Form.Item
                   name="password"
                   label={
-                    <span className="text-gray-700 font-medium">Password</span>
+                    <span className="text-foreground font-medium">Password</span>
                   }
                   rules={[
                     { required: true, message: "Please enter your password" },
                   ]}
                 >
                   <Input.Password
-                    prefix={<LockOutlined className="text-gray-400" />}
+                    prefix={<LockOutlined className="text-muted-foreground" />}
                     placeholder="Enter your password"
                     autoComplete="current-password"
-                    className="rounded-lg h-12 hover:border-blue-400 focus:border-blue-500 transition-all duration-300"
+                    className="rounded-lg h-12 hover:border-primary-hover focus:border-primary-active transition-all duration-300"
                   />
                 </Form.Item>
               </motion.div>
@@ -446,10 +446,10 @@ export default function LoginPage() {
               {/* Divider */}
               <motion.div variants={itemVariants} className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
+                  <div className="w-full border-t border-border"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white/80 text-gray-500 font-medium">
+                  <span className="px-4 bg-surface/80 text-muted-foreground font-medium">
                     Or continue with
                   </span>
                 </div>
@@ -464,7 +464,7 @@ export default function LoginPage() {
                   <Button
                     block
                     size="large"
-                    className="h-12 rounded-lg font-semibold border-2 border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 flex items-center justify-center gap-3"
+                    className="h-12 rounded-lg font-semibold border-2 border-border hover:border-primary-hover hover:bg-primary-container transition-all duration-300 flex items-center justify-center gap-3"
                     onClick={handleGoogleSignIn}
                   >
                     <svg
@@ -476,22 +476,22 @@ export default function LoginPage() {
                     >
                       <path
                         d="M19.8055 10.2292C19.8055 9.55056 19.7501 8.86667 19.6306 8.19861H10.2002V12.0492H15.6014C15.3773 13.2911 14.6571 14.3898 13.6025 15.0875V17.5866H16.8251C18.7173 15.8449 19.8055 13.2728 19.8055 10.2292Z"
-                        fill="#4285F4"
+                        fill={`hsl(var(--brand-google-blue))`}
                       />
                       <path
                         d="M10.2002 20.0006C12.9516 20.0006 15.2727 19.1151 16.8296 17.5865L13.607 15.0874C12.7096 15.6972 11.5521 16.0428 10.2046 16.0428C7.54618 16.0428 5.28651 14.2828 4.48892 11.9165H1.16797V14.4923C2.75903 17.8695 6.30967 20.0006 10.2002 20.0006Z"
-                        fill="#34A853"
+                        fill={`hsl(var(--brand-google-green))`}
                       />
                       <path
                         d="M4.48449 11.9165C4.04532 10.6746 4.04532 9.33008 4.48449 8.08818V5.51233H1.16797C-0.389324 8.66385 -0.389324 12.3408 1.16797 15.4923L4.48449 11.9165Z"
-                        fill="#FBBC04"
+                        fill={`hsl(var(--brand-google-yellow))`}
                       />
                       <path
                         d="M10.2002 3.95805C11.6257 3.936 13.0035 4.47247 14.036 5.45722L16.8914 2.60178C15.1888 0.990498 12.9383 0.0808105 10.2002 0.104376C6.30967 0.104376 2.75903 2.23549 1.16797 5.51234L4.48449 8.08819C5.27764 5.71748 7.54174 3.95805 10.2002 3.95805Z"
-                        fill="#EA4335"
+                        fill={`hsl(var(--brand-google-red))`}
                       />
                     </svg>
-                    <span className="text-gray-700">Sign in with Google</span>
+                    <span className="text-foreground">Sign in with Google</span>
                   </Button>
                 </motion.div>
               </motion.div>
@@ -500,7 +500,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <motion.div
-            className="mt-6 text-center text-sm text-gray-600"
+            className="mt-6 text-center text-sm text-muted-foreground"
             variants={itemVariants}
             initial="hidden"
             animate="show"

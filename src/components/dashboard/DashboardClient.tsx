@@ -19,7 +19,7 @@ export default function DashboardClient() {
       {isLoading && <div>Loading metrics…</div>}
 
       {error && (
-        <div className="text-red-700 bg-red-100 p-2 rounded">
+        <div className="text-destructive bg-destructive/10 p-2 rounded">
           Unable to load dashboard
         </div>
       )}
@@ -28,7 +28,7 @@ export default function DashboardClient() {
         <Row gutter={16}>
           <Col span={8}>
             <Card>
-              <div className="text-sm text-gray-500">Total Sales</div>
+              <div className="text-sm text-muted-foreground">Total Sales</div>
               <div className="text-xl font-bold">
                 {data.overview?.totalSales ?? 0}
               </div>
@@ -37,7 +37,7 @@ export default function DashboardClient() {
 
           <Col span={8}>
             <Card>
-              <div className="text-sm text-gray-500">Total Revenue</div>
+              <div className="text-sm text-muted-foreground">Total Revenue</div>
               <div className="text-xl font-bold">
                 ৳{data.overview?.totalRevenue ?? 0}
               </div>
@@ -46,7 +46,7 @@ export default function DashboardClient() {
 
           <Col span={8}>
             <Card>
-              <div className="text-sm text-gray-500">Inventory Items</div>
+              <div className="text-sm text-muted-foreground">Inventory Items</div>
               <div className="text-xl font-bold">
                 {data.inventory?.totalItems ?? 0}
               </div>

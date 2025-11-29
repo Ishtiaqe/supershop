@@ -262,15 +262,15 @@ export default function OfflineReloadTest() {
           <Card title="Medicine Data from IndexedDB" size="small">
             <div style={{ maxHeight: "300px", overflowY: "auto" }}>
               {medicineData.map((medicine, index) => (
-                <div
-                  key={medicine.id}
-                  style={{
-                    marginBottom: "12px",
-                    padding: "8px",
-                    border: "1px solid #f0f0f0",
-                    borderRadius: "4px",
-                  }}
-                >
+                  <div
+                    key={medicine.id}
+                    style={{
+                      marginBottom: "12px",
+                      padding: "8px",
+                      border: `1px solid hsl(var(--border))`,
+                      borderRadius: "4px",
+                    }}
+                  >
                   <Text strong>
                     {index + 1}. {medicine.brandName}
                   </Text>
@@ -293,13 +293,13 @@ export default function OfflineReloadTest() {
         )}
 
         <Card title="Test Results" size="small">
-          <div
+            <div
             style={{
               maxHeight: "400px",
               overflowY: "auto",
               fontFamily: "monospace",
               fontSize: "12px",
-              backgroundColor: "#f6f6f6",
+              backgroundColor: "hsl(var(--muted))",
               padding: "12px",
               borderRadius: "4px",
             }}

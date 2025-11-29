@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { themeColors } from '@/lib/theme';
 import "./globals.css";
 // Ant Design styles
 import "antd/dist/reset.css";
@@ -26,7 +27,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#4f46e5",
+  themeColor: themeColors.light.primary.hex,
 };
 
 export default function RootLayout({
