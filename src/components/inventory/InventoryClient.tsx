@@ -206,14 +206,16 @@ export default function InventoryClient() {
 
   const submitEdit = async () => {
     if (!editForm.id) return;
-    const values = editFormInstance.getFieldsValue();
-    const payload: Record<string, any> = {
+    const values = editFormInstance.getFieldsValue() as Partial<InventoryItem>;
+    const payload: Partial<InventoryItem> & { id?: string } = {
       id: editForm.id,
       ...values,
     };
     // If this inventory item is attached to a product variant, we don't allow changing itemName (it comes from catalog)
     if (editForm.variantId) {
-      delete payload.itemName;
+      // When payload is typed as Partial<InventoryItem>, delete here is fine
+      // and TypeScript will allow property deletion on a partial object.
+      delete (payload as Partial<InventoryItem>).itemName;
     }
     await updateMutation.mutateAsync(payload);
   };
