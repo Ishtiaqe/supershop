@@ -92,6 +92,35 @@ npm run dev
 NEXT_PUBLIC_API_URL=https://api.shomaj.one/api/v1
 NEXT_PUBLIC_API_URL_BACKUP=https://supershop-backend-531309434570.asia-southeast1.run.app/api/v1
 NEXT_PUBLIC_APP_NAME=SuperShop
+
+### Sentry
+Add the following environment variables to enable Sentry reporting in the frontend (optional):
+- `NEXT_PUBLIC_SENTRY_DSN` — Your Sentry DSN for the frontend (public DSN)
+- `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` — Default 0.05
+
+### Sentry usage examples (frontend)
+
+Use `@sentry/nextjs` for client/server error reporting. `sentry.client.config.js` and `sentry.server.config.js` are present and will initialize Sentry if `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` are set.
+
+Example usage:
+
+```tsx
+import Sentry from '@/lib/sentry';
+
+try {
+   // Some operation
+} catch (err) {
+   Sentry.captureException(err);
+}
+
+// Tracing example
+const span = Sentry.startSpan({ op: 'ui.click', name: 'Test Button' });
+span.setAttribute('component', 'TestComponent');
+// ... work
+span.finish();
+```
+
+Use `Sentry.consoleLoggingIntegration` to capture `console.log/warn/error` in Sentry logs. Configure `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` as needed.
 ```
 
 **Note:** The app includes automatic fallback to the backup API URL if the primary domain is unavailable.
@@ -101,9 +130,9 @@ NEXT_PUBLIC_APP_NAME=SuperShop
 ```bash
 1. Login → Enter credentials
    ↓
-2. JWT tokens stored in localStorage
+2. JWT tokens are set as HttpOnly cookies by the backend (NOT stored in localStorage)
    ↓
-3. Authenticated requests with Bearer token
+3. Authenticated requests send cookies (the backend will read tokens from HttpOnly cookies)
    ↓
 4. Automatic token refresh on expiry
    ↓

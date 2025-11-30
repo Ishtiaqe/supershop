@@ -37,6 +37,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Sentry is initialized via `sentry.client.config.js` and `sentry.server.config.js` in Next.js
   return (
     <html lang="en">
       <body className={inter.className}>

@@ -14,8 +14,9 @@ import {
 } from "antd";
 import { theme } from "antd";
 import { useTheme } from "@/components/providers";
-import { motion } from "framer-motion";
+// framer-motion removed from Shell to reduce initial bundle size and improve FCP/LCP
 import { NetworkStatus } from "./NetworkStatus";
+import api from '@/lib/api';
 
 import {
   MenuOutlined,
@@ -25,7 +26,7 @@ import {
   BarChartOutlined,
   InboxOutlined,
   AppstoreOutlined,
-  TagsOutlined,
+  // TagsOutlined,
   ChromeOutlined,
   SunOutlined,
   MoonOutlined,
@@ -198,15 +199,19 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 label: (
                   <a
                     onClick={async () => {
-                      // Clear localStorage items
-                      localStorage.removeItem("accessToken");
-                      localStorage.removeItem("refreshToken");
+                      try {
+                        // Call logout endpoint to clear HttpOnly cookies on the backend
+                        await api.post('/auth/logout');
+                      } catch (err) {
+                        console.warn('Logout endpoint failed, proceeding to clear local state', err);
+                      }
+                      // Clear stored client-only data
                       localStorage.removeItem("user");
+                      localStorage.removeItem("tenant");
 
                       // Allow UI to update before navigation
                       await new Promise((resolve) => setTimeout(resolve, 0));
 
-                      // Navigate to login
                       router.push("/login");
                     }}
                     className="flex items-center gap-2"
@@ -309,13 +314,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             />
 
             {/* Tenant Name Moved to Header */}
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="font-bold text-xl tracking-tight truncate text-foreground flex items-center gap-2"
-            >
+            <div className="font-bold text-xl tracking-tight truncate text-foreground flex items-center gap-2 transition-opacity duration-300">
               {tenantName}
-            </motion.div>
+              </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -342,14 +343,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             minHeight: 280,
           }}
         >
-          <motion.div
-            key={pathname}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
+          <div key={pathname} className="transition-opacity duration-300">
             {children}
-          </motion.div>
+          </div>
         </Content>
       </Layout>
     </Layout>

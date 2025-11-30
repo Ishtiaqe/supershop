@@ -1,17 +1,19 @@
 {
   "name": "supershop-frontend",
   "version": "1.0.0",
-  "description": "SuperShop Frontend - Multi-tenant Shop Management Dashboard",
+  "description": "SuperShop Management Dashboard",
   "private": true,
   "scripts": {
     "check:colors": "node ./scripts/check-color-vars.js",
     "dev": "next dev",
     "build": "next build",
-    "build-mobile": "npm run build && npx cap sync android",
-    "build-mobile:ios": "npm run build && npx cap sync ios",
-    "start": "npx -y serve@latest out",
+    "build:static": "NEXT_PUBLIC_OUTPUT=export next build",
+    "build-mobile": "npm run build:static && npx cap sync android",
+    "build-mobile:ios": "npm run build:static && npx cap sync ios",
+    "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "analyze": "ANALYZE=true npm run build"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
@@ -57,6 +59,8 @@
     "eslint-config-next": "^14.0.4",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "@next/bundle-analyzer": "^14.0.0",
+    "@sentry/nextjs": "^7.36.0"
   }
 }

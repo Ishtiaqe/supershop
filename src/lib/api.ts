@@ -9,40 +9,9 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // With cookies enabled we rely on HttpOnly cookies for authentication
+  withCredentials: true,
 })
-
-// Helper to read access token in a safe way (guarded for SSR)
-function getAccessToken(): string | null {
-  try {
-    if (typeof window === 'undefined') return null
-    return localStorage.getItem('accessToken')
-  } catch (e) {
-    // localStorage access may fail in some environments; fall back to null
-    console.warn('Unable to access localStorage for accessToken:', e)
-    return null
-  }
-}
-
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = getAccessToken()
-    if (token) {
-      // Use bracket notation to protect against custom header implementations
-      ;(config.headers as Record<string, unknown>)['Authorization'] = `Bearer ${token}`
-      // Debugging info — remove in production
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug('[api] Attaching Authorization header for request:', config.url)
-      }
-    } else {
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug('[api] No access token found; request will be unauthenticated:', config.url)
-      }
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
 
 // Response interceptor to handle token refresh and fallback
 api.interceptors.response.use(
@@ -62,59 +31,47 @@ api.interceptors.response.use(
         console.debug('[api] Attempting token refresh for 401 on', originalRequest.url)
       }
       originalRequest._retry = true
-
-      const refreshToken = localStorage.getItem('refreshToken')
-      if (refreshToken) {
+      try {
+        // Make a refresh call using cookies (HttpOnly refresh token) — server will set cookie headers
+        const refreshConfig = {
+          method: 'POST',
+          url: '/auth/refresh',
+          baseURL: PRIMARY_API_URL,
+        }
+        // Attempt refresh with primary/backup; we don't need the body here (cookies are set by server)
         try {
-          // Try token refresh with primary URL first, then backup
-          const refreshConfig = {
-            method: 'POST',
-            url: '/auth/refresh',
-            data: { refreshToken },
-            baseURL: PRIMARY_API_URL
+          await axios({ ...refreshConfig, withCredentials: true })
+        } catch (primaryError) {
+          const error = primaryError as AxiosError
+          if (error.code === 'ECONNREFUSED' ||
+            error.code === 'ENOTFOUND' ||
+            error.code === 'ECONNRESET' ||
+            (error.response?.status && error.response.status >= 500) ||
+            !error.response) {
+            console.warn('Primary API refresh failed, trying backup...')
+            refreshConfig.baseURL = BACKUP_API_URL
+            await axios({ ...refreshConfig, withCredentials: true })
+          } else {
+            throw primaryError
           }
-
-          let refreshResponse
-          try {
-            refreshResponse = await axios(refreshConfig)
-          } catch (primaryError) {
-            const error = primaryError as AxiosError
-            if (error.code === 'ECONNREFUSED' ||
-                error.code === 'ENOTFOUND' ||
-                error.code === 'ECONNRESET' ||
-                (error.response?.status && error.response.status >= 500) ||
-                !error.response) {
-              console.warn('Primary API refresh failed, trying backup...')
-              refreshConfig.baseURL = BACKUP_API_URL
-              refreshResponse = await axios(refreshConfig)
-            } else {
-              throw primaryError
-            }
-          }
-
-          const { data } = refreshResponse
-          localStorage.setItem('accessToken', data.accessToken)
-          localStorage.setItem('refreshToken', data.refreshToken)
-
-          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`
-          return api(originalRequest)
-        } catch {
-          localStorage.removeItem('accessToken')
-          localStorage.removeItem('refreshToken')
+        }
+        // The server should set cookies; retry original request
+        return api(originalRequest)
+      } catch {
+        // If refresh fails, navigate to login
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
           window.location.href = '/login'
         }
-      } else {
-        window.location.href = '/login'
       }
     }
 
     // Handle fallback for other requests
     if (!originalRequest._retry &&
-        (error.code === 'ECONNREFUSED' ||
-         error.code === 'ENOTFOUND' ||
-         error.code === 'ECONNRESET' ||
-         (error.response?.status && error.response.status >= 500) ||
-         !error.response)) {
+      (error.code === 'ECONNREFUSED' ||
+        error.code === 'ENOTFOUND' ||
+        error.code === 'ECONNRESET' ||
+        (error.response?.status && error.response.status >= 500) ||
+        !error.response)) {
 
       console.warn('Primary API failed, trying backup URL...')
       originalRequest._retry = true

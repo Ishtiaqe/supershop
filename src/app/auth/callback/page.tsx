@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import api from '@/lib/api';
 import { useRouter, useSearchParams } from "next/navigation";
 import { Spin } from "antd";
 
@@ -13,26 +14,36 @@ export default function AuthCallback() {
     const refreshToken = searchParams.get("refresh");
 
     if (token && refreshToken) {
-      try {
-        // Store tokens
-        localStorage.setItem("accessToken", token);
-        localStorage.setItem("refreshToken", refreshToken);
+      (async () => {
+        try {
+          // Instead of storing tokens in localStorage, post refresh token to /auth/refresh
+          // which will set HttpOnly cookies and return new tokens as needed. The
+          // server will read the refresh token from cookie or the provided body.
+          if (refreshToken) {
+            await api.post('/auth/refresh', { refreshToken });
+          } else {
+            await api.post('/auth/refresh');
+          }
 
-        // Decode JWT to get user info (simple base64 decode)
-        const payload = JSON.parse(atob(token.split(".")[1]));
+          // Now fetch the user profile using the cookie-based session
+          try {
+            const userResp = await api.get('/users/me');
+            if (userResp?.data) {
+              localStorage.setItem('user', JSON.stringify(userResp.data));
+            }
+          } catch (err) {
+            // If fetching user fails, continue; user may be fetched later on dashboard
+            console.warn('Failed to fetch user info after refresh', err);
+          }
 
-        // The payload contains { sub: userId }
-        // We'll fetch the full user info on the dashboard
-        console.log("Auth successful, user ID:", payload.sub);
-
-        // Redirect to dashboard
-        router.push("/dashboard");
-      } catch (error) {
-        console.error("Auth callback error:", error);
-        router.push("/login?error=auth_failed");
-      }
+          router.push('/dashboard');
+        } catch (error) {
+          console.error('Auth callback error:', error);
+          router.push('/login?error=auth_failed');
+        }
+      })();
     } else {
-      router.push("/login?error=missing_tokens");
+      router.push('/login?error=missing_tokens');
     }
   }, [searchParams, router]);
 

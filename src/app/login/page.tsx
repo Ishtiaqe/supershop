@@ -26,22 +26,17 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
+    (async () => {
       try {
-        // Decode JWT payload
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const currentTime = Date.now() / 1000;
-
-        if (payload.exp > currentTime) {
+        const resp = await api.get('/users/me');
+        if (resp?.data) {
           router.push('/dashboard');
           return;
         }
-      } catch (error) {
-        console.error('Error decoding token:', error);
-        // If token is invalid, stay on login page
+      } catch {
+        // Not authenticated, do nothing — remain on login page
       }
-    }
+    })();
   }, [router]);
 
   useEffect(() => {
@@ -61,13 +56,7 @@ export default function LoginPage() {
                   idToken,
                 });
 
-                // Store tokens
-                if (data.accessToken) {
-                  localStorage.setItem("accessToken", data.accessToken);
-                }
-                if (data.refreshToken) {
-                  localStorage.setItem("refreshToken", data.refreshToken);
-                }
+                // Tokens are set as HttpOnly cookies by the backend. Do not store tokens in localStorage.
 
                 if (data.user) {
                   localStorage.setItem("user", JSON.stringify(data.user));
@@ -132,13 +121,7 @@ export default function LoginPage() {
         idToken,
       });
 
-      // Store tokens immediately (critical for auth)
-      if (data.accessToken) {
-        localStorage.setItem("accessToken", data.accessToken);
-      }
-      if (data.refreshToken) {
-        localStorage.setItem("refreshToken", data.refreshToken);
-      }
+      // Tokens are set as HttpOnly cookies by the backend. Do not store tokens in localStorage.
 
       // Use startTransition for non-urgent updates
       startTransition(() => {
@@ -209,13 +192,7 @@ export default function LoginPage() {
         idToken,
       });
 
-      // Store tokens immediately (critical for auth)
-      if (data.accessToken) {
-        localStorage.setItem("accessToken", data.accessToken);
-      }
-      if (data.refreshToken) {
-        localStorage.setItem("refreshToken", data.refreshToken);
-      }
+      // Tokens are set as HttpOnly cookies by the backend. Do not store tokens in localStorage.
 
       // Use startTransition for non-urgent updates
       startTransition(() => {

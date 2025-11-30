@@ -2,31 +2,24 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import api from '@/lib/api';
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    try {
-      // Decode JWT payload
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const currentTime = Date.now() / 1000;
-
-      if (payload.exp > currentTime) {
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
+    (async function checkSession() {
+      try {
+        const resp = await api.get('/users/me');
+        if (resp?.data) {
+          router.push('/dashboard');
+          return;
+        }
+      } catch {
+        // Not authenticated
       }
-    } catch (error) {
-      console.error('Error decoding token:', error);
       router.push('/login');
-    }
+    })();
   }, [router]);
 
   return null; // Or a loading spinner if desired

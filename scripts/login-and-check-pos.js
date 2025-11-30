@@ -31,8 +31,8 @@ const { chromium } = require('playwright');
       await page.press('input[name="password"]', 'Enter');
     }
 
-    // Wait for access token to appear in local storage
-    await page.waitForFunction(() => !!localStorage.getItem('accessToken'), null, { timeout: 10000 }).catch(() => {});
+    // Wait for access token cookie to be set by the backend<br/>    // (cookies are now used for auth instead of localStorage tokens)
+    await page.waitForFunction(() => document.cookie.includes('accessToken='), null, { timeout: 10000 }).catch(() => {});
 
     // Capture network calls to inventory endpoint
     const responses = [];

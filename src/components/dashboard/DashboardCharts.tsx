@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
-import { motion } from "framer-motion";
+// removed framer-motion for initial render performance; keep charts client-only
 
 const { Option } = Select;
 
@@ -88,11 +88,7 @@ export default function DashboardCharts() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sales Trend Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+        <div className="transition-opacity duration-500">
           <Card title="Sales Trend" className="glass-card" variant="borderless">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -150,14 +146,10 @@ export default function DashboardCharts() {
               </ResponsiveContainer>
             </div>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Profit Trend Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
+        <div className="transition-opacity duration-500 delay-100">
           <Card
             title="Profit Trend"
             className="glass-card"
@@ -207,7 +199,7 @@ export default function DashboardCharts() {
               </ResponsiveContainer>
             </div>
           </Card>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
