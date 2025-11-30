@@ -197,18 +197,18 @@ export default function CatalogClient() {
     //   key: "manufacturerName",
     //   render: (text: string) => text || "-",
     // },
-    {
-      title: "Price",
-      dataIndex: "retailPrice",
-      key: "retailPrice",
-      render: (price: number) => `৳${price.toFixed(2)}`,
-    },
-    {
-      title: "Stock",
-      dataIndex: "currentStock",
-      key: "currentStock",
-      render: (stock: number) => stock || 0,
-    },
+    // {
+    //   title: "Price",
+    //   dataIndex: "retailPrice",
+    //   key: "retailPrice",
+    //   render: (price: number) => `৳${price.toFixed(2)}`,
+    // },
+    // {
+    //   title: "Stock",
+    //   dataIndex: "currentStock",
+    //   key: "currentStock",
+    //   render: (stock: number) => stock || 0,
+    // },
     {
       title: "Actions",
       key: "actions",

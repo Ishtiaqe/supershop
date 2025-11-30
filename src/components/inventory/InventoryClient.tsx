@@ -540,12 +540,12 @@ export default function InventoryClient() {
                         dataIndex: "retailPrice",
                         render: (v) => `৳${v}`,
                       },
-                      {
-                        title: "Expiry",
-                        dataIndex: "expiryDate",
-                        render: (d) =>
-                          d ? dayjs(d).format("YYYY-MM-DD") : "-",
-                      },
+                      // {
+                      //   title: "Expiry",
+                      //   dataIndex: "expiryDate",
+                      //   render: (d) =>
+                      //     d ? dayjs(d).format("YYYY-MM-DD") : "-",
+                      // },
                       {
                         title: "Actions",
                         render: (_, subRecord: InventoryItem) => (

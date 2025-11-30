@@ -117,16 +117,16 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       icon: <MedicineBoxOutlined />,
       label: <Link href="/dashboard/medicine-database">Medicine Database</Link>,
     },
-    {
-      key: "/dashboard/categories",
-      icon: <TagsOutlined />,
-      label: <Link href="/dashboard/categories">Categories</Link>,
-    },
-    {
-      key: "/dashboard/brands",
-      icon: <ChromeOutlined />,
-      label: <Link href="/dashboard/brands">Brands</Link>,
-    },
+    // {
+    //   key: "/dashboard/categories",
+    //   icon: <TagsOutlined />,
+    //   label: <Link href="/dashboard/categories">Categories</Link>,
+    // },
+    // {
+    //   key: "/dashboard/brands",
+    //   icon: <ChromeOutlined />,
+    //   label: <Link href="/dashboard/brands">Brands</Link>,
+    // },
   ];
 
   if (user?.role === "SUPER_ADMIN") {
@@ -157,8 +157,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo Area - Only show 'S' logo in sidebar if collapsed, otherwise name is in header now */}
-      <div className="p-6 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg shadow-primary/30">
+      <div className={`flex items-center justify-center ${collapsed ? 'p-4' : 'p-6'}`}>
+        <div className={`rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-lg shadow-primary/30 ${collapsed ? 'w-8 h-8 text-lg' : 'w-10 h-10 text-xl'}`}>
           S
         </div>
       </div>
@@ -218,7 +218,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             ],
           }}
         >
-          <div className="cursor-pointer flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors">
+          <div className={`cursor-pointer flex items-center gap-3 ${collapsed ? 'p-0 w-10 h-10 justify-center' : 'p-2'} rounded-lg hover:bg-secondary/50 transition-colors`}>
             <Avatar
               style={{
                 backgroundColor: token.colorPrimary,
