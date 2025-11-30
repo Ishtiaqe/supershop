@@ -353,7 +353,7 @@ export default function POSClient({
               <Typography.Text>Select Item</Typography.Text>
               <Select
                 className="pos-select"
-                popupClassName="pos-select-dropdown"
+                classNames={{ popup: { root: "pos-select-dropdown" } }}
                 ref={selectRef}
                 showSearch
                 filterOption={false}

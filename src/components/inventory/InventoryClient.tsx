@@ -306,7 +306,7 @@ export default function InventoryClient() {
             key: string;
             itemName?: string;
             variant?: ProductVariant & { product: Product };
-            children: InventoryItem[];
+            subItems: InventoryItem[];
             totalQuantity: number;
             batches: string[];
           }
@@ -319,12 +319,12 @@ export default function InventoryClient() {
             key,
             itemName: item.itemName,
             variant: item.variant,
-            children: [],
+            subItems: [],
             totalQuantity: 0,
             batches: [],
           };
         }
-        acc[key].children.push(item);
+        acc[key].subItems.push(item);
         acc[key].totalQuantity += item.quantity;
         if (item.batchNo && !acc[key].batches.includes(item.batchNo))
           acc[key].batches.push(item.batchNo);
@@ -335,13 +335,13 @@ export default function InventoryClient() {
 
     return Object.values(grouped).map((item) => {
       // Since items are fetched ordered by createdAt desc, the first child is the latest
-      const latest = item.children[0];
+      const latest = item.subItems[0];
       return {
         ...item,
         batchInfo:
           item.batches.length > 1
             ? `${item.batches.length} Batches`
-            : item.children[0]?.batchNo || "-",
+            : item.subItems[0]?.batchNo || "-",
         latestPurchasePrice: latest.purchasePrice,
         latestRetailPrice: latest.retailPrice,
       };
@@ -350,9 +350,13 @@ export default function InventoryClient() {
 
   const filteredDataSource = useMemo(() => {
     if (!search) return dataSource;
-    return dataSource.filter(item => {
+    return dataSource.filter((item) => {
       const name = item.variant
-        ? `${item.variant.product.name} ${item.variant.variantName === "Standard" ? "" : item.variant.variantName}`
+        ? `${item.variant.product.name} ${
+            item.variant.variantName === "Standard"
+              ? ""
+              : item.variant.variantName
+          }`
         : item.itemName || "";
       return name.toLowerCase().includes(search.toLowerCase());
     });
@@ -516,10 +520,10 @@ export default function InventoryClient() {
             rowKey="key"
             pagination={{ pageSize: 20 }}
             expandable={{
-              expandedRowRender: (record: { children: InventoryItem[] }) => (
+              expandedRowRender: (record: { subItems: InventoryItem[] }) => (
                 <div className="overflow-x-auto">
                   <Table
-                    dataSource={record.children}
+                    dataSource={record.subItems}
                     rowKey="id"
                     pagination={false}
                     size="small"

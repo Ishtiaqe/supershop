@@ -27,6 +27,9 @@ const nextConfig = {
   },
   // headers() is not supported with output: 'export'
   async headers() {
+    if (process.env.NEXT_PUBLIC_OUTPUT === 'export') {
+      return [];
+    }
     return [
       {
         source: '/:all*(svg|jpg|png)',
@@ -34,7 +37,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: 'public, max-age=86400, immutable',
           }
         ],
       },
@@ -44,7 +47,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: 'public, max-age=86400, immutable',
           }
         ],
       },
@@ -54,6 +57,15 @@ const nextConfig = {
           {
             key: 'Cache-Control',
             value: 'no-cache, no-store, must-revalidate',
+          }
+        ],
+      },
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400',
           }
         ],
       },
