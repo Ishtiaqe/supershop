@@ -29,19 +29,19 @@ export default function DashboardSummaryClient() {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div className="glass-card p-4">
         <div className="text-sm text-muted-foreground">Total Revenue</div>
-        <div className="text-xl font-semibold">{data.totalRevenue ?? 0}</div>
+        <div className="text-xl font-semibold">৳ {(data.totalRevenue ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       </div>
       <div className="glass-card p-4">
         <div className="text-sm text-muted-foreground">Total Profit</div>
-        <div className="text-xl font-semibold">{data.totalProfit ?? 0}</div>
+        <div className="text-xl font-semibold">৳ {(data.totalProfit ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       </div>
       <div className="glass-card p-4">
         <div className="text-sm text-muted-foreground">Asset Value</div>
-        <div className="text-xl font-semibold">{data.totalAssetValue ?? 0}</div>
+        <div className="text-xl font-semibold">৳ {(data.totalAssetValue ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       </div>
       <div className="glass-card p-4">
         <div className="text-sm text-muted-foreground">Orders</div>
-        <div className="text-xl font-semibold">{data.ordersCount ?? 0}</div>
+        <div className="text-xl font-semibold">{(data.ordersCount ?? 0).toLocaleString('en-IN')}</div>
       </div>
     </div>
   );

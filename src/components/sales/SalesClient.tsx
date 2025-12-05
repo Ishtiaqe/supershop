@@ -151,7 +151,7 @@ export default function SalesClient() {
           <div style={{ textAlign: "right", fontWeight: "bold" }}>
             <span className="mr-8">Total Sales: {filteredSales.length}</span>
             <span className="mr-8">
-              Total Revenue: ৳{totalRevenue.toFixed(2)}
+              Total Revenue4: ৳{totalRevenue.toFixed(2)}
             </span>
             <span>Total Profit: ৳{totalProfit.toFixed(2)}</span>
           </div>

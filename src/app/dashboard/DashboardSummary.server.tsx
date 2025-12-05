@@ -53,7 +53,7 @@ export default async function DashboardSummary() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div className="glass-card p-4">
-        <div className="text-sm text-muted-foreground">Total Revenue</div>
+        <div className="text-sm text-muted-foreground">Total Revenue2</div>
         <div className="text-xl font-semibold">{summary.totalRevenue ?? 0}</div>
       </div>
       <div className="glass-card p-4">

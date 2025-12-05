@@ -39,7 +39,7 @@ export default function DashboardCharts() {
   });
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "BDT",
       minimumFractionDigits: 0,
@@ -49,7 +49,7 @@ export default function DashboardCharts() {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat("en-IN", {
       month: "short",
       day: "numeric",
     }).format(date);
@@ -157,7 +157,7 @@ export default function DashboardCharts() {
           >
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
+                <AreaChart
                   data={data}
                   margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                 >
@@ -194,8 +194,14 @@ export default function DashboardCharts() {
                       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                     }}
                   />
-                  <Bar dataKey="profit" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                  <Area
+                    type="monotone"
+                    dataKey="profit"
+                    stroke="hsl(var(--success))"
+                    fill="url(#colorProfit)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </Card>

@@ -37,7 +37,7 @@ export default function DashboardClient() {
 
           <Col span={8}>
             <Card>
-              <div className="text-sm text-muted-foreground">Total Revenue</div>
+              <div className="text-sm text-muted-foreground">Total Revenue3</div>
               <div className="text-xl font-bold">
                 ৳{data.overview?.totalRevenue ?? 0}
               </div>
