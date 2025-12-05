@@ -1,4 +1,5 @@
 "use client";
+// Force rebuild timestamp: 1764941600
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -16,7 +17,7 @@ import { theme } from "antd";
 import { useTheme } from "@/components/providers";
 // framer-motion removed from Shell to reduce initial bundle size and improve FCP/LCP
 import { NetworkStatus } from "./NetworkStatus";
-import api from '@/lib/api';
+import api from "@/lib/api";
 
 import {
   MenuOutlined,
@@ -37,6 +38,113 @@ import {
 import NotificationSetup from "@/components/notifications/NotificationSetup";
 
 const { Header, Sider, Content } = Layout;
+
+// Extracted Sidebar component to avoid re-creation on every render
+const AppSidebar = ({
+  collapsed,
+  isMobile,
+  setMobileOpen,
+  items,
+  selectedKey,
+  user,
+  token,
+  onLogout,
+}: {
+  collapsed: boolean;
+  isMobile: boolean;
+  setMobileOpen: (open: boolean) => void;
+  items: any[];
+  selectedKey: string;
+  user: any;
+  token: any;
+  onLogout: () => void;
+}) => (
+  <div className="flex flex-col h-full">
+    {/* Logo Area - Only show 'S' logo in sidebar if collapsed, otherwise name is in header now */}
+    <div
+      className={`flex items-center justify-center ${
+        collapsed ? "p-4" : "p-6"
+      }`}
+    >
+      <div
+        className={`rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-lg shadow-primary/30 ${
+          collapsed ? "w-8 h-8 text-lg" : "w-10 h-10 text-xl"
+        }`}
+      >
+        S
+      </div>
+    </div>
+
+    {/* Menu */}
+    <div className="flex-1 px-2">
+      <Menu
+        mode="inline"
+        items={items}
+        selectedKeys={[selectedKey]}
+        style={{ background: "transparent", border: "none" }}
+        className="custom-menu"
+        onClick={() => isMobile && setMobileOpen(false)}
+      />
+    </div>
+
+    {/* Footer / User Profile */}
+    <div className="p-4 border-t border-border/50">
+      <Dropdown
+        trigger={["click"]}
+        menu={{
+          items: [
+            {
+              key: "profile",
+              label: (
+                <Link href="/profile" className="flex items-center gap-2">
+                  <UserSwitchOutlined /> Profile
+                </Link>
+              ),
+            },
+            {
+              type: "divider",
+            },
+            {
+              key: "logout",
+              danger: true,
+              label: (
+                <a onClick={onLogout} className="flex items-center gap-2">
+                  <LogoutOutlined /> Sign out
+                </a>
+              ),
+            },
+          ],
+        }}
+      >
+        <div
+          className={`cursor-pointer flex items-center gap-3 ${
+            collapsed ? "p-0 w-10 h-10 justify-center" : "p-2"
+          } rounded-lg hover:bg-secondary/50 transition-colors`}
+        >
+          <Avatar
+            style={{
+              backgroundColor: token.colorPrimary,
+              verticalAlign: "middle",
+            }}
+            size="large"
+          >
+            {(user?.fullName || "U")[0]}
+          </Avatar>
+          {!collapsed && (
+            <div className="flex flex-col overflow-hidden text-left">
+              <span className="font-medium text-sm truncate text-foreground">
+                {user?.fullName || "User"}
+              </span>
+              <span className="text-xs text-muted-foreground truncate">
+                {user?.email}
+              </span>
+            </div>
+          )}
+        </div>
+      </Dropdown>
+    </div>
+  </div>
+);
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -79,9 +187,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const userJson =
-    typeof window !== "undefined" ? localStorage.getItem("user") : null;
-  const user = userJson ? JSON.parse(userJson) : null;
+  const [user, setUser] = useState<any>(() => {
+    if (typeof window === "undefined") return null;
+    const u = localStorage.getItem("user");
+    return u ? JSON.parse(u) : null;
+  });
 
   const items: Array<{
     key: string;
@@ -138,6 +248,38 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     });
   }
 
+  // Active Session Validation
+  useEffect(() => {
+    // We only validate if we are NOT on a public route.
+    // pathname check is redundant due to the early return above, but safe to keep context.
+    if (pathname !== "/login" && pathname !== "/register") {
+      api
+        .get("/users/me")
+        .then((resp) => {
+          if (!resp.data) {
+            throw new Error("No user data");
+          }
+          // Sync state and localStorage
+          setUser(resp.data);
+          localStorage.setItem("user", JSON.stringify(resp.data));
+
+          if (resp.data.tenant) {
+            localStorage.setItem("tenant", JSON.stringify(resp.data.tenant));
+            setTenantName(resp.data.tenant.name);
+          }
+        })
+        .catch(() => {
+          // If the check fails (401 or network error on auth check),
+          // we assume the session is invalid or expired.
+          // However, be careful not to redirect on transient network errors if we want offline support later.
+          // For now, assuming standard online-first auth behavior as requested.
+          localStorage.removeItem("user");
+          localStorage.removeItem("tenant");
+          router.replace("/login");
+        });
+    }
+  }, [pathname, router]);
+
   // If we're on the authentication route (login/register), don't render the shell
   if (pathname === "/login" || pathname === "/register") {
     return <>{children}</>;
@@ -155,99 +297,22 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     return matched || pathname;
   })();
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Logo Area - Only show 'S' logo in sidebar if collapsed, otherwise name is in header now */}
-      <div className={`flex items-center justify-center ${collapsed ? 'p-4' : 'p-6'}`}>
-        <div className={`rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-lg shadow-primary/30 ${collapsed ? 'w-8 h-8 text-lg' : 'w-10 h-10 text-xl'}`}>
-          S
-        </div>
-      </div>
-
-      {/* Menu */}
-      <div className="flex-1 px-2">
-        <Menu
-          mode="inline"
-          items={items}
-          selectedKeys={[selectedKey]}
-          style={{ background: "transparent", border: "none" }}
-          className="custom-menu"
-          onClick={() => isMobile && setMobileOpen(false)}
-        />
-      </div>
-
-      {/* Footer / User Profile */}
-      <div className="p-4 border-t border-border/50">
-        <Dropdown
-          trigger={["click"]}
-          menu={{
-            items: [
-              {
-                key: "profile",
-                label: (
-                  <Link href="/profile" className="flex items-center gap-2">
-                    <UserSwitchOutlined /> Profile
-                  </Link>
-                ),
-              },
-              {
-                type: "divider",
-              },
-              {
-                key: "logout",
-                danger: true,
-                label: (
-                  <a
-                    onClick={async () => {
-                      try {
-                        // Call logout endpoint to clear HttpOnly cookies on the backend
-                        await api.post('/auth/logout');
-                      } catch (err) {
-                        console.warn('Logout endpoint failed, proceeding to clear local state', err);
-                      }
-                      // Clear stored client-only data
-                      localStorage.removeItem("user");
-                      localStorage.removeItem("tenant");
-
-                      // Allow UI to update before navigation
-                      await new Promise((resolve) => setTimeout(resolve, 0));
-
-                      router.push("/login");
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <LogoutOutlined /> Sign out
-                  </a>
-                ),
-              },
-            ],
-          }}
-        >
-          <div className={`cursor-pointer flex items-center gap-3 ${collapsed ? 'p-0 w-10 h-10 justify-center' : 'p-2'} rounded-lg hover:bg-secondary/50 transition-colors`}>
-            <Avatar
-              style={{
-                backgroundColor: token.colorPrimary,
-                verticalAlign: "middle",
-              }}
-              size="large"
-            >
-              {(user?.fullName || "U")[0]}
-            </Avatar>
-            {!collapsed && (
-              <div className="flex flex-col overflow-hidden text-left">
-                <span className="font-medium text-sm truncate text-foreground">
-                  {user?.fullName || "User"}
-                </span>
-                <span className="text-xs text-muted-foreground truncate">
-                  {user?.email}
-                </span>
-              </div>
-            )}
-          </div>
-        </Dropdown>
-      </div>
-    </div>
-  );
+  // Logout handler
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (err) {
+      console.warn(
+        "Logout endpoint failed, proceeding to clear local state",
+        err
+      );
+    }
+    setUser(null);
+    localStorage.removeItem("user");
+    localStorage.removeItem("tenant");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    window.location.href = "/login?logout=true";
+  };
 
   return (
     <Layout style={{ minHeight: "100vh", background: token.colorBgLayout }}>
@@ -259,14 +324,23 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           width={260}
           className="glass border-r border-border/50"
           style={{
-            background: "transparent", // Handled by glass class
+            background: "transparent",
             position: "sticky",
             top: 0,
             height: "100vh",
             zIndex: 50,
           }}
         >
-          <SidebarContent />
+          <AppSidebar
+            collapsed={collapsed}
+            isMobile={isMobile}
+            setMobileOpen={setMobileOpen}
+            items={items}
+            selectedKey={selectedKey}
+            user={user}
+            token={token}
+            onLogout={handleLogout}
+          />
         </Sider>
       )}
 
@@ -286,7 +360,16 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           }}
           closable={false}
         >
-          <SidebarContent />
+          <AppSidebar
+            collapsed={collapsed}
+            isMobile={isMobile}
+            setMobileOpen={setMobileOpen}
+            items={items}
+            selectedKey={selectedKey}
+            user={user}
+            token={token}
+            onLogout={handleLogout}
+          />
         </Drawer>
       )}
 
@@ -316,7 +399,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             {/* Tenant Name Moved to Header */}
             <div className="font-bold text-xl tracking-tight truncate text-foreground flex items-center gap-2 transition-opacity duration-300">
               {tenantName}
-              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -351,3 +434,5 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     </Layout>
   );
 }
+
+// Extracted Sidebar component to avoid re-creation on every render

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, startTransition, useEffect } from "react";
 import { Form, Input, Button, Alert } from "antd";
 import {
@@ -22,15 +22,16 @@ import api from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const resp = await api.get('/users/me');
-        if (resp?.data) {
-          router.push('/dashboard');
+        const resp = await api.get("/users/me");
+        if (resp?.data && !searchParams.get("logout")) {
+          router.push("/dashboard");
           return;
         }
       } catch {
@@ -316,7 +317,9 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Welcome Back
             </h1>
-            <p className="text-muted-foreground mt-2">Sign in to your account</p>
+            <p className="text-muted-foreground mt-2">
+              Sign in to your account
+            </p>
           </motion.div>
 
           {/* Error Alert */}
@@ -370,7 +373,9 @@ export default function LoginPage() {
                 <Form.Item
                   name="password"
                   label={
-                    <span className="text-foreground font-medium">Password</span>
+                    <span className="text-foreground font-medium">
+                      Password
+                    </span>
                   }
                   rules={[
                     { required: true, message: "Please enter your password" },
