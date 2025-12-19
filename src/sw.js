@@ -63,12 +63,16 @@ registerRoute(
   })
 );
 
-// Cache manifest.json
+// Cache manifest.json and PWA icons
 registerRoute(
-  ({ url }) => url.pathname === '/manifest.json',
+  ({ url }) => 
+    url.pathname === '/manifest.json' ||
+    url.pathname.startsWith('/android-chrome-') ||
+    url.pathname.startsWith('/apple-touch-') ||
+    url.pathname === '/favicon.ico',
   new CacheFirst({
-    cacheName: 'manifest',
-    plugins: [new ExpirationPlugin({ maxEntries: 1, maxAgeSeconds: 24 * 60 * 60 })],
+    cacheName: 'pwa-assets',
+    plugins: [new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 30 * 24 * 60 * 60 })],
   })
 );
 

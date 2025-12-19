@@ -23,6 +23,11 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
+  other: {
+    // Preload PWA assets to ensure they're cached early
+    "preload:manifest": '<link rel="preload" href="/manifest.json" as="fetch" crossorigin>',
+    "preload:pwa-icon": '<link rel="preload" href="/android-chrome-192x192.png" as="image" crossorigin>',
+  },
 };
 
 export const viewport: Viewport = {

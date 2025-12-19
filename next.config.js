@@ -25,19 +25,25 @@ const nextConfig = {
       transform: "@ant-design/icons/{{member}}",
     },
   },
-  // headers() is not supported with output: 'export'
+  // headers() is only supported with dynamic output (not 'export')
+  // For static export builds, cache control must be set at the hosting level (e.g., Cloudflare, nginx)
   async headers() {
+    // Only set headers for non-export builds
     if (process.env.NEXT_PUBLIC_OUTPUT === 'export') {
+      // For static export, you MUST configure cache headers in your web server/CDN
+      // Example nginx config needed:
+      // location ~* manifest\.json$ { add_header Cache-Control "public, max-age=86400"; }
+      // location ~* \.(png|jpg|jpeg)$ { add_header Cache-Control "public, max-age=2592000, immutable"; }
       return [];
     }
     return [
       {
-        source: '/:all*(svg|jpg|png)',
+        source: '/:all*(svg|jpg|png|jpeg|webp)',
         locale: false,
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=86400, immutable',
+            value: 'public, max-age=2592000, immutable',
           }
         ],
       },
@@ -47,7 +53,39 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=86400, immutable',
+            value: 'public, max-age=31536000, immutable',
+          }
+        ],
+      },
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, must-revalidate',
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/manifest+json',
+          }
+        ],
+      },
+      {
+        source: '/favicon.ico',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          }
+        ],
+      },
+      {
+        source: '/:all*(android-chrome|apple-touch)',
+        locale: false,
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           }
         ],
       },
@@ -57,15 +95,6 @@ const nextConfig = {
           {
             key: 'Cache-Control',
             value: 'no-cache, no-store, must-revalidate',
-          }
-        ],
-      },
-      {
-        source: '/manifest.json',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400',
           }
         ],
       },
