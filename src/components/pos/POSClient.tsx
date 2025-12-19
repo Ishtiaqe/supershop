@@ -16,6 +16,16 @@ import {
   Alert,
 } from "antd";
 
+type CartItem = {
+  key: string;
+  name: string;
+  unitPrice: number;
+  quantity: number;
+  discount: number;
+  maxDiscount: number;
+  batches: InventoryItem[];
+};
+
 function fetchInventory(q?: string) {
   try {
     if (typeof window !== "undefined" && q && q.length > 0) {
@@ -179,17 +189,7 @@ export default function POSClient({
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [qty, setQty] = useState<number>(1);
   // customerName, customerPhone, and setters are now provided by parent (page)
-  const [cart, setCart] = useState<
-    Array<{
-      key: string;
-      name: string;
-      unitPrice: number;
-      quantity: number;
-      discount: number;
-      maxDiscount: number;
-      batches: InventoryItem[];
-    }>
-  >([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
   const saleMutation = useMutation({
     mutationFn: (payload: {
@@ -272,10 +272,8 @@ export default function POSClient({
     }, 0);
   }
 
-  function removeFromCart(index: number) {
-    const newCart = [...cart];
-    newCart.splice(index, 1);
-    setCart(newCart);
+  function removeFromCart(key: string) {
+    setCart((prev) => prev.filter((item) => item.key !== key));
   }
 
   function checkout() {
@@ -328,6 +326,8 @@ export default function POSClient({
     (s, it) => s + it.quantity * (it.unitPrice * (1 - it.discount / 100)),
     0
   );
+
+  const displayCart = useMemo(() => [...cart].reverse(), [cart]);
 
   return (
     <div>
@@ -432,20 +432,29 @@ export default function POSClient({
 
       <div style={{ marginTop: 16 }}>
         <div className="overflow-x-auto">
-          <Table dataSource={cart} rowKey="key" pagination={false}>
+          <Table<CartItem>
+            dataSource={displayCart}
+            rowKey="key"
+            pagination={false}
+          >
             <Table.Column title="Item" dataIndex="name" key="name" />
             <Table.Column
               title="Quantity"
               dataIndex="quantity"
               key="quantity"
-              render={(qty: number, _record: unknown, index: number) => (
+              render={(qty: number, record: CartItem) => (
                 <InputNumber
                   min={1}
                   value={qty}
                   onChange={(value) => {
-                    const newCart = [...cart];
-                    newCart[index].quantity = Number(value) || 1;
-                    setCart(newCart);
+                    const newQty = Number(value) || 1;
+                    setCart((prev) =>
+                      prev.map((item) =>
+                        item.key === record.key
+                          ? { ...item, quantity: newQty }
+                          : item
+                      )
+                    );
                   }}
                   style={{ width: 80 }}
                 />
@@ -461,15 +470,20 @@ export default function POSClient({
               title="Discount (%)"
               dataIndex="discount"
               key="discount"
-              render={(discount: number, _record: unknown, index: number) => (
+              render={(discount: number, record: CartItem) => (
                 <InputNumber
                   min={0}
-                  max={cart[index].maxDiscount}
+                  max={record.maxDiscount}
                   value={discount}
                   onChange={(value) => {
-                    const newCart = [...cart];
-                    newCart[index].discount = Number(value) || 0;
-                    setCart(newCart);
+                    const newDiscount = Number(value) || 0;
+                    setCart((prev) =>
+                      prev.map((item) =>
+                        item.key === record.key
+                          ? { ...item, discount: newDiscount }
+                          : item
+                      )
+                    );
                   }}
                   style={{ width: 80 }}
                   suffix="%"
@@ -496,11 +510,11 @@ export default function POSClient({
             <Table.Column
               title="Action"
               key="action"
-              render={(_, __, index) => (
+              render={(_, record: CartItem) => (
                 <Button
                   danger
                   size="small"
-                  onClick={() => removeFromCart(index)}
+                  onClick={() => removeFromCart(record.key)}
                 >
                   Remove
                 </Button>
