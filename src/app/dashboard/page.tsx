@@ -10,8 +10,6 @@ interface DashboardSummary {
   totalAssetValue: number;
 }
 
-// Summary is fetched server-side in `DashboardSummary.server.tsx` using cookies/authorization
-
 export default function DashboardPage() {
   const enableSSR = process.env.NEXT_PUBLIC_DASHBOARD_SSR_ENABLED === 'true'
   return (

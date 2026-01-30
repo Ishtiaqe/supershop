@@ -18,6 +18,7 @@ import { useTheme } from "@/components/providers";
 // framer-motion removed from Shell to reduce initial bundle size and improve FCP/LCP
 import { NetworkStatus } from "./NetworkStatus";
 import api from "@/lib/api";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 import {
   MenuOutlined,
@@ -156,6 +157,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const { token } = theme.useToken();
   const themeContext = useTheme();
   const [tenantName, setTenantName] = useState<string>("SuperShop");
+  const { user, loading, logout } = useAuth();
 
   useEffect(() => {
     function checkWidth() {
@@ -187,11 +189,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const [user, setUser] = useState<any>(() => {
-    if (typeof window === "undefined") return null;
-    const u = localStorage.getItem("user");
-    return u ? JSON.parse(u) : null;
-  });
+  // user is provided by AuthProvider
 
   const items: Array<{
     key: string;
@@ -248,41 +246,30 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     });
   }
 
-  // Active Session Validation
+  // Client-side guard: redirect to login only after auth finishes and user is null
   useEffect(() => {
-    // We only validate if we are NOT on a public route.
-    // pathname check is redundant due to the early return above, but safe to keep context.
     if (pathname !== "/login" && pathname !== "/register") {
-      api
-        .get("/users/me")
-        .then((resp) => {
-          if (!resp.data) {
-            throw new Error("No user data");
-          }
-          // Sync state and localStorage
-          setUser(resp.data);
-          localStorage.setItem("user", JSON.stringify(resp.data));
-
-          if (resp.data.tenant) {
-            localStorage.setItem("tenant", JSON.stringify(resp.data.tenant));
-            setTenantName(resp.data.tenant.name);
-          }
-        })
-        .catch(() => {
-          // If the check fails (401 or network error on auth check),
-          // we assume the session is invalid or expired.
-          // However, be careful not to redirect on transient network errors if we want offline support later.
-          // For now, assuming standard online-first auth behavior as requested.
-          localStorage.removeItem("user");
-          localStorage.removeItem("tenant");
-          router.replace("/login");
-        });
+      if (!loading && !user) {
+        router.push("/login");
+      }
     }
-  }, [pathname, router]);
+  }, [pathname, loading, user]);
 
   // If we're on the authentication route (login/register), don't render the shell
   if (pathname === "/login" || pathname === "/register") {
     return <>{children}</>;
+  }
+
+  // Show loading state while authentication is being checked
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   // choose selected key: exact or longest matching prefix
@@ -299,19 +286,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   // Logout handler
   const handleLogout = async () => {
-    try {
-      await api.post("/auth/logout");
-    } catch (err) {
-      console.warn(
-        "Logout endpoint failed, proceeding to clear local state",
-        err
-      );
-    }
-    setUser(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("tenant");
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    window.location.href = "/login?logout=true";
+    await logout();
   };
 
   return (

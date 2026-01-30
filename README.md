@@ -130,13 +130,15 @@ Use `Sentry.consoleLoggingIntegration` to capture `console.log/warn/error` in Se
 ```bash
 1. Login → Enter credentials
    ↓
-2. JWT tokens are set as HttpOnly cookies by the backend (NOT stored in localStorage)
+2. Backend returns JWT tokens in response body (stored in localStorage)
    ↓
-3. Authenticated requests send cookies (the backend will read tokens from HttpOnly cookies)
+3. Client uses AuthProvider to hydrate session via /users/me
    ↓
-4. Automatic token refresh on expiry
+4. Axios interceptor runs a single-flight refresh on 401 and retries requests
    ↓
-5. Logout → Clear tokens
+5. Proactive refresh keeps access token updated (default ~12m)
+   ↓
+6. Logout → Backend revokes refresh token, AuthProvider clears localStorage
 ```
 
 ## 👥 **User Roles**

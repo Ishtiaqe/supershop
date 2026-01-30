@@ -2,14 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
   try {
-    // Prefer Authorization header, fall back to cookie accessToken
+    // Get authorization token from header
     const authHeader = req.headers.get('authorization');
-    const cookies = req.cookies;
-    const accessToken = cookies.get('accessToken')?.value || cookies.get('access_token')?.value;
 
-    const token = authHeader || (accessToken ? `Bearer ${accessToken}` : null);
-
-    if (!token) {
+    if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -18,7 +14,7 @@ export async function GET(req: NextRequest) {
 
     const res = await fetch(url, {
       headers: {
-        Authorization: token,
+        Authorization: authHeader,
         Accept: 'application/json',
       },
       // do not cache since summary may change frequently

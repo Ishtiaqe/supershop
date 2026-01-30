@@ -19,26 +19,21 @@ import { auth, googleProvider } from "@/lib/firebase";
 import { Capacitor, PluginListenerHandle } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import api from "@/lib/api";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { login, user, loading: authLoading } = useAuth();
 
+  // Redirect if already logged in
   useEffect(() => {
-    (async () => {
-      try {
-        const resp = await api.get("/users/me");
-        if (resp?.data && !searchParams.get("logout")) {
-          router.push("/dashboard");
-          return;
-        }
-      } catch {
-        // Not authenticated, do nothing — remain on login page
-      }
-    })();
-  }, [router]);
+    if (user) {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -53,27 +48,52 @@ export default function LoginPage() {
                 const idToken = await result.user.getIdToken();
 
                 // Send token to backend
-                const { data } = await api.post("/auth/firebase", {
+                const response = await api.post("/auth/firebase", {
                   idToken,
                 });
+                console.log(
+                  "[Login] Mobile redirect - Raw response:",
+                  response,
+                );
+                console.log(
+                  "[Login] Mobile redirect - Response data:",
+                  response.data,
+                );
+                const data = response.data;
 
-                // Tokens are set as HttpOnly cookies by the backend. Do not store tokens in localStorage.
+                if (data?.user && data?.accessToken) {
+                  // Store access token only (refresh token is now in httpOnly cookie)
+                  localStorage.setItem("accessToken", data.accessToken);
 
-                if (data.user) {
-                  localStorage.setItem("user", JSON.stringify(data.user));
+                  // Update auth state
+                  login(data.user);
+
                   if (data.user.tenantId) {
                     try {
                       const tenantResponse = await api.get("/tenants/me");
                       if (tenantResponse.data) {
                         localStorage.setItem(
                           "tenant",
-                          JSON.stringify(tenantResponse.data)
+                          JSON.stringify(tenantResponse.data),
                         );
                       }
                     } catch (err) {
                       console.error("Failed to fetch tenant info:", err);
                     }
                   }
+                } else {
+                  console.warn("[Login] Firebase redirect missing tokens:", {
+                    hasUser: !!data?.user,
+                    hasAccessToken: !!data?.accessToken,
+                    data,
+                  });
+                  localStorage.removeItem("accessToken");
+                  localStorage.removeItem("user");
+                  localStorage.removeItem("tenant");
+                  setError(
+                    "Login failed: Access token missing from API response",
+                  );
+                  return;
                 }
 
                 router.push("/dashboard");
@@ -94,7 +114,19 @@ export default function LoginPage() {
         }
       };
     }
-  }, [router]);
+  }, [router, login]);
+
+  // Prevent form flicker if user is logged in
+  if (user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
 
   const submit = async (values: { email: string; password: string }) => {
     if (!auth) {
@@ -110,7 +142,7 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(
         auth,
         values.email,
-        values.password
+        values.password,
       );
       const idToken = await userCredential.user.getIdToken();
 
@@ -118,31 +150,77 @@ export default function LoginPage() {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Send token to backend
-      const { data } = await api.post("/auth/firebase", {
+      console.log("[Login] Calling /auth/firebase with idToken...");
+      const response = await api.post("/auth/firebase", {
         idToken,
       });
-
-      // Tokens are set as HttpOnly cookies by the backend. Do not store tokens in localStorage.
-
-      // Use startTransition for non-urgent updates
-      startTransition(() => {
-        if (data.user) {
-          localStorage.setItem("user", JSON.stringify(data.user));
-
-          // Fetch tenant info asynchronously (non-blocking)
-          if (data.user.tenantId) {
-            fetchTenantInfo();
-          }
-        }
+      console.log("[Login] Full response object:", {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data,
+        dataType: typeof response.data,
       });
 
-      // Allow UI to update before navigation
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      const data = response.data;
+      console.log("[Login] Parsed response data:", {
+        dataKeys: data ? Object.keys(data) : [],
+        hasUser: !!data?.user,
+        hasAccessToken: !!data?.accessToken,
+        userKeys: data?.user ? Object.keys(data.user) : [],
+        accessTokenType: typeof data?.accessToken,
+        accessTokenLength: data?.accessToken?.length,
+        fullData: JSON.stringify(data, null, 2),
+      });
 
-      // Navigate to dashboard
-      router.push("/dashboard");
+      // Handle both old backend (returns refreshToken) and new backend (httpOnly cookie)
+      const accessToken = data?.accessToken;
+      const user = data?.user;
+
+      if (user && accessToken) {
+        console.log("[Login] Storing tokens and user data");
+        // Store access token only (refresh token is now in httpOnly cookie)
+        localStorage.setItem("accessToken", data.accessToken);
+
+        // Update global auth state
+        login(data.user);
+
+        // Fetch tenant info (non-blocking)
+        if (data.user.tenantId) {
+          fetchTenantInfo();
+        }
+
+        console.log("[Login] Redirecting to /dashboard...");
+        // Navigate immediately - no delays needed!
+        router.push("/dashboard");
+      } else {
+        console.error(
+          "[Login] Missing required fields from backend response:",
+          {
+            hasUser: !!data?.user,
+            hasAccessToken: !!data?.accessToken,
+            actualData: data,
+            dataType: typeof data,
+            keys: Object.keys(data || {}),
+            accessTokenValue: data?.accessToken,
+            userValue: data?.user,
+          },
+        );
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("user");
+        localStorage.removeItem("tenant");
+        const errorMsg = !data
+          ? "No response data"
+          : !data.accessToken
+            ? "Missing accessToken"
+            : "Missing user data";
+        setError(
+          `Login failed: ${errorMsg}. Please try again or contact support.`,
+        );
+      }
     } catch (err: unknown) {
       const e = err as { message?: string };
+      console.error("[Login] Error during login:", e);
       setError(e?.message || "Login failed");
     } finally {
       setLoading(false);
@@ -189,29 +267,49 @@ export default function LoginPage() {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Send token to backend
-      const { data } = await api.post("/auth/firebase", {
+      const response = await api.post("/auth/firebase", {
         idToken,
       });
+      console.log("[Login] Google sign-in - Raw response:", response);
+      console.log("[Login] Google sign-in - Response data:", response.data);
+      const data = response.data;
 
-      // Tokens are set as HttpOnly cookies by the backend. Do not store tokens in localStorage.
+      if (data?.user && data?.accessToken) {
+        console.log("[Login] Storing tokens and user data");
+        // Store access token only (refresh token is now in httpOnly cookie)
+        localStorage.setItem("accessToken", data.accessToken);
 
-      // Use startTransition for non-urgent updates
-      startTransition(() => {
-        if (data.user) {
-          localStorage.setItem("user", JSON.stringify(data.user));
+        // Update global auth state
+        login(data.user);
 
-          // Fetch tenant info asynchronously (non-blocking)
-          if (data.user.tenantId) {
-            fetchTenantInfo();
-          }
+        // Fetch tenant info (non-blocking)
+        if (data.user.tenantId) {
+          fetchTenantInfo();
         }
-      });
 
-      // Allow UI to update before navigation
-      await new Promise((resolve) => setTimeout(resolve, 0));
-
-      // Navigate to dashboard
-      router.push("/dashboard");
+        console.log("[Login] Redirecting to /dashboard...");
+        // Navigate immediately - no delays needed!
+        router.push("/dashboard");
+      } else {
+        console.error("[Login] Google sign-in missing required fields:", {
+          hasUser: !!data?.user,
+          hasAccessToken: !!data?.accessToken,
+          actualData: data,
+          dataType: typeof data,
+          keys: Object.keys(data || {}),
+        });
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("user");
+        localStorage.removeItem("tenant");
+        const errorMsg = !data
+          ? "No response data"
+          : !data.accessToken
+            ? "Missing accessToken"
+            : "Missing user data";
+        setError(
+          `Google sign-in failed: ${errorMsg}. Please try again or contact support.`,
+        );
+      }
     } catch (err: unknown) {
       const e = err as { message?: string };
       setError(e?.message || "Google sign-in failed");
@@ -412,9 +510,7 @@ export default function LoginPage() {
                               repeat: Infinity,
                               ease: "linear",
                             }}
-                          >
-                            ⏳
-                          </motion.span>
+                          ></motion.span>
                           Signing in...
                         </span>
                       ) : (

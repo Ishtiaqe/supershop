@@ -5,46 +5,62 @@ Summary
 -------
 This document describes the secure token-handling approach used by SuperShop and recommendations for "remember me" / auto-login behavior.
 
-Recommended approach (current implementation)
----------------------------------------------
-- Access Token: short-lived (15m) — stored as an HttpOnly cookie named `accessToken`.
-- Refresh Token: long-lived (7d or more) — stored as an HttpOnly cookie named `refreshToken`.
-- Cookie options for production: `Secure`, `SameSite=None`, `HttpOnly`, `domain=.shomaj.one` and `path=/`.
+## Token Management
 
-Why cookies?
-------------
-- HttpOnly cookies cannot be read by JavaScript which reduces the risk of XSS token theft.
-- Cookies are sent automatically with requests when `withCredentials` is enabled on the client.
+- Access Token: short-lived (15m) — stored in localStorage as `accessToken`.
+- Refresh Token: long-lived (7d or more) — stored in localStorage as `refreshToken`.
+- Tokens are attached to requests via the `Authorization: Bearer {token}` header.
+
+Why localStorage?
+
+- Simpler architecture without cookie domain/CORS complexity.
+- Tokens are immediately available after login without race conditions.
+- Automatic attachment via Axios interceptors eliminates manual token management.
 
 Remember Me / Auto-login
 -------------------------
 To support user auto-login without using localStorage for credentials:
 
 1. Use a long-lived refresh token with server-side rotation. If the user checks "Remember me", issue a refresh token with longer expiration (e.g., 30 days), but track the session and device on the server.
-2. On each refresh, rotate the refresh token and store the new token in the HttpOnly cookie and persist the associated session in DB.
-3. On logout, revoke the refresh token in the DB and clear the HttpOnly cookie.
+2. On each refresh, rotate the refresh token and store the new token in localStorage and persist the associated session in DB.
+3. On logout, revoke the refresh token in the DB and clear localStorage.
 
 Device-tracking & security
 --------------------------
 - Bind refresh tokens to device records and fingerprint relevant device metadata (User-Agent, IP, device id) on the server.
 - Implement refresh-token rotation so that when a refresh token is used, the server issues a new refresh token and invalidates the old one — this mitigates replay attacks.
 
-CSRF & Cookie APIs
-------------------
-Since we're using cookies for auth, enforce CSRF protections for state-changing requests (POST/PUT/DELETE). Options:
-- Use `SameSite=Lax` for safer default; use `SameSite=None` only when cross-site context is needed and ensure you use CSRF tokens (double-submit cookie pattern).
-- Require a CSRF header/anti-forgery token for all non-GET requests.
+## Security Considerations
+
+Since we're using Bearer token authentication via Authorization headers:
+- CSRF protection is not required (tokens are not sent automatically like cookies)
+- Implement proper XSS protection (sanitize user inputs, use Content Security Policy)
+- Store tokens securely and clear on logout
 
 Fallbacks (optional)
 --------------------
-- For offline usage (e.g., POS app) or native apps, consider issuing tokens designed for native storage: securely store the refresh token in native secure storage instead of localStorage.
-- For the web, avoid localStorage for storing tokens. Use localStorage only for **non-sensitive** UI preferences, user display name, or tenant data.
+- For offline usage (e.g., POS app) or native apps, store the refresh token in native secure storage.
+- For the web, store tokens in localStorage for easy access and automatic inclusion in API requests.
 
 Frontend implementation notes
 ----------------------------
-- Set `axios` config `withCredentials: true` and avoid reading tokens from `localStorage` for requests.
-- Perform quick session checks by calling `/users/me` server route — the backend will read cookies and return a profile if authenticated.
-- Persist only non-sensitive data (user display name / tenant settings) in the browser; do not persist tokens to localStorage.
+- Use Axios interceptors to attach `Authorization: Bearer {token}` header from localStorage.
+- Automatically refresh tokens when they expire using refresh token interceptor.
+- Use `AuthProvider` (client-only) to hydrate session on app start: it calls `/users/me`, falls back to `/auth/refresh` then `/users/me`, and persists user profile and tenant data in `localStorage`.
+- Tokens (accessToken, refreshToken) are stored in localStorage and cleared on logout.
+
+Client behavior to avoid flicker
+-------------------------------
+- Defer strict auth to the client: do not perform SSR redirects; the `Shell` waits for `AuthProvider` to finish loading before deciding redirects.
+- Single-flight refresh queue in the API client ensures only one refresh runs; queued requests retry after success.
+- Proactively refresh the access token at ~80–90% TTL (default ~12 minutes if TTL is 15 minutes) to minimize 401s.
+- When `/users/me` fails, `AuthProvider` performs `/auth/refresh` and retries once before marking the user unauthenticated.
+
+Simplified state management
+--------------------------
+- Centralized in `src/components/auth/AuthProvider.tsx` exposing `useAuth()` with `{ user, loading, refresh, logout }`.
+- `Shell` and `Login` consume `useAuth()` instead of calling auth endpoints directly.
+- Logged-in state is preserved in localStorage; `AuthProvider` rehydrates on app start by checking for tokens.
 
 Server-side recommendations
 --------------------------

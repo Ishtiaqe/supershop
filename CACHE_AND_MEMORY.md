@@ -26,7 +26,7 @@ Key memory & caching layers
 
 5) localStorage & sessionStorage
    - Use only for non-sensitive data such as UI preferences, small cache keys, or user display info.
-   - Avoid storing tokens (access/refresh) in localStorage — HttpOnly cookies are preferred for auth.
+   - Tokens (access/refresh) are stored in localStorage with automatic cleanup on logout.
 
 6) Browser cache (HTTP) & CDN/Edge
    - Set proper `Cache-Control`, `ETags`, and `immutable` for static assets.
@@ -37,7 +37,7 @@ Key memory & caching layers
 
 Best practices
 --------------
-- Protect sensitive data: never persist access tokens in localStorage. Use HttpOnly cookies.
+- Protect sensitive data: tokens are stored in localStorage and cleared on logout. Implement proper XSS protection.
 - Use `TanStack Query` for data fetching and caching; consider `persistQueryClient` to store query cache in IndexedDB.
 - Use a service worker for PWA & static assets — keep private endpoints out of runtime cache unless explicitly encrypted and invalidated.
 - Consider reducing JS and third-party libs on critical LCP pathways (we lazy-load charts, etc.).

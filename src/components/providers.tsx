@@ -8,6 +8,7 @@ import React from "react";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { OfflineProvider } from "./providers/offline-provider";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 import { getThemeColors } from "@/lib/theme";
 
 type ThemeMode = "light" | "dark" | "system";
@@ -118,21 +119,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeContext.Provider value={{ mode, setMode }}>
       <ConfigProvider theme={themeConfig}>
         <OfflineProvider>
-          {persister ? (
-            <PersistQueryClientProvider
-              client={queryClient}
-              persistOptions={{ persister }}
-            >
-              {children}
-              <ReactQueryDevtools initialIsOpen={false} />
-            </PersistQueryClientProvider>
-          ) : (
-            // Fallback for SSR or if persistence fails
-            <QueryClientProvider client={queryClient}>
-              {children}
-              <ReactQueryDevtools initialIsOpen={false} />
-            </QueryClientProvider>
-          )}
+          <AuthProvider>
+            {persister ? (
+              <PersistQueryClientProvider
+                client={queryClient}
+                persistOptions={{ persister }}
+              >
+                {children}
+                <ReactQueryDevtools initialIsOpen={false} />
+              </PersistQueryClientProvider>
+            ) : (
+              // Fallback for SSR or if persistence fails
+              <QueryClientProvider client={queryClient}>
+                {children}
+                <ReactQueryDevtools initialIsOpen={false} />
+              </QueryClientProvider>
+            )}
+          </AuthProvider>
         </OfflineProvider>
       </ConfigProvider>
     </ThemeContext.Provider>

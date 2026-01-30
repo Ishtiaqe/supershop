@@ -1,5 +1,3 @@
-import { cookies } from 'next/headers';
-
 interface DashboardSummaryType {
   ordersCount: number;
   totalRevenue: number;
@@ -8,14 +6,9 @@ interface DashboardSummaryType {
 }
 
 export default async function DashboardSummary() {
-  // Attempt to read access token from cookies
-  const cookieStore = cookies();
-  const accessToken = cookieStore.get('accessToken')?.value || cookieStore.get('access_token')?.value;
-
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
+  const headers: Record<string, string> = { 
+    Accept: 'application/json',
+  };
 
   let summary: DashboardSummaryType | null = null;
   try {

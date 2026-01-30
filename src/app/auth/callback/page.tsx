@@ -16,16 +16,11 @@ export default function AuthCallback() {
     if (token && refreshToken) {
       (async () => {
         try {
-          // Instead of storing tokens in localStorage, post refresh token to /auth/refresh
-          // which will set HttpOnly cookies and return new tokens as needed. The
-          // server will read the refresh token from cookie or the provided body.
-          if (refreshToken) {
-            await api.post('/auth/refresh', { refreshToken });
-          } else {
-            await api.post('/auth/refresh');
-          }
+          // Store tokens in localStorage
+          localStorage.setItem('accessToken', token);
+          localStorage.setItem('refreshToken', refreshToken);
 
-          // Now fetch the user profile using the cookie-based session
+          // Fetch the user profile
           try {
             const userResp = await api.get('/users/me');
             if (userResp?.data) {

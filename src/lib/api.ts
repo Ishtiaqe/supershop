@@ -9,9 +9,80 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // With cookies enabled we rely on HttpOnly cookies for authentication
-  withCredentials: true,
+  withCredentials: true, // Enable sending cookies with requests
 })
+
+// Request interceptor to add auth token from localStorage
+api.interceptors.request.use(
+  (config) => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('accessToken')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Simple refresh queue to avoid multiple concurrent refreshes
+let isRefreshing = false as boolean
+let refreshSubscribers: Array<(success: boolean) => void> = []
+
+function subscribeTokenRefresh(cb: (success: boolean) => void) {
+  refreshSubscribers.push(cb)
+}
+
+function onRefreshed(success: boolean) {
+  const subs = [...refreshSubscribers]
+  refreshSubscribers = []
+  subs.forEach((cb) => {
+    try {
+      cb(success)
+    } catch {}
+  })
+}
+
+// Helper: perform refresh against primary, then backup
+async function performRefresh() {
+  // Refresh token is now in httpOnly cookie, no need to read from localStorage
+  const refreshConfig = {
+    method: 'POST' as const,
+    url: '/auth/refresh',
+    baseURL: PRIMARY_API_URL,
+    withCredentials: true, // Send cookies with refresh request
+  }
+  
+  try {
+    const response = await axios(refreshConfig)
+    // Store only access token (refresh token is in httpOnly cookie)
+    if (response.data?.accessToken) {
+      localStorage.setItem('accessToken', response.data.accessToken)
+    }
+    return response.data
+  } catch (primaryError) {
+    const error = primaryError as AxiosError
+    if (
+      error.code === 'ECONNREFUSED' ||
+      error.code === 'ENOTFOUND' ||
+      error.code === 'ECONNRESET' ||
+      (error.response?.status && error.response.status >= 500) ||
+      !error.response
+    ) {
+      console.warn('Primary API refresh failed, trying backup...')
+      refreshConfig.baseURL = BACKUP_API_URL
+      const response = await axios(refreshConfig)
+      // Store only access token (refresh token is in httpOnly cookie)
+      if (response.data?.accessToken) {
+        localStorage.setItem('accessToken', response.data.accessToken)
+      }
+      return response.data
+    } else {
+      throw primaryError
+    }
+  }
+}
 
 // Response interceptor to handle token refresh and fallback
 api.interceptors.response.use(
@@ -26,42 +97,53 @@ api.interceptors.response.use(
     }
     const originalRequest = error.config
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug('[api] Attempting token refresh for 401 on', originalRequest.url)
+    if (error.response?.status === 401) {
+      // Ensure we only refresh once at a time
+      if (originalRequest && !originalRequest._retry) {
+        originalRequest._retry = true
       }
-      originalRequest._retry = true
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('[api] 401 received for', originalRequest?.url)
+      }
+
+      if (isRefreshing) {
+        // Queue this request until refresh completes
+        return new Promise((resolve, reject) => {
+          subscribeTokenRefresh((success) => {
+            if (success) {
+              resolve(api(originalRequest))
+            } else {
+              reject(error)
+            }
+          })
+        })
+      }
+
+      isRefreshing = true
       try {
-        // Make a refresh call using cookies (HttpOnly refresh token) — server will set cookie headers
-        const refreshConfig = {
-          method: 'POST',
-          url: '/auth/refresh',
-          baseURL: PRIMARY_API_URL,
+        await performRefresh()
+        isRefreshing = false
+        onRefreshed(true)
+        // Retry original request after refresh with new token
+        const token = localStorage.getItem('accessToken')
+        if (token && originalRequest) {
+          originalRequest.headers.Authorization = `Bearer ${token}`
         }
-        // Attempt refresh with primary/backup; we don't need the body here (cookies are set by server)
-        try {
-          await axios({ ...refreshConfig, withCredentials: true })
-        } catch (primaryError) {
-          const error = primaryError as AxiosError
-          if (error.code === 'ECONNREFUSED' ||
-            error.code === 'ENOTFOUND' ||
-            error.code === 'ECONNRESET' ||
-            (error.response?.status && error.response.status >= 500) ||
-            !error.response) {
-            console.warn('Primary API refresh failed, trying backup...')
-            refreshConfig.baseURL = BACKUP_API_URL
-            await axios({ ...refreshConfig, withCredentials: true })
-          } else {
-            throw primaryError
+        return api(originalRequest)
+      } catch (e) {
+        isRefreshing = false
+        onRefreshed(false)
+        // If refresh fails, clear tokens and navigate to login
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('user')
+          localStorage.removeItem('tenant')
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login'
           }
         }
-        // The server should set cookies; retry original request
-        return api(originalRequest)
-      } catch {
-        // If refresh fails, navigate to login
-        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-          window.location.href = '/login'
-        }
+        return Promise.reject(e)
       }
     }
 
@@ -97,3 +179,14 @@ api.interceptors.response.use(
 )
 
 export default api
+
+// Proactive refresh helper: call periodically to avoid expiry-triggered 401s
+export function startProactiveRefresh(intervalMs = 12 * 60 * 1000) {
+  if (typeof window === 'undefined') return () => {}
+  const id = window.setInterval(() => {
+    performRefresh().catch(() => {
+      // Ignore failures; interceptor will handle if real 401 occurs
+    })
+  }, intervalMs)
+  return () => window.clearInterval(id)
+}
