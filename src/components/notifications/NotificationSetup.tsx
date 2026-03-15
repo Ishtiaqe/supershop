@@ -2,7 +2,7 @@
 
 import { useEffect, useState, startTransition } from "react";
 import { Button, message } from "antd";
-import { BellOutlined } from "@ant-design/icons";
+import BellOutlined from "@ant-design/icons/BellOutlined";
 import api from "@/lib/api";
 
 const PUBLIC_VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BBMc..."; // Replace with real key

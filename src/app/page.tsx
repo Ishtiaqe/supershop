@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import api from '@/lib/api';
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import api from "@/lib/api";
 
 export default function Home() {
   const router = useRouter();
@@ -10,15 +10,15 @@ export default function Home() {
   useEffect(() => {
     (async function checkSession() {
       try {
-        const resp = await api.get('/users/me');
+        const resp = await api.get("/users/me");
         if (resp?.data) {
-          router.push('/dashboard');
+          router.push("/dashboard");
           return;
         }
       } catch {
         // Not authenticated
       }
-      router.push('/login');
+      router.push("/login");
     })();
   }, [router]);
 

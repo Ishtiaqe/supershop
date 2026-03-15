@@ -46,15 +46,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async (): Promise<any> => {
     try {
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (!refreshToken) {
-        return null;
-      }
+      // Refresh token is now in httpOnly cookie, backend reads it automatically
+      const response = await api.post("/auth/refresh");
 
-      const response = await api.post("/auth/refresh", { refreshToken });
-
-      if (response.data?.accessToken && response.data?.refreshToken) {
-        // Tokens are already stored by api interceptor
+      if (response.data?.accessToken) {
+        // Access token is stored by api interceptor
         // Fetch and update user profile
         try {
           const resp = await api.get("/users/me");
@@ -75,14 +71,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const bootstrap = useCallback(async () => {
     setLoading(true);
 
-    // Check if we have tokens
-    const hasTokens =
+    // Check if we have access token (refresh token is in httpOnly cookie)
+    const hasAccessToken =
       typeof window !== "undefined" &&
-      localStorage.getItem("accessToken") &&
-      localStorage.getItem("refreshToken");
+      localStorage.getItem("accessToken");
 
-    if (!hasTokens) {
-      // No tokens, mark as unauthenticated
+    if (!hasAccessToken) {
+      // No access token, try to refresh using the httpOnly cookie
+      try {
+        const userData = await refresh();
+        if (userData) {
+          setLoading(false);
+          return;
+        }
+      } catch {}
+      // No valid session
       setUser(null);
       setLoading(false);
       return;
@@ -105,7 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Failed: clear all auth data
       try {
         localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
         localStorage.removeItem("tenant");
       } catch {}

@@ -170,7 +170,7 @@ export default function OfflineReloadTest() {
       addResult("2. Go to Network tab and set to &quot;Offline&quot;");
       addResult("3. Reload this page (Ctrl+R or Cmd+R)");
       addResult("4. Check if the page loads and shows medicine data");
-      addResult("5. Test the medicine-database page: /dashboard/medicine-database");
+      addResult("5. Test the medicine-database page: /medicine-database");
       addResult("6. Verify search functionality works offline");
 
       addResult(
@@ -250,7 +250,7 @@ export default function OfflineReloadTest() {
               </p>
               <p>
                 <strong>Step 5:</strong> Test the medicine database page at
-                /dashboard/medicine-database
+                /medicine-database
               </p>
             </div>
           }

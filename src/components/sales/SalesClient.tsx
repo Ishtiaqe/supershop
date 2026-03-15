@@ -15,9 +15,10 @@ import {
   Row,
   Col,
 } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import SearchOutlined from "@ant-design/icons/SearchOutlined";
 import type { Sale } from "@/types";
 import type { Dayjs } from "dayjs";
+import { useAuth } from "@/components/auth/AuthProvider";
 function fetchSales() {
   return api.get("/sales").then((rowData) => rowData.data);
 }
@@ -38,7 +39,7 @@ export default function SalesClient() {
     [Dayjs | null, Dayjs | null] | null
   >(null);
   const [paymentFilter, setPaymentFilter] = useState<string | undefined>(
-    undefined
+    undefined,
   );
 
   const { data: saleDetails, isLoading: isLoadingDetails } = useQuery({
@@ -47,9 +48,7 @@ export default function SalesClient() {
     enabled: !!selectedSaleId,
   });
 
-  const userJson =
-    typeof window !== "undefined" ? localStorage.getItem("user") : null;
-  const user = userJson ? JSON.parse(userJson) : null;
+  const { user } = useAuth();
 
   if (!user || (user.role !== "OWNER" && user.role !== "EMPLOYEE")) {
     return <div className="p-6">Access denied — Owners and employees only</div>;
@@ -96,11 +95,11 @@ export default function SalesClient() {
   // Calculate totals
   const totalRevenue = filteredSales.reduce(
     (sum: number, sale: Sale) => sum + sale.totalAmount,
-    0
+    0,
   );
   const totalProfit = filteredSales.reduce(
     (sum: number, sale: Sale) => sum + sale.totalProfit,
-    0
+    0,
   );
 
   return (
@@ -180,7 +179,7 @@ export default function SalesClient() {
           key="employee"
           render={(
             e: string | { fullName?: string } | undefined,
-            record: Sale
+            record: Sale,
           ) => {
             if (typeof e === "string") return e;
             if (e && typeof e === "object" && "fullName" in e && e.fullName)
@@ -230,7 +229,7 @@ export default function SalesClient() {
               <Descriptions.Item label="Discount Value">
                 ৳{saleDetails.discountValue?.toFixed(2) || 0}
               </Descriptions.Item>
-                <Descriptions.Item label="Total Amount" span={2}>
+              <Descriptions.Item label="Total Amount" span={2}>
                 <span className="text-lg font-bold text-success">
                   ৳{saleDetails.totalAmount?.toFixed(2)}
                 </span>
@@ -264,7 +263,7 @@ export default function SalesClient() {
                         };
                         itemName?: string;
                       };
-                    }
+                    },
                   ) => {
                     // Check if it's a catalog item or ad-hoc
                     if (item.inventory?.variant?.product?.name) {
@@ -283,7 +282,7 @@ export default function SalesClient() {
                       inventory?: {
                         variant?: { variantName?: string; sku?: string };
                       };
-                    }
+                    },
                   ) => {
                     // Use variantName from schema
                     if (item.inventory?.variant?.variantName) {

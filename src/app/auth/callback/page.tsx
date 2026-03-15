@@ -31,7 +31,7 @@ export default function AuthCallback() {
             console.warn('Failed to fetch user info after refresh', err);
           }
 
-          router.push('/dashboard');
+          router.push('/sales');
         } catch (error) {
           console.error('Auth callback error:', error);
           router.push('/login?error=auth_failed');

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { Table, Form, Input, Button, Alert, Card, Divider, Modal } from "antd";
 import type { Tenant } from "@/types";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function AdminTenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -17,9 +18,7 @@ export default function AdminTenantsPage() {
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [editLoading, setEditLoading] = useState(false);
 
-  const userJson =
-    typeof window !== "undefined" ? localStorage.getItem("user") : null;
-  const user = userJson ? JSON.parse(userJson) : null;
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchTenants();
@@ -213,7 +212,7 @@ export default function AdminTenantsPage() {
                     response?: { data?: { message?: string } };
                   };
                   setError(
-                    e?.response?.data?.message || "Failed to update tenant"
+                    e?.response?.data?.message || "Failed to update tenant",
                   );
                 } finally {
                   setEditLoading(false);

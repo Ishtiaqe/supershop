@@ -20,7 +20,7 @@ export default function OfflinePage() {
           </span>
         }
         extra={
-          <Link href="/dashboard">
+          <Link href="/sales">
             <Button type="primary" size="large">
               Go to Dashboard
             </Button>

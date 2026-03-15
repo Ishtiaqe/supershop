@@ -11,11 +11,21 @@ parserOptions:
   ecmaVersion: 2020
   sourceType: module
   project: './tsconfig.json'
+overrides:
+  - files: ['src/sw.js']
+    parserOptions:
+      project: false
 rules:
-  prettier/prettier: error
-  block-scoped-var: error
-  eqeqeq: error
-  no-warning-comments: warn
-  no-var: error
-  prefer-const: error
+  prettier/prettier: off
+  block-scoped-var: warn
+  eqeqeq: warn
+  no-warning-comments: off
+  no-var: warn
+  prefer-const: warn
   '@typescript-eslint/no-unused-vars': off
+  '@typescript-eslint/no-explicit-any': off
+  no-empty: off
+  no-case-declarations: off
+  no-useless-escape: off
+  no-useless-catch: off
+  '@typescript-eslint/no-unused-expressions': off

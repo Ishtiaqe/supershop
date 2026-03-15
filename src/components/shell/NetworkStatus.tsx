@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { WifiOutlined, DisconnectOutlined } from "@ant-design/icons";
+import WifiOutlined from "@ant-design/icons/WifiOutlined";
+import DisconnectOutlined from "@ant-design/icons/DisconnectOutlined";
 import { Tooltip } from "antd";
 
 export function NetworkStatus() {

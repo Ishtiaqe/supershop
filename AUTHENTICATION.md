@@ -8,14 +8,16 @@ This document describes the secure token-handling approach used by SuperShop and
 ## Token Management
 
 - Access Token: short-lived (15m) — stored in localStorage as `accessToken`.
-- Refresh Token: long-lived (7d or more) — stored in localStorage as `refreshToken`.
-- Tokens are attached to requests via the `Authorization: Bearer {token}` header.
+- Refresh Token: long-lived (7d or more) — stored in httpOnly cookie by the backend.
+- Access tokens are attached to requests via the `Authorization: Bearer {token}` header.
+- Refresh tokens are automatically sent via cookies (withCredentials: true).
 
-Why localStorage?
+Why httpOnly cookies for refresh tokens?
 
-- Simpler architecture without cookie domain/CORS complexity.
-- Tokens are immediately available after login without race conditions.
-- Automatic attachment via Axios interceptors eliminates manual token management.
+- Enhanced security: httpOnly cookies cannot be accessed by JavaScript, protecting against XSS attacks.
+- Refresh tokens are long-lived and more sensitive, so they deserve extra protection.
+- Access tokens remain in localStorage for easy access and automatic attachment via Axios interceptors.
+- Backend automatically reads refresh token from cookies during `/auth/refresh` calls.
 
 Remember Me / Auto-login
 -------------------------
@@ -47,7 +49,8 @@ Frontend implementation notes
 - Use Axios interceptors to attach `Authorization: Bearer {token}` header from localStorage.
 - Automatically refresh tokens when they expire using refresh token interceptor.
 - Use `AuthProvider` (client-only) to hydrate session on app start: it calls `/users/me`, falls back to `/auth/refresh` then `/users/me`, and persists user profile and tenant data in `localStorage`.
-- Tokens (accessToken, refreshToken) are stored in localStorage and cleared on logout.
+- Access token is stored in localStorage; refresh token is stored in httpOnly cookie by the backend.
+- On logout, clear accessToken from localStorage and call `/auth/logout` to clear the httpOnly cookie.
 
 Client behavior to avoid flicker
 -------------------------------

@@ -3,11 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, startTransition, useEffect } from "react";
 import { Form, Input, Button, Alert } from "antd";
-import {
-  UserOutlined,
-  LockOutlined,
-  ShoppingOutlined,
-} from "@ant-design/icons";
+import UserOutlined from "@ant-design/icons/UserOutlined";
+import LockOutlined from "@ant-design/icons/LockOutlined";
+import ShoppingOutlined from "@ant-design/icons/ShoppingOutlined";
 import { motion } from "framer-motion";
 import {
   signInWithPopup,
@@ -190,7 +188,7 @@ export default function LoginPage() {
           fetchTenantInfo();
         }
 
-        console.log("[Login] Redirecting to /dashboard...");
+        console.log("[Login] Redirecting to /sales...");
         // Navigate immediately - no delays needed!
         router.push("/dashboard");
       } else {
@@ -287,7 +285,7 @@ export default function LoginPage() {
           fetchTenantInfo();
         }
 
-        console.log("[Login] Redirecting to /dashboard...");
+        console.log("[Login] Redirecting to /sales...");
         // Navigate immediately - no delays needed!
         router.push("/dashboard");
       } else {

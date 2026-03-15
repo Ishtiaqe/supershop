@@ -18,13 +18,10 @@ import {
   message,
   AutoComplete,
 } from "antd";
-import {
-  SearchOutlined,
-  // EditOutlined,
-  // DeleteOutlined,
-} from "@ant-design/icons";
+import SearchOutlined from "@ant-design/icons/SearchOutlined";
 import { debounce } from "lodash";
 import dayjs from "dayjs";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface CatalogItem {
   variantId: string;
@@ -53,13 +50,13 @@ function fetchInventory(isOnline: boolean): Promise<InventoryItem[]> {
 
 async function searchCatalog(
   query: string,
-  isOnline: boolean
+  isOnline: boolean,
 ): Promise<CatalogItem[]> {
   if (!query || query.length < 2) return [];
   // Catalog search might only be available online for now, or we need to implement offline search
   if (!isOnline) return [];
   const response = await api.get(
-    `/catalog/search?q=${encodeURIComponent(query)}`
+    `/catalog/search?q=${encodeURIComponent(query)}`,
   );
   return response.data as CatalogItem[];
 }
@@ -140,7 +137,7 @@ export default function InventoryClient() {
           await queryClient.invalidateQueries({ queryKey: ["catalog"] });
         }
       },
-    }
+    },
   );
 
   const handleCatalogSearch = debounce(async (searchText: string) => {
@@ -154,7 +151,7 @@ export default function InventoryClient() {
 
   const handleCatalogSelect = (value: string) => {
     const selected = catalogOptions.find(
-      (item) => `${item.productName} - ${item.variantName}` === value
+      (item) => `${item.productName} - ${item.variantName}` === value,
     );
 
     if (selected) {
@@ -173,7 +170,7 @@ export default function InventoryClient() {
     const values = addFormInstance.getFieldsValue();
     const computed = computeMaxDiscount(
       values.purchasePrice,
-      values.retailPrice
+      values.retailPrice,
     );
     if (
       typeof values.maxDiscount === "number" &&
@@ -287,9 +284,7 @@ export default function InventoryClient() {
     return Number.isFinite(discount) ? Math.max(0, Math.floor(discount)) : 0;
   }
 
-  const userJson =
-    typeof window !== "undefined" ? localStorage.getItem("user") : null;
-  const user = userJson ? JSON.parse(userJson) : null;
+  const { user } = useAuth();
 
   const dataSource = useMemo(() => {
     // Ensure items is an array before processing
@@ -311,7 +306,7 @@ export default function InventoryClient() {
             batches: string[];
           }
         >,
-        item
+        item,
       ) => {
         const key = item.variantId || item.itemName || "unknown";
         if (!acc[key]) {
@@ -330,7 +325,7 @@ export default function InventoryClient() {
           acc[key].batches.push(item.batchNo);
         return acc;
       },
-      {}
+      {},
     );
 
     return Object.values(grouped).map((item) => {
@@ -380,9 +375,14 @@ export default function InventoryClient() {
           ) {
             const computed = computeMaxDiscount(
               allValues.purchasePrice,
-              allValues.retailPrice
+              allValues.retailPrice,
             );
             addFormInstance.setFieldsValue({ maxDiscount: computed });
+
+            // Trigger validation on both price fields for real-time feedback
+            addFormInstance
+              .validateFields(["purchasePrice", "retailPrice"])
+              .catch(() => {});
           }
         }}
       >
@@ -457,7 +457,22 @@ export default function InventoryClient() {
           <Form.Item
             name="purchasePrice"
             label="Purchase/unit"
-            rules={[{ required: true }]}
+            rules={[
+              { required: true, message: "Please enter purchase price" },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  const retailPrice = getFieldValue("retailPrice");
+                  if (!value || !retailPrice || retailPrice >= value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(
+                    new Error(
+                      "Purchase price cannot be higher than retail price",
+                    ),
+                  );
+                },
+              }),
+            ]}
           >
             <InputNumber
               min={0}
@@ -470,7 +485,22 @@ export default function InventoryClient() {
           <Form.Item
             name="retailPrice"
             label="MRP/unit"
-            rules={[{ required: true }]}
+            rules={[
+              { required: true, message: "Please enter retail price" },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  const purchasePrice = getFieldValue("purchasePrice");
+                  if (!value || !purchasePrice || value >= purchasePrice) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(
+                    new Error(
+                      "Retail price cannot be lower than purchase price",
+                    ),
+                  );
+                },
+              }),
+            ]}
           >
             <InputNumber
               min={0}
@@ -591,7 +621,7 @@ export default function InventoryClient() {
                 record: {
                   variant?: { product: { name: string }; variantName: string };
                   itemName?: string;
-                }
+                },
               ) => {
                 if (record.variant) {
                   const productName = record.variant.product.name;
@@ -657,6 +687,17 @@ export default function InventoryClient() {
           layout="vertical"
           onFinish={submitEdit}
           className="mt-4"
+          onValuesChange={(changedValues) => {
+            if (
+              "purchasePrice" in changedValues ||
+              "retailPrice" in changedValues
+            ) {
+              // Trigger validation on both price fields for real-time feedback
+              editFormInstance
+                .validateFields(["purchasePrice", "retailPrice"])
+                .catch(() => {});
+            }
+          }}
         >
           <Form.Item
             name="itemName"
@@ -681,7 +722,22 @@ export default function InventoryClient() {
           <Form.Item
             name="purchasePrice"
             label="Purchase/unit"
-            rules={[{ required: true }]}
+            rules={[
+              { required: true, message: "Please enter purchase price" },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  const retailPrice = getFieldValue("retailPrice");
+                  if (!value || !retailPrice || retailPrice >= value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(
+                    new Error(
+                      "Purchase price cannot be higher than retail price",
+                    ),
+                  );
+                },
+              }),
+            ]}
           >
             <InputNumber
               prefix="৳"
@@ -694,7 +750,22 @@ export default function InventoryClient() {
           <Form.Item
             name="retailPrice"
             label="MRP/unit"
-            rules={[{ required: true }]}
+            rules={[
+              { required: true, message: "Please enter retail price" },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  const purchasePrice = getFieldValue("purchasePrice");
+                  if (!value || !purchasePrice || value >= purchasePrice) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(
+                    new Error(
+                      "Retail price cannot be lower than purchase price",
+                    ),
+                  );
+                },
+              }),
+            ]}
           >
             <InputNumber
               prefix="৳"

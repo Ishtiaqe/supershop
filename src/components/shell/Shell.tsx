@@ -15,27 +15,19 @@ import {
 } from "antd";
 import { theme } from "antd";
 import { useTheme } from "@/components/providers";
+import { getFilteredNavigation } from "@/config/navigation";
 // framer-motion removed from Shell to reduce initial bundle size and improve FCP/LCP
 import { NetworkStatus } from "./NetworkStatus";
 import api from "@/lib/api";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-import {
-  MenuOutlined,
-  UserOutlined,
-  DashboardOutlined,
-  ShoppingCartOutlined,
-  BarChartOutlined,
-  InboxOutlined,
-  AppstoreOutlined,
-  // TagsOutlined,
-  ChromeOutlined,
-  SunOutlined,
-  MoonOutlined,
-  LogoutOutlined,
-  UserSwitchOutlined,
-  MedicineBoxOutlined,
-} from "@ant-design/icons";
+import MenuOutlined from "@ant-design/icons/MenuOutlined";
+import UserOutlined from "@ant-design/icons/UserOutlined";
+import ChromeOutlined from "@ant-design/icons/ChromeOutlined";
+import SunOutlined from "@ant-design/icons/SunOutlined";
+import MoonOutlined from "@ant-design/icons/MoonOutlined";
+import LogoutOutlined from "@ant-design/icons/LogoutOutlined";
+import UserSwitchOutlined from "@ant-design/icons/UserSwitchOutlined";
 import NotificationSetup from "@/components/notifications/NotificationSetup";
 
 const { Header, Sider, Content } = Layout;
@@ -191,60 +183,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   // user is provided by AuthProvider
 
-  const items: Array<{
-    key: string;
-    icon: React.ReactNode;
-    label: React.ReactNode;
-  }> = [
-    {
-      key: "/dashboard",
-      icon: <DashboardOutlined />,
-      label: <Link href="/dashboard">Dashboard</Link>,
-    },
-    {
-      key: "/dashboard/pos",
-      icon: <ShoppingCartOutlined />,
-      label: <Link href="/dashboard/pos">Point of Sale</Link>,
-    },
-    {
-      key: "/dashboard/sales",
-      icon: <BarChartOutlined />,
-      label: <Link href="/dashboard/sales">Sales History</Link>,
-    },
-    {
-      key: "/dashboard/inventory",
-      icon: <InboxOutlined />,
-      label: <Link href="/dashboard/inventory">Inventory</Link>,
-    },
-    {
-      key: "/dashboard/catalog",
-      icon: <AppstoreOutlined />,
-      label: <Link href="/dashboard/catalog">Catalog</Link>,
-    },
-    {
-      key: "/dashboard/medicine-database",
-      icon: <MedicineBoxOutlined />,
-      label: <Link href="/dashboard/medicine-database">Medicine Database</Link>,
-    },
-    // {
-    //   key: "/dashboard/categories",
-    //   icon: <TagsOutlined />,
-    //   label: <Link href="/dashboard/categories">Categories</Link>,
-    // },
-    // {
-    //   key: "/dashboard/brands",
-    //   icon: <ChromeOutlined />,
-    //   label: <Link href="/dashboard/brands">Brands</Link>,
-    // },
-  ];
+  // Get filtered navigation based on user role
+  const navigationItems = getFilteredNavigation(user?.role);
 
-  if (user?.role === "SUPER_ADMIN") {
-    items.push({
-      key: "/admin/tenants",
-      icon: <UserOutlined />,
-      label: <Link href="/admin/tenants">Tenants</Link>,
-    });
-  }
+  // Convert navigation config to menu items format
+  const items = navigationItems.map((item) => ({
+    key: item.key,
+    icon: <item.icon />,
+    label: <Link href={item.key}>{item.label}</Link>,
+  }));
 
   // Client-side guard: redirect to login only after auth finishes and user is null
   useEffect(() => {

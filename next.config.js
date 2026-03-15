@@ -20,11 +20,6 @@ const nextConfig = {
     "rc-tree",
     "rc-table",
   ],
-  modularizeImports: {
-    "@ant-design/icons": {
-      transform: "@ant-design/icons/{{member}}",
-    },
-  },
   // headers() is only supported with dynamic output (not 'export')
   // For static export builds, cache control must be set at the hosting level (e.g., Cloudflare, nginx)
   async headers() {
