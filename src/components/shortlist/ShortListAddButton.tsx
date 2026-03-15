@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import useShortlistMutation from '../../hooks/useShortlist';
 
 interface ShortListAddButtonProps {
   inventoryId: string;
@@ -13,31 +12,11 @@ export default function ShortListAddButton({
   isInShortList = false,
   onSuccess,
 }: ShortListAddButtonProps) {
-  const queryClient = useQueryClient();
-
-  const mutation = useMutation({
-    mutationFn: async (action: 'add' | 'remove') => {
-      if (action === 'add') {
-        await axios.post(`/api/v1/shortlist/add/${inventoryId}`, {}, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
-      } else {
-        await axios.delete(`/api/v1/shortlist/${inventoryId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shortlist'] });
-      queryClient.invalidateQueries({ queryKey: ['shortlist-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      onSuccess?.();
-    },
-  });
+  const mutation = useShortlistMutation();
 
   return (
     <button
-      onClick={() => mutation.mutate(isInShortList ? 'remove' : 'add')}
+      onClick={() => mutation.mutate({ inventoryId, action: isInShortList ? 'remove' : 'add' })}
       disabled={mutation.isPending}
       className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
         isInShortList

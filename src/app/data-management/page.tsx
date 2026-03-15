@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Card,
   Button,
@@ -17,76 +17,37 @@ import {
   CheckCircleOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/components/auth/AuthProvider";
 import Link from "next/link";
 import UserDataExport from "@/components/backup/UserDataExport";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { useBackupManagement } from "@/hooks/useBackupApi";
+import { downloadBlob, generateTimestampedFilename } from "@/lib/download-utils";
+import { formatDate, formatBytes } from "@/lib/ui-helpers";
 
 export default function DataManagementPage() {
   const { user } = useAuth();
-  const [exporting, setExporting] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Check backup status
-  const { data: backupStatus, isLoading: statusLoading } = useQuery({
-    queryKey: ["backup-status"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/backup/status`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        if (!response.ok) throw new Error("Failed to fetch backup status");
-        return response.json();
-      } catch {
-        return null;
-      }
-    },
-    enabled: !!user,
-  });
-
+  // Use centralized backup management hook
+  const { backupStatus, backupExport, backupImport } = useBackupManagement();
+  const statusLoading = backupStatus.isLoading;
+  const exporting = backupExport.isPending;
+  const importing = backupImport.isPending;
   const handleExportBackup = async () => {
     if (!user) {
       message.error("Please log in to export backup");
       return;
     }
 
-    setExporting(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/backup/export`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to export backup");
-      }
-
-      // Get the blob and download
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const timestamp = new Date().toISOString().split("T")[0];
-      a.download = `supershop-backup-${timestamp}.sql`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
+      const blob = await backupExport.mutateAsync();
+      const filename = generateTimestampedFilename("supershop-backup", "sql");
+      downloadBlob(blob, filename);
       message.success("Backup exported successfully!");
     } catch (error) {
       console.error("Export error:", error);
       message.error("Failed to export backup. Please try again.");
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -108,56 +69,30 @@ export default function DataManagementPage() {
       return;
     }
 
-    setImporting(true);
     setUploadProgress(0);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // Simulate progress (since XMLHttpRequest is used internally by api)
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => (prev < 90 ? prev + 10 : prev));
+      }, 500);
 
-      // Create XMLHttpRequest for progress tracking
-      const xhr = new XMLHttpRequest();
+      await backupImport.mutateAsync(file);
 
-      xhr.upload.addEventListener("progress", (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = (event.loaded / event.total) * 100;
-          setUploadProgress(percentComplete);
-        }
-      });
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      message.success("Backup restored successfully!");
 
-      xhr.addEventListener("load", async () => {
-        if (xhr.status === 200) {
-          message.success("Backup restored successfully!");
-          setImporting(false);
-          setUploadProgress(0);
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-          // Reload page to reflect changes
-          setTimeout(() => window.location.reload(), 1500);
-        } else {
-          message.error("Failed to restore backup");
-          setImporting(false);
-          setUploadProgress(0);
-        }
-      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
 
-      xhr.addEventListener("error", () => {
-        message.error("Network error during upload");
-        setImporting(false);
-        setUploadProgress(0);
-      });
-
-      xhr.open("POST", `${API_BASE_URL}/backup/import`);
-      xhr.setRequestHeader(
-        "Authorization",
-        `Bearer ${localStorage.getItem("token")}`,
-      );
-      xhr.send(formData);
+      // Reload page to reflect changes
+      setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
       console.error("Import error:", error);
       message.error("Failed to import backup. Please try again.");
-      setImporting(false);
+    } finally {
       setUploadProgress(0);
     }
   };
@@ -201,7 +136,7 @@ export default function DataManagementPage() {
       {/* Backup Status Card */}
       {statusLoading ? (
         <Spin className="block text-center mb-6" />
-      ) : backupStatus ? (
+      ) : backupStatus.data ? (
         <Card className="mb-6">
           <Space direction="vertical" size="large" style={{ width: "100%" }}>
             <div>
@@ -211,14 +146,13 @@ export default function DataManagementPage() {
               </h3>
               <p>
                 <strong>Last Backup:</strong>{" "}
-                {backupStatus.lastBackup
-                  ? new Date(backupStatus.lastBackup).toLocaleString()
+                {backupStatus.data.lastBackupTime
+                  ? formatDate(backupStatus.data.lastBackupTime, "long")
                   : "Never"}
               </p>
-              {backupStatus.backupSize && (
+              {backupStatus.data.backupSize && (
                 <p>
-                  <strong>Size:</strong>{" "}
-                  {(backupStatus.backupSize / 1024 / 1024).toFixed(2)} MB
+                  <strong>Size:</strong> {formatBytes(backupStatus.data.backupSize)}
                 </p>
               )}
             </div>

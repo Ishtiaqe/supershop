@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import axios from 'axios';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../../lib/api';
+import useShortlistMutation from '../../hooks/useShortlist';
 import debounce from 'lodash/debounce';
 
 interface SearchItem {
@@ -18,7 +18,6 @@ export default function GlobalSearchWithShortList() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
 
   // Search for items
   const debouncedSearch = useCallback(
@@ -29,9 +28,7 @@ export default function GlobalSearchWithShortList() {
       }
 
       try {
-        const response = await axios.get(`/api/v1/inventory?q=${term}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        const response = await api.get(`/api/v1/inventory?q=${term}`)
         setResults(response.data.slice(0, 10));
         setIsOpen(true);
       } catch (error) {
@@ -48,14 +45,8 @@ export default function GlobalSearchWithShortList() {
   };
 
   // Add to short list
-  const addMutation = useMutation({
-    mutationFn: async (inventoryId: string) => {
-      await axios.post(`/api/v1/shortlist/add/${inventoryId}`, {}, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-    },
+  const addMutation = useShortlistMutation({
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shortlist'] });
       setSearchTerm('');
       setResults([]);
       setIsOpen(false);
@@ -78,7 +69,7 @@ export default function GlobalSearchWithShortList() {
       case 'Enter':
         e.preventDefault();
         if (selectedIndex >= 0) {
-          addMutation.mutate(results[selectedIndex].id);
+          addMutation.mutate({ inventoryId: results[selectedIndex].id, action: 'add' });
         }
         break;
       case 'Escape':
@@ -116,7 +107,7 @@ export default function GlobalSearchWithShortList() {
           {results.map((item, index) => (
             <div
               key={item.id}
-              onClick={() => addMutation.mutate(item.id)}
+              onClick={() => addMutation.mutate({ inventoryId: item.id, action: 'add' })}
               className={`px-4 py-3 cursor-pointer flex justify-between items-center ${
                 index === selectedIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
               } border-b last:border-b-0`}
@@ -131,7 +122,7 @@ export default function GlobalSearchWithShortList() {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  addMutation.mutate(item.id);
+                  addMutation.mutate({ inventoryId: item.id, action: 'add' })
                 }}
                 className="ml-4 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
               >

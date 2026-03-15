@@ -143,3 +143,71 @@ export interface DashboardMetrics {
     expiringItems: number
   }
 }
+
+/**
+ * API Error Response (DIP: Depend on abstraction not concrete error objects)
+ */
+export interface ErrorResponse {
+  message: string
+  code?: string
+  details?: Record<string, unknown>
+  statusCode?: number
+}
+
+/**
+ * Generic API Response wrapper (DRY: Use across all API calls)
+ */
+export interface ApiResponse<T = unknown> {
+  data?: T
+  message?: string
+  statusCode?: number
+  success?: boolean
+}
+
+/**
+ * Async operation state (DRY: Used by useAsyncData and similar hooks)
+ */
+export interface AsyncState<T> {
+  data: T | null
+  loading: boolean
+  error: ErrorResponse | null
+}
+
+/**
+ * Backup/Export related types
+ */
+export interface BackupStatus {
+  lastBackupTime?: string
+  backupSize?: number
+  status: 'success' | 'pending' | 'failed'
+}
+
+export interface ExportProgress {
+  current: number
+  total: number
+  percentage: number
+  status: 'idle' | 'in-progress' | 'completed' | 'error'
+}
+
+/**
+ * Form-related types (DRY: Reuse across form components)
+ */
+export interface FormFieldError {
+  field: string
+  message: string
+}
+
+export interface FormState {
+  values: Record<string, unknown>
+  errors: FormFieldError[]
+  touched: Set<string>
+  isSubmitting: boolean
+}
+
+/**
+ * Modal state (DRY: Used by useModalState hook)
+ */
+export interface ModalState<T = unknown> {
+  isOpen: boolean
+  data: T | null
+}

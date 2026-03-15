@@ -8,9 +8,7 @@ import {
   Table,
   Space,
   message,
-  Modal,
   Tag,
-  Select,
   Spin,
 } from "antd";
 import {
@@ -18,54 +16,36 @@ import {
   SearchOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/components/auth/AuthProvider";
-
-interface User {
-  id: string;
-  email: string;
-  fullName: string;
-  role: string;
-  createdAt: string;
-}
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { useUserSearch, useUserDataExport } from "@/hooks/useBackupApi";
+import { downloadBlob, generateTimestampedFilename } from "@/lib/download-utils";
+import { formatDate } from "@/lib/ui-helpers";
+import { User } from "@/types";
 
 export default function UserDataExportComponent() {
   const { user: currentUser } = useAuth();
   const [searchEmail, setSearchEmail] = useState("");
-  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
-  const [exporting, setExporting] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   // Check if user is tenant owner (SUPER_ADMIN role)
   const isTenantOwner = currentUser?.role === "SUPER_ADMIN";
 
-  // Search for users
-  const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ["users-search", searchEmail, currentUser?.tenantId],
-    queryFn: async () => {
-      if (!searchEmail.trim()) return [];
+  // Use centralized hooks for user search and export
+  const userSearch = useUserSearch();
+  const userExport = useUserDataExport();
 
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/v1/users?email=${encodeURIComponent(searchEmail)}&tenantId=${currentUser?.tenantId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-
-        if (!response.ok) return [];
-        const data = await response.json();
-        return Array.isArray(data) ? data : data.data || [];
-      } catch {
-        return [];
-      }
-    },
-    enabled: !!isTenantOwner && searchEmail.length > 0,
-  });
+  const handleSearch = async (value: string) => {
+    if (!value.trim()) {
+      return;
+    }
+    setSearchEmail(value);
+    try {
+      await userSearch.mutateAsync(value);
+    } catch (error) {
+      console.error("Search error:", error);
+      message.error("Failed to search users");
+    }
+  };
 
   const handleExportUserData = async (userId: string) => {
     if (!isTenantOwner) {
@@ -73,39 +53,17 @@ export default function UserDataExportComponent() {
       return;
     }
 
-    setExporting(true);
-
+    setSelectedUserId(userId);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/v1/backup/export-user/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to export user data");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const timestamp = new Date().toISOString().split("T")[0];
-      a.download = `user-data-${userId}-${timestamp}.json`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
+      const blob = await userExport.mutateAsync(userId);
+      const filename = generateTimestampedFilename(`user-data-${userId}`, "json");
+      downloadBlob(blob, filename);
       message.success("User data exported successfully!");
     } catch (error) {
       console.error("Export error:", error);
       message.error("Failed to export user data. Please try again.");
     } finally {
-      setExporting(false);
+      setSelectedUserId(null);
     }
   };
 
@@ -143,7 +101,7 @@ export default function UserDataExportComponent() {
       title: "Created",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (date: string) => new Date(date).toLocaleDateString(),
+      render: (date: string) => formatDate(date),
     },
     {
       title: "Action",
@@ -153,17 +111,27 @@ export default function UserDataExportComponent() {
           type="primary"
           size="small"
           icon={<DownloadOutlined />}
-          loading={exporting && selectedUserId === record.id}
-          onClick={() => {
-            setSelectedUserId(record.id);
-            handleExportUserData(record.id);
-          }}
+          loading={userExport.isPending && selectedUserId === record.id}
+          onClick={() => handleExportUserData(record.id)}
         >
           Export Data
         </Button>
       ),
     },
   ];
+
+  const users = (userSearch.data || []) as User[];
+
+  if (!isTenantOwner) {
+    return (
+      <Card>
+        <div className="text-center text-red-500">
+          <UserOutlined className="text-2xl mr-2" />
+          <p>Only tenant owners can access user data export.</p>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mt-6">
@@ -188,12 +156,13 @@ export default function UserDataExportComponent() {
             value={searchEmail}
             onChange={(e) => setSearchEmail(e.target.value)}
             onPressEnter={(e) => {
-              // Search triggered
+              const value = (e.target as HTMLInputElement).value;
+              if (value) handleSearch(value);
             }}
           />
         </div>
 
-        {usersLoading && <Spin />}
+        {userSearch.isPending && <Spin />}
 
         {users && users.length > 0 && (
           <Table
@@ -205,7 +174,7 @@ export default function UserDataExportComponent() {
           />
         )}
 
-        {searchEmail && !usersLoading && users?.length === 0 && (
+        {searchEmail && !userSearch.isPending && users?.length === 0 && (
           <div className="text-center text-gray-500 py-8">
             No users found matching "{searchEmail}"
           </div>
