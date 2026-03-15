@@ -13,7 +13,11 @@ const POSPageWrapper = dynamic(
 
 export default function POSPage() {
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+    <div className="w-full space-y-4">
+      <div>
+        <h1 className="page-header">Point of Sale</h1>
+        <p className="page-subheader">Process sales and manage transactions</p>
+      </div>
       <POSPageWrapper />
     </div>
   );

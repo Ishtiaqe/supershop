@@ -51,6 +51,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return (localStorage.getItem("theme") as ThemeMode) || "system";
   });
 
+  // Track system dark preference reactively
+  const [systemDark, setSystemDark] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+      : false
+  );
+
   useEffect(() => {
     if (mode === "system") {
       localStorage.removeItem("theme");
@@ -59,60 +66,48 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [mode]);
 
-  // Apply theme class to document
+  // Listen for OS theme changes in real time
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // Apply theme class to document whenever mode or systemDark changes
   useEffect(() => {
     const root = document.documentElement;
-    if (mode === "dark") {
+    const prefersDark = mode === "dark" || (mode === "system" && systemDark);
+    if (prefersDark) {
       root.classList.remove("light");
       root.classList.add("dark");
-    } else if (mode === "light") {
+    } else {
       root.classList.remove("dark");
       root.classList.add("light");
-    } else {
-      // system mode
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-      if (prefersDark) {
-        root.classList.remove("light");
-        root.classList.add("dark");
-      } else {
-        root.classList.remove("dark");
-        root.classList.add("light");
-      }
     }
-  }, [mode]);
+  }, [mode, systemDark]);
 
-  // Determine antd algorithm and tokens
-  const prefersDark =
-    typeof window !== "undefined"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-      : false;
-  const isDark = mode === "dark" || (mode === "system" && prefersDark);
+  const isDark = mode === "dark" || (mode === "system" && systemDark);
+  const colors = getThemeColors(isDark ? "dark" : "light");
 
   const themeConfig = {
     algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-    token: isDark
-      ? {
-          colorPrimary: getThemeColors('dark').primary.hex,
-          colorBgContainer: getThemeColors('dark').card.hex,
-          colorBgElevated: getThemeColors('dark').background.hex,
-          colorText: getThemeColors('dark').foreground.hex,
-          colorTextSecondary: getThemeColors('dark').mutedForeground.hex,
-          colorBorder: getThemeColors('dark').border.hex,
-          colorBgLayout: getThemeColors('dark').background.hex,
-          borderRadius: 8,
-        }
-      : {
-          colorPrimary: getThemeColors('light').primary.hex,
-          colorBgContainer: getThemeColors('light').card.hex,
-          colorBgElevated: getThemeColors('light').card.hex,
-          colorText: getThemeColors('light').foreground.hex,
-          colorTextSecondary: getThemeColors('light').mutedForeground.hex,
-          colorBorder: getThemeColors('light').border.hex,
-          colorBgLayout: getThemeColors('light').background.hex,
-          borderRadius: 8,
-        },
+    token: {
+      colorPrimary: colors.primary.hex,
+      colorBgContainer: colors.card.hex,
+      colorBgElevated: colors.card.hex,
+      colorText: colors.foreground.hex,
+      colorTextSecondary: colors.mutedForeground.hex,
+      colorBorder: colors.border.hex,
+      colorBgLayout: colors.background.hex,
+      borderRadius: 8,
+    },
+    components: {
+      Menu: {
+        itemHeight: 48,
+        itemFontSize: 15,
+      },
+    },
   };
 
   return (

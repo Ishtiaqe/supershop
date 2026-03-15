@@ -1,81 +1,25 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* 1. Default Theme (Light Mode) */
-  :root {
-    /* Neutrals */
-    --background: 234 100% 99%; /* #FDFBFF */
-    --surface: 0 0% 100%; /* #FFFFFF */
-    --foreground: 210 21% 11%; /* #1A1C1E */
-
-    /* Primary: Azure Blue */
-    --primary: 217 100% 61%; /* #3a86ff */
-    --primary-foreground: 0 0% 100%; /* #FFFFFF */
-    --primary-container: 219 100% 92%; /* #D6E4FF */
-    --primary-on-container: 210 100% 11%; /* #001C38 */
-    --primary-hover: 221 83% 53%; /* #2563EB */
-    --primary-active: 224 76% 48%; /* #1D4ED8 */
-
-    /* Secondary: Blue Violet */
-    --secondary: 265 83% 57%; /* #8338ec */
-    --secondary-foreground: 0 0% 100%; /* #FFFFFF */
-    --secondary-container: 259 100% 93%; /* #E8DDFF */
-    --secondary-on-container: 261 100% 18%; /* #21005D */
-    --secondary-hover: 267 77% 60%; /* #7C3AED */
-    --secondary-active: 275 64% 45%; /* #6D28D9 */
-
-    /* Tertiary: Neon Pink */
-    --tertiary: 334 100% 50%; /* #ff006e */
-    --tertiary-foreground: 0 0% 100%; /* #FFFFFF */
-    --tertiary-container: 345 100% 92%; /* #FFD9E3 */
-    --tertiary-on-container: 345 100% 11%; /* #3E0018 */
-
-    /* Semantic */
-    --warning: 44 92% 52%; /* #ffbe0b */
-    --warning-foreground: 0 0% 0%; /* #000000 */
-    --warning-container: 48 100% 94%; /* #FFF5CC */
-
-    --critical: 19 97% 50%; /* #fb5607 */
-    --critical-foreground: 0 0% 100%; /* #FFFFFF */
-
-    /* Some existing tokens for compatibility */
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 217 100% 61%;
-    --focus: 217 100% 61%; /* Focus ring color (usually primary) */
-    --disabled: 0 0% 80%; /* Used for disabled backgrounds and text */
-    --outline: 230 7% 49%; /* #74777F */
-
-    --radius: 0.5rem;
-
-    /* Status colors */
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 100%;
-    --info: 199 89% 48%;
-    --pos-select-bg: rgba(255, 17, 0, 0.14);
-    --pos-select-color: hsl(var(--success));
-
-    /* Brand colors (useful for brand icons while keeping them centralized) */
-    --brand-google-blue: 221 89% 61%; /* #4285F4 */
-    --brand-google-green: 140 57% 46%; /* #34A853 */
-    --brand-google-yellow: 44 97% 53%; /* #FBBC04 */
-    --brand-google-red: 4 80% 58%; /* #EA4335 */
-    --brand-firefox: 17 100% 60%; /* #ff7139 */
-    --brand-apple-black: 0 0% 0%; /* #000000 */
-    --pos-select-color: hsl(var(--success));
-  }
-
-  /* 2. Light Theme (Explicit) */
+  /* ───── Light Theme (applied as :root AND .light) ───── */
+  :root,
   .light {
+    /* Backgrounds */
     --background: 234 100% 99%;
+    --surface: 0 0% 100%;
     --foreground: 210 21% 11%;
+
+    /* Cards / Popovers */
     --card: 0 0% 100%;
     --card-foreground: 210 21% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 210 21% 11%;
 
+    /* Primary – Azure Blue */
     --primary: 217 100% 61%;
     --primary-foreground: 0 0% 100%;
     --primary-container: 219 100% 92%;
@@ -83,96 +27,216 @@
     --primary-hover: 221 83% 53%;
     --primary-active: 224 76% 48%;
 
+    /* Secondary – Blue Violet */
     --secondary: 265 83% 57%;
     --secondary-foreground: 0 0% 100%;
     --secondary-container: 259 100% 93%;
     --secondary-on-container: 261 100% 18%;
-    --secondary-hover: 267 77% 60%;
-    --secondary-active: 275 64% 45%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
+    /* Tertiary – Pink */
+    --tertiary: 334 100% 50%;
+    --tertiary-foreground: 0 0% 100%;
+    --tertiary-container: 345 100% 92%;
+    --tertiary-on-container: 345 100% 11%;
+
+    /* Neutral / Muted */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
     --accent-foreground: 210 21% 11%;
 
-    --destructive: 0 84.2% 60.2%;
+    /* Semantic */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 217 100% 61%;
-    --focus: 217 100% 61%;
-    --disabled: 0 0% 80%;
-    --outline: 230 7% 49%;
-
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
     --warning: 44 92% 52%;
     --warning-foreground: 0 0% 0%;
+    --warning-container: 48 100% 94%;
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
-    --pos-select-bg: rgba(255, 17, 0, 0.14);
+    --critical: 19 97% 50%;
+    --critical-foreground: 0 0% 100%;
+
+    /* UI Chrome */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 100% 61%;
+    --focus: 217 100% 61%;
+    --outline: 230 7% 49%;
+    --disabled: 0 0% 80%;
+
+    /* Sidebar */
+    --sidebar: 234 60% 98%;
+    --sidebar-foreground: 210 21% 11%;
+    --sidebar-primary: 217 100% 61%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 94%;
+    --sidebar-accent-foreground: 210 21% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 217 100% 61%;
+
+    /* Chart colors */
+    --chart-1: 199 89% 48%;
+    --chart-2: 265 83% 57%;
+    --chart-3: 142 76% 36%;
+    --chart-4: 44 92% 52%;
+    --chart-5: 334 100% 50%;
+
+    /* Brand */
+    --brand-google-blue: 221 89% 61%;
+    --brand-google-green: 140 57% 46%;
+    --brand-google-yellow: 44 97% 53%;
+    --brand-google-red: 4 80% 58%;
+
+    /* POS */
+    --pos-select-bg: rgba(255, 17, 0, 0.1);
+    --pos-select-color: hsl(var(--success));
+
+    --radius: 0.75rem;
   }
 
-  /* 3. Dark Theme */
+  /* ───── Dark Theme ───── */
   .dark {
-    --background: 222 47% 11%; /* Slate 950 */
+    --background: 222 47% 11%;
+    --surface: 222 47% 14%;
     --foreground: 210 40% 98%;
-    --surface: 222 47% 11%;
-    --surface-foreground: 210 40% 98%;
 
-    --card: 222 47% 11%;
+    --card: 222 40% 14%;
     --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 11%;
+    --popover: 222 40% 14%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 100% 75%; /* lighter azure for dark */
-    --primary-foreground: 0 0% 10%;
-    --primary-container: 217 70% 20%;
+    --primary: 217 90% 68%;
+    --primary-foreground: 222 47% 8%;
+    --primary-container: 217 70% 22%;
     --primary-on-container: 210 40% 98%;
-    --primary-hover: 221 83% 53%;
-    --primary-active: 224 76% 48%;
+    --primary-hover: 221 85% 62%;
+    --primary-active: 224 80% 55%;
 
-    --secondary: 265 83% 50%;
-    --secondary-foreground: 0 0% 100%;
-    --secondary-container: 259 30% 12%;
+    --secondary: 222 35% 25%;
+    --secondary-foreground: 210 40% 98%;
+    --secondary-container: 259 30% 18%;
     --secondary-on-container: 261 100% 94%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --tertiary: 334 90% 65%;
+    --tertiary-foreground: 0 0% 100%;
+    --tertiary-container: 334 50% 20%;
+    --tertiary-on-container: 345 100% 94%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --muted: 222 35% 22%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 222 35% 22%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 217 100% 75%;
-    --focus: 217 100% 75%;
-    --disabled: 0 0% 30%;
-
-    --success: 142 70% 50%;
+    --success: 142 70% 45%;
     --success-foreground: 144 100% 10%;
     --warning: 44 92% 52%;
     --warning-foreground: 0 0% 0%;
+    --warning-container: 44 60% 20%;
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
-    --pos-select-bg: rgba(255, 17, 0, 0.14);
+    --critical: 19 90% 55%;
+    --critical-foreground: 0 0% 100%;
+
+    --border: 222 30% 22%;
+    --input: 222 30% 25%;
+    --ring: 217 90% 68%;
+    --focus: 217 90% 75%;
+    --outline: 215 20% 50%;
+    --disabled: 0 0% 30%;
+
+    --sidebar: 222 47% 9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 90% 68%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 222 35% 20%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 30% 18%;
+    --sidebar-ring: 217 90% 68%;
+
+    --chart-1: 199 89% 60%;
+    --chart-2: 265 70% 70%;
+    --chart-3: 142 70% 45%;
+    --chart-4: 44 92% 60%;
+    --chart-5: 334 90% 65%;
+
+    --pos-select-bg: rgba(255, 17, 0, 0.12);
+    --pos-select-color: hsl(var(--success));
   }
 
-  /* 4. Base Styles Application */
-  * {
-    @apply border-border;
+  /* ───── Base styles ───── */
+  html {
+    font-size: 17px;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
   }
+
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  input[type="date"],
+  select,
+  textarea {
+    color-scheme: light dark;
+  }
+
+  /* Clear focus rings for keyboard navigation */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Smooth scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
   }
 }
 
 @layer utilities {
+  @keyframes gradient-shift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .animate-gradient-shift {
+    background-size: 200% 200%;
+    animation: gradient-shift 15s ease infinite;
+  }
+
+  /* ───── Glassmorphism ───── */
   .glass {
     @apply bg-background/80 backdrop-blur-md border-b border-border/50;
   }
@@ -181,7 +245,29 @@
     @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-sm;
   }
 
-  /* Primary CTA utility - use as an alternative to Ant's Button primary for custom buttons */
+  /* ───── Consistent page heading ───── */
+  .page-header {
+    @apply text-2xl font-bold tracking-tight text-foreground;
+  }
+  .page-subheader {
+    @apply text-sm text-muted-foreground mt-0.5;
+  }
+
+  /* ───── Theme-aware stat cards ───── */
+  .stat-card-success {
+    @apply bg-success/10 border border-success/25 rounded-xl p-5;
+  }
+  .stat-card-danger {
+    @apply bg-destructive/10 border border-destructive/25 rounded-xl p-5;
+  }
+  .stat-card-primary {
+    @apply bg-primary/10 border border-primary/25 rounded-xl p-5;
+  }
+  .stat-card-muted {
+    @apply bg-muted border border-border rounded-xl p-5;
+  }
+
+  /* ───── Primary CTA ───── */
   .btn-primary {
     background-color: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
@@ -196,7 +282,7 @@
     border-color: hsl(var(--primary-active));
   }
 
-  /* Input focus using theme focus/ring */
+  /* ───── Ant Design input focus ───── */
   .ant-input:focus,
   .ant-input-password:focus,
   .ant-input-affix-wrapper:focus,
@@ -205,30 +291,16 @@
     border-color: hsl(var(--focus));
   }
 
-  /* Theme-aware text colors */
-  .text-theme-foreground {
-    color: hsl(var(--foreground));
-  }
-  .text-theme-muted {
-    color: hsl(var(--muted-foreground));
-  }
-  .text-theme-primary {
-    color: hsl(var(--primary));
-  }
-  .text-theme-destructive {
-    color: hsl(var(--destructive));
-  }
-  .text-theme-success {
-    color: hsl(var(--success));
-  }
-  .text-theme-warning {
-    color: hsl(var(--warning));
-  }
-  .text-theme-info {
-    color: hsl(var(--info));
-  }
+  /* ───── Theme-aware text colors ───── */
+  .text-theme-foreground    { color: hsl(var(--foreground)); }
+  .text-theme-muted         { color: hsl(var(--muted-foreground)); }
+  .text-theme-primary       { color: hsl(var(--primary)); }
+  .text-theme-destructive   { color: hsl(var(--destructive)); }
+  .text-theme-success       { color: hsl(var(--success)); }
+  .text-theme-warning       { color: hsl(var(--warning)); }
+  .text-theme-info          { color: hsl(var(--info)); }
 
-  /* POS Select dropdown highlight color: green (hover and keyboard-active) */
+  /* ───── POS select colors ───── */
   .pos-select-dropdown .ant-select-item-option-active,
   .pos-select-dropdown .ant-select-item-option-selected,
   .pos-select-dropdown .ant-select-item-option:hover {
@@ -241,7 +313,6 @@
     color: var(--pos-select-color) !important;
   }
 
-  /* Selected value color and focus outline for the closed Select */
   .pos-select .ant-select-selection-item {
     color: var(--pos-select-color) !important;
   }
@@ -249,14 +320,14 @@
   .pos-select .ant-select-selector:focus,
   .pos-select .ant-select-selector:focus-within,
   .pos-select.ant-select-focused .ant-select-selector {
-    box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
+    box-shadow: 0 0 0 3px hsl(var(--success) / 0.12);
     border-color: var(--pos-select-color) !important;
   }
 
-  /* Complete Sale Button Focus Override */
+  /* ───── Complete Sale Button ───── */
   .complete-sale-btn:focus,
   .complete-sale-btn:focus-visible {
-    box-shadow: 0 0 0 4px rgba(255, 0, 0, 0.6) !important;
+    box-shadow: 0 0 0 4px rgba(255, 0, 0, 0.5) !important;
     border-color: red !important;
     outline: none;
   }

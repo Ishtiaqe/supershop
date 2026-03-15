@@ -16,8 +16,12 @@ const InventoryClient = dynamic(
 
 export default function InventoryPage() {
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-      <Card title="Inventory">
+    <div className="w-full space-y-4">
+      <div>
+        <h1 className="page-header">Inventory</h1>
+        <p className="page-subheader">Manage stock levels and batch tracking</p>
+      </div>
+      <Card>
         <InventoryClient />
       </Card>
     </div>

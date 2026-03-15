@@ -2,6 +2,8 @@
 
 // Card removed; using raw layout classes to reduce bundle size for critical content
 import { useQuery } from '@tanstack/react-query';
+import { Skeleton } from 'antd';
+import { TrendingUp, Wallet, Package, ShoppingCart } from 'lucide-react';
 import api from '@/lib/api';
 
 interface DashboardSummaryType {
@@ -17,30 +19,54 @@ async function fetchSummary(): Promise<DashboardSummaryType> {
 }
 
 export default function DashboardSummaryClient() {
-  const { data } = useQuery<DashboardSummaryType>({
+  const { data, isLoading } = useQuery<DashboardSummaryType>({
     queryKey: ['dashboard-summary'],
     queryFn: fetchSummary,
     refetchOnWindowFocus: false,
   });
 
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="rounded-xl border border-border bg-card p-4">
+            <Skeleton active paragraph={{ rows: 1 }} title={{ width: '50%' }} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (!data) return null;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div className="glass-card p-4">
-        <div className="text-sm text-muted-foreground">Total Revenue</div>
+      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Total Revenue</span>
+          <TrendingUp className="h-4 w-4 text-primary" />
+        </div>
         <div className="text-xl font-semibold">৳ {(data.totalRevenue ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       </div>
-      <div className="glass-card p-4">
-        <div className="text-sm text-muted-foreground">Total Profit</div>
+      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Total Profit</span>
+          <Wallet className="h-4 w-4 text-success" />
+        </div>
         <div className="text-xl font-semibold">৳ {(data.totalProfit ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       </div>
-      <div className="glass-card p-4">
-        <div className="text-sm text-muted-foreground">Asset Value</div>
+      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Asset Value</span>
+          <Package className="h-4 w-4 text-info" />
+        </div>
         <div className="text-xl font-semibold">৳ {(data.totalAssetValue ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       </div>
-      <div className="glass-card p-4">
-        <div className="text-sm text-muted-foreground">Orders</div>
+      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Orders</span>
+          <ShoppingCart className="h-4 w-4 text-warning" />
+        </div>
         <div className="text-xl font-semibold">{(data.ordersCount ?? 0).toLocaleString('en-IN')}</div>
       </div>
     </div>

@@ -190,12 +190,12 @@ export default function ShortListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Short List</h1>
-          <p className="text-gray-600">
+          <h1 className="page-header mb-2">Short List</h1>
+          <p className="text-muted-foreground">
             Items that need restocking based on the 50% rule or slow item
             detection
           </p>
@@ -204,33 +204,33 @@ export default function ShortListPage() {
         {/* Statistics Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="text-gray-500 text-sm font-medium">
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="text-muted-foreground text-sm font-medium">
                 Total Items
               </div>
-              <div className="text-2xl font-bold text-gray-900 mt-2">
+              <div className="text-2xl font-bold text-foreground mt-2">
                 {stats.total}
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="text-gray-500 text-sm font-medium">
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="text-muted-foreground text-sm font-medium">
                 50% Rule Items
               </div>
-              <div className="text-2xl font-bold text-blue-600 mt-2">
+              <div className="text-2xl font-bold text-primary mt-2">
                 {stats.autoRuleItems}
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="text-gray-500 text-sm font-medium">
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="text-muted-foreground text-sm font-medium">
                 Slow Items
               </div>
-              <div className="text-2xl font-bold text-orange-600 mt-2">
+              <div className="text-2xl font-bold text-warning mt-2">
                 {stats.slowItems}
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="text-gray-500 text-sm font-medium">Total Qty</div>
-              <div className="text-2xl font-bold text-green-600 mt-2">
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="text-muted-foreground text-sm font-medium">Total Qty</div>
+              <div className="text-2xl font-bold text-success mt-2">
                 {stats.totalQuantity}
               </div>
             </div>
@@ -238,11 +238,11 @@ export default function ShortListPage() {
         )}
 
         {/* Controls */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="rounded-lg border border-border bg-card p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             {/* Add to Shortlist Search */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-medium text-muted-foreground mb-2">
                 Add Item to Shortlist
               </label>
               <Select
@@ -266,22 +266,22 @@ export default function ShortListPage() {
                   label: (
                     <div className="flex justify-between items-center w-full">
                       <div className="flex flex-col">
-                        <span className="font-medium text-gray-900">
+                        <span className="font-medium text-foreground">
                           {item.itemName || "Unnamed Item"}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-muted-foreground">
                           SKU: {item.variant?.sku || "N/A"}
                         </span>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className="font-bold text-blue-600">
+                        <span className="font-bold text-primary">
                           ৳{item.retailPrice ?? "-"}
                         </span>
                         <span
                           className={`text-xs ${
                             item.quantity > 0
-                              ? "text-green-600"
-                              : "text-red-600"
+                              ? "text-success"
+                              : "text-destructive"
                           }`}
                         >
                           {item.quantity > 0
@@ -304,13 +304,13 @@ export default function ShortListPage() {
 
             {/* Sort By */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-medium text-muted-foreground mb-2">
                 Sort By
               </label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md text-sm"
               >
                 <option value="quantity">Lowest Stock First</option>
                 <option value="addedAt">Recently Added</option>
@@ -320,7 +320,7 @@ export default function ShortListPage() {
 
             {/* Filter */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-medium text-muted-foreground mb-2">
                 Filter
               </label>
               <select
@@ -330,7 +330,7 @@ export default function ShortListPage() {
                     e.target.value === "" ? null : e.target.value === "true",
                   )
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md text-sm"
               >
                 <option value="">All Items</option>
                 <option value="true">Slow Items Only</option>
@@ -343,27 +343,27 @@ export default function ShortListPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => exportPdf("shortlist")}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+              className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90"
             >
-              � Download Shortlist
+              Download Shortlist
             </button>
             <button
               onClick={() => exportPdf("inventory")}
-              className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
+              className="px-4 py-2 bg-success text-success-foreground text-sm font-medium rounded-md hover:bg-success/90"
             >
-              📥 Download Inventory
+              Download Inventory
             </button>
             <button
               onClick={() => exportPdf("analytics")}
-              className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700"
+              className="px-4 py-2 bg-info text-info-foreground text-sm font-medium rounded-md hover:bg-info/90"
             >
-              📥 Download Analytics
+              Download Analytics
             </button>
             <button
               onClick={() => exportBackup()}
-              className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700"
+              className="px-4 py-2 bg-warning text-warning-foreground text-sm font-medium rounded-md hover:bg-warning/90"
             >
-              💾 Download Backup
+              Download Backup
             </button>
           </div>
         </div>
@@ -372,20 +372,20 @@ export default function ShortListPage() {
 
         {/* Shortlist Items Table */}
         {isLoading ? (
-          <div className="text-center py-12">Loading...</div>
+          <div className="text-center py-12 text-muted-foreground">Loading...</div>
         ) : error ? (
-          <div className="text-center py-12 text-red-600">
+          <div className="text-center py-12 text-destructive">
             Error loading short list
           </div>
         ) : !data?.data || data.data.length === 0 ? (
-          <div className="text-center py-12 text-gray-600">
+          <div className="text-center py-12 text-muted-foreground">
             No items in short list
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <div className="p-4 border-b border-border">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-foreground">
                   Shortlist Items ({filteredShortlistItems(data.data).length})
                 </h3>
               </div>
@@ -395,12 +395,12 @@ export default function ShortListPage() {
                   placeholder="Search shortlist by item name, SKU, or product..."
                   value={shortlistSearchTerm}
                   onChange={(e) => setShortlistSearchTerm(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md text-sm"
                 />
                 {shortlistSearchTerm && (
                   <button
                     onClick={() => setShortlistSearchTerm("")}
-                    className="absolute right-3 top-10 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-10 text-muted-foreground hover:text-foreground"
                   >
                     ✕
                   </button>
@@ -408,61 +408,61 @@ export default function ShortListPage() {
               </div>
             </div>
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                     Item Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                     SKU
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                     Current Qty
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                     Last Restock
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                     Reason
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {filteredShortlistItems(data.data).length === 0 && shortlistSearchTerm ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-600">
+                    <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
                       No items found matching "{shortlistSearchTerm}"
                     </td>
                   </tr>
                 ) : (
                   filteredShortlistItems(data.data).map((item: ShortListItem) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <tr key={item.id} className="hover:bg-muted/40 transition-colors">
+                    <td className="px-6 py-4 text-sm text-foreground">
                       <Link
                         href={`/inventory?id=${item.inventoryId}`}
-                        className="text-blue-600 hover:underline"
+                        className="text-primary hover:underline"
                       >
                         {item.inventory.itemName}
                       </Link>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
                       {item.inventory.variant?.sku || "N/A"}
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 text-sm font-medium text-foreground">
                       {item.inventory.quantity}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
                       {item.inventory.lastRestockQty || "N/A"}
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${
                           item.isSlowItem
-                            ? "bg-orange-100 text-orange-800"
-                            : "bg-blue-100 text-blue-800"
+                            ? "bg-warning/15 text-warning"
+                            : "bg-primary/15 text-primary"
                         }`}
                       >
                         {item.isSlowItem ? "🐢 Slow Item" : "📊 50% Rule"}
@@ -472,7 +472,7 @@ export default function ShortListPage() {
                       <button
                         onClick={() => removeMutation.mutate(item.inventoryId)}
                         disabled={removeMutation.isPending}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                        className="text-destructive hover:text-destructive/80 text-sm font-medium disabled:opacity-50"
                       >
                         Remove
                       </button>

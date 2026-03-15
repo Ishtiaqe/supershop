@@ -9,6 +9,9 @@ import dynamic from "next/dynamic";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { cn } from "@/lib/utils";
+
+
 
 const Shell = dynamic(() => import("@/components/shell/Shell"), { ssr: false });
 
@@ -39,7 +42,7 @@ export default function RootLayout({
 }) {
   // Sentry is initialized via `sentry.client.config.js` and `sentry.server.config.js` in Next.js
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans")}>
       <body className={inter.className}>
         <Providers>
           {process.env.NEXT_PUBLIC_GA_TRACKING_ID && (

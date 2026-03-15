@@ -117,7 +117,7 @@ export default function LoginPage() {
   // Prevent form flicker if user is logged in
   if (user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Redirecting...</p>
@@ -586,71 +586,6 @@ export default function LoginPage() {
         </div>
       </motion.div>
 
-      <style jsx global>{`
-        @keyframes gradient-shift {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-
-        .animate-gradient-shift {
-          background-size: 200% 200%;
-          animation: gradient-shift 15s ease infinite;
-        }
-
-        .glass-card {
-          background: rgba(255, 255, 255, 0.85);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-        }
-
-        /* Custom input focus styles */
-        .ant-input:focus,
-        .ant-input-password:focus,
-        .ant-input-affix-wrapper:focus,
-        .ant-input-affix-wrapper-focused {
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        /* Smooth transitions for all inputs */
-        .ant-input,
-        .ant-input-password,
-        .ant-input-affix-wrapper {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Button gradient animation */
-        .ant-btn-primary {
-          position: relative;
-          overflow: hidden;
-        }
-
-        .ant-btn-primary::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.3),
-            transparent
-          );
-          transition: left 0.5s;
-        }
-
-        .ant-btn-primary:hover::before {
-          left: 100%;
-        }
-      `}</style>
     </main>
   );
 }

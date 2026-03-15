@@ -8,6 +8,8 @@ import MedicineBoxOutlined from "@ant-design/icons/MedicineBoxOutlined";
 import CheckSquareOutlined from "@ant-design/icons/CheckSquareOutlined";
 import DatabaseOutlined from "@ant-design/icons/DatabaseOutlined";
 import UserOutlined from "@ant-design/icons/UserOutlined";
+import DollarOutlined from "@ant-design/icons/DollarOutlined";
+import WalletOutlined from "@ant-design/icons/WalletOutlined";
 
 export interface NavigationItem {
   key: string;
@@ -59,6 +61,18 @@ export const navigationConfig: NavigationItem[] = [
     icon: CheckSquareOutlined as any,
     label: "Short List",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
+  },
+  {
+    key: "/expenses",
+    icon: DollarOutlined as any,
+    label: "Expenses",
+    roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
+  },
+  {
+    key: "/cash-box",
+    icon: WalletOutlined as any,
+    label: "Cash Box",
+    roles: ["OWNER", "SUPER_ADMIN"],
   },
   {
     key: "/data-management",
