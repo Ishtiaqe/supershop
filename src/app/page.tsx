@@ -12,7 +12,7 @@ export default function Home() {
       try {
         const resp = await api.get("/users/me");
         if (resp?.data) {
-          router.push("/dashboard");
+          router.push("/pos");
           return;
         }
       } catch {

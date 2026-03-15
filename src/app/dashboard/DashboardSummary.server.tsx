@@ -29,7 +29,7 @@ export default async function DashboardSummary() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="glass-card p-4 h-28">
+          <div key={i} className="stat-card stat-card-muted h-28">
             <div className="h-full flex items-center justify-center">
               <div className="w-2/3">
                 <div className="bg-surface/50 animate-pulse h-4 rounded mb-2" />
@@ -45,21 +45,21 @@ export default async function DashboardSummary() {
   // Render summary cards (server-side rendered)
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div className="glass-card p-4">
-        <div className="text-sm text-muted-foreground">Total Revenue2</div>
-        <div className="text-xl font-semibold">{summary.totalRevenue ?? 0}</div>
+      <div className="stat-card stat-card-primary">
+        <div className="text-sm text-primary/90">Total Revenue</div>
+        <div className="text-xl font-semibold text-primary">{summary.totalRevenue ?? 0}</div>
       </div>
-      <div className="glass-card p-4">
-        <div className="text-sm text-muted-foreground">Total Profit</div>
-        <div className="text-xl font-semibold">{summary.totalProfit ?? 0}</div>
+      <div className="stat-card stat-card-success">
+        <div className="text-sm text-success/90">Total Profit</div>
+        <div className="text-xl font-semibold text-success">{summary.totalProfit ?? 0}</div>
       </div>
-      <div className="glass-card p-4">
-        <div className="text-sm text-muted-foreground">Asset Value</div>
-        <div className="text-xl font-semibold">{summary.totalAssetValue ?? 0}</div>
+      <div className="stat-card stat-card-info">
+        <div className="text-sm text-info/90">Asset Value</div>
+        <div className="text-xl font-semibold text-info">{summary.totalAssetValue ?? 0}</div>
       </div>
-      <div className="glass-card p-4">
-        <div className="text-sm text-muted-foreground">Orders</div>
-        <div className="text-xl font-semibold">{summary.ordersCount ?? 0}</div>
+      <div className="stat-card stat-card-warning">
+        <div className="text-sm text-warning/95">Orders</div>
+        <div className="text-xl font-semibold text-warning">{summary.ordersCount ?? 0}</div>
       </div>
     </div>
   );

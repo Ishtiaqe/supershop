@@ -1,0 +1,170 @@
+/**
+ * Color Palette System
+ * This file defines all color variables for light and dark themes.
+ * Import this file in any component to access the color palette.
+ * Usage: color: hsl(var(--primary));
+ */
+
+/* ───── Light Theme (applied as :root AND .light) ───── */
+:root,
+.light {
+  /* Backgrounds */
+  --background: 202 100% 98%;
+  --surface: 0 0% 100%;
+  --foreground: 220 27% 14%;
+
+  /* Cards / Popovers */
+  --card: 0 0% 100%;
+  --card-foreground: 220 27% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 27% 14%;
+
+  /* Primary – Azure Blue */
+  --primary: 207 96% 54%;
+  --primary-foreground: 0 0% 100%;
+  --primary-container: 205 100% 92%;
+  --primary-on-container: 213 94% 15%;
+  --primary-hover: 210 90% 47%;
+  --primary-active: 213 85% 42%;
+
+  /* Secondary – Blue Violet */
+  --secondary: 166 73% 38%;
+  --secondary-foreground: 0 0% 100%;
+  --secondary-container: 162 65% 91%;
+  --secondary-on-container: 167 84% 15%;
+
+  /* Tertiary – Pink */
+  --tertiary: 24 95% 53%;
+  --tertiary-foreground: 0 0% 100%;
+  --tertiary-container: 32 100% 91%;
+  --tertiary-on-container: 23 93% 17%;
+
+  /* Neutral / Muted */
+  --muted: 205 52% 95%;
+  --muted-foreground: 217 16% 38%;
+  --accent: 204 60% 94%;
+  --accent-foreground: 220 27% 14%;
+
+  /* Semantic */
+  --destructive: 0 78% 57%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 145 72% 38%;
+  --success-foreground: 0 0% 100%;
+  --warning: 39 96% 53%;
+  --warning-foreground: 25 95% 12%;
+  --warning-container: 41 100% 92%;
+  --info: 190 93% 42%;
+  --info-foreground: 0 0% 100%;
+  --critical: 16 93% 52%;
+  --critical-foreground: 0 0% 100%;
+
+  /* UI Chrome */
+  --border: 207 35% 86%;
+  --input: 207 35% 86%;
+  --ring: 207 96% 54%;
+  --focus: 207 96% 54%;
+  --outline: 216 11% 46%;
+  --disabled: 0 0% 80%;
+
+  /* Sidebar */
+  --sidebar: 202 72% 97%;
+  --sidebar-foreground: 220 27% 14%;
+  --sidebar-primary: 207 96% 54%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 200 56% 93%;
+  --sidebar-accent-foreground: 220 27% 14%;
+  --sidebar-border: 207 35% 86%;
+  --sidebar-ring: 207 96% 54%;
+
+  /* Chart colors */
+  --chart-1: 207 96% 54%;
+  --chart-2: 166 73% 38%;
+  --chart-3: 145 72% 38%;
+  --chart-4: 39 96% 53%;
+  --chart-5: 24 95% 53%;
+
+  /* Brand */
+  --brand-google-blue: 221 89% 61%;
+  --brand-google-green: 140 57% 46%;
+  --brand-google-yellow: 44 97% 53%;
+  --brand-google-red: 4 80% 58%;
+
+  /* POS */
+  --pos-select: 4 100% 50%;
+  --pos-select-bg: hsl(var(--pos-select) / 0.1);
+  --pos-select-color: hsl(var(--success));
+
+  --radius: 0.75rem;
+}
+
+/* ───── Dark Theme ───── */
+.dark {
+  --background: 0 0% 9%;
+  --surface: 222 30% 9%;
+  --foreground: 210 40% 98%;
+
+  --card: 222 28% 10%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 28% 10%;
+  --popover-foreground: 210 40% 98%;
+
+  --primary: 206 100% 68%;
+  --primary-foreground: 222 47% 8%;
+  --primary-container: 208 72% 25%;
+  --primary-on-container: 210 40% 98%;
+  --primary-hover: 206 100% 62%;
+  --primary-active: 208 92% 57%;
+
+  --secondary: 166 63% 46%;
+  --secondary-foreground: 210 40% 98%;
+  --secondary-container: 166 50% 22%;
+  --secondary-on-container: 164 76% 92%;
+
+  --tertiary: 26 100% 65%;
+  --tertiary-foreground: 0 0% 100%;
+  --tertiary-container: 24 61% 24%;
+  --tertiary-on-container: 35 100% 92%;
+
+  --muted: 223 22% 16%;
+  --muted-foreground: 214 19% 70%;
+  --accent: 223 22% 16%;
+  --accent-foreground: 210 40% 98%;
+
+  --destructive: 0 81% 64%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 147 67% 55%;
+  --success-foreground: 144 100% 10%;
+  --warning: 40 96% 60%;
+  --warning-foreground: 24 98% 12%;
+  --warning-container: 37 58% 23%;
+  --info: 191 91% 57%;
+  --info-foreground: 0 0% 100%;
+  --critical: 16 91% 61%;
+  --critical-foreground: 0 0% 100%;
+
+  --border: 221 24% 18%;
+  --input: 221 24% 20%;
+  --ring: 206 100% 68%;
+  --focus: 206 100% 75%;
+  --outline: 216 18% 57%;
+  --disabled: 0 0% 24%;
+
+  --sidebar: 213.3, 20.9%, 16.9%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 206 100% 68%;
+  --sidebar-primary-foreground: 222 47% 8%;
+  --sidebar-accent: 223 23% 14%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 221 24% 14%;
+  --sidebar-ring: 206 100% 68%;
+
+  --chart-1: 206 100% 68%;
+  --chart-2: 166 63% 55%;
+  --chart-3: 147 67% 55%;
+  --chart-4: 40 96% 60%;
+  --chart-5: 26 100% 65%;
+
+  --pos-select: 4 100% 50%;
+  --pos-select-bg: hsl(var(--pos-select) / 0.12);
+  --pos-select-color: hsl(var(--success));
+}

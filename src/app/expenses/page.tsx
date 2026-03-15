@@ -58,29 +58,29 @@ export default function ExpensesPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="stat-card stat-card-danger">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium text-destructive/90">Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-destructive">
               {isLoadingSummary ? "..." : formatCurrency(summaryData?.totalAmount || 0)}
             </div>
           </CardContent>
         </Card>
         
         {/* Top Category Card */}
-        <Card>
+        <Card className="stat-card stat-card-warning">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Top Category</CardTitle>
+            <CardTitle className="text-sm font-medium text-warning/95">Top Category</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold truncate">
+            <div className="text-2xl font-bold truncate text-warning">
               {isLoadingSummary 
                 ? "..." 
                 : (summaryData?.categorySummary?.[0]?.name || "N/A")}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-warning/85 mt-1">
               {summaryData?.categorySummary?.[0]?.amount 
                 ? formatCurrency(summaryData.categorySummary[0].amount) 
                 : ""}
@@ -137,7 +137,7 @@ export default function ExpensesPage() {
       </p>
 
       {/* Data Table */}
-      <div className="rounded-md border border-border bg-card">
+      <div className="surface-card">
         <Table>
           <TableHeader>
             <TableRow>

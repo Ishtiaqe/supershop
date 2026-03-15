@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  productionBrowserSourceMaps: true,
   // Changed to enable dynamic SSR for server-rendered dashboard (Option 3)
   output: process.env.NEXT_PUBLIC_OUTPUT === 'export' ? 'export' : undefined,
   images: {

@@ -204,32 +204,32 @@ export default function ShortListPage() {
         {/* Statistics Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="rounded-lg border border-border bg-card p-6">
-              <div className="text-muted-foreground text-sm font-medium">
+            <div className="stat-card stat-card-info">
+              <div className="text-info/90 text-sm font-medium">
                 Total Items
               </div>
-              <div className="text-2xl font-bold text-foreground mt-2">
+              <div className="text-2xl font-bold text-info mt-2">
                 {stats.total}
               </div>
             </div>
-            <div className="rounded-lg border border-border bg-card p-6">
-              <div className="text-muted-foreground text-sm font-medium">
+            <div className="stat-card stat-card-primary">
+              <div className="text-primary/90 text-sm font-medium">
                 50% Rule Items
               </div>
               <div className="text-2xl font-bold text-primary mt-2">
                 {stats.autoRuleItems}
               </div>
             </div>
-            <div className="rounded-lg border border-border bg-card p-6">
-              <div className="text-muted-foreground text-sm font-medium">
+            <div className="stat-card stat-card-warning">
+              <div className="text-warning/95 text-sm font-medium">
                 Slow Items
               </div>
               <div className="text-2xl font-bold text-warning mt-2">
                 {stats.slowItems}
               </div>
             </div>
-            <div className="rounded-lg border border-border bg-card p-6">
-              <div className="text-muted-foreground text-sm font-medium">Total Qty</div>
+            <div className="stat-card stat-card-success">
+              <div className="text-success/90 text-sm font-medium">Total Qty</div>
               <div className="text-2xl font-bold text-success mt-2">
                 {stats.totalQuantity}
               </div>
@@ -238,7 +238,7 @@ export default function ShortListPage() {
         )}
 
         {/* Controls */}
-        <div className="rounded-lg border border-border bg-card p-6 mb-6">
+        <div className="surface-card p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             {/* Add to Shortlist Search */}
             <div className="md:col-span-2">
@@ -310,7 +310,7 @@ export default function ShortListPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md text-sm"
+                className="w-full h-11 px-3.5 py-2 border border-border bg-background/85 text-foreground rounded-xl text-[0.95rem]"
               >
                 <option value="quantity">Lowest Stock First</option>
                 <option value="addedAt">Recently Added</option>
@@ -330,7 +330,7 @@ export default function ShortListPage() {
                     e.target.value === "" ? null : e.target.value === "true",
                   )
                 }
-                className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md text-sm"
+                className="w-full h-11 px-3.5 py-2 border border-border bg-background/85 text-foreground rounded-xl text-[0.95rem]"
               >
                 <option value="">All Items</option>
                 <option value="true">Slow Items Only</option>
@@ -343,25 +343,25 @@ export default function ShortListPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => exportPdf("shortlist")}
-              className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90"
+              className="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90"
             >
               Download Shortlist
             </button>
             <button
               onClick={() => exportPdf("inventory")}
-              className="px-4 py-2 bg-success text-success-foreground text-sm font-medium rounded-md hover:bg-success/90"
+              className="px-5 py-2.5 bg-success text-success-foreground text-sm font-semibold rounded-xl hover:bg-success/90"
             >
               Download Inventory
             </button>
             <button
               onClick={() => exportPdf("analytics")}
-              className="px-4 py-2 bg-info text-info-foreground text-sm font-medium rounded-md hover:bg-info/90"
+              className="px-5 py-2.5 bg-info text-info-foreground text-sm font-semibold rounded-xl hover:bg-info/90"
             >
               Download Analytics
             </button>
             <button
               onClick={() => exportBackup()}
-              className="px-4 py-2 bg-warning text-warning-foreground text-sm font-medium rounded-md hover:bg-warning/90"
+              className="px-5 py-2.5 bg-warning text-warning-foreground text-sm font-semibold rounded-xl hover:bg-warning/90"
             >
               Download Backup
             </button>
@@ -382,7 +382,7 @@ export default function ShortListPage() {
             No items in short list
           </div>
         ) : (
-          <div className="rounded-lg border border-border bg-card overflow-hidden">
+          <div className="surface-card overflow-hidden">
             <div className="p-4 border-b border-border">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-foreground">
@@ -395,7 +395,7 @@ export default function ShortListPage() {
                   placeholder="Search shortlist by item name, SKU, or product..."
                   value={shortlistSearchTerm}
                   onChange={(e) => setShortlistSearchTerm(e.target.value)}
-                  className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md text-sm"
+                  className="w-full h-11 px-3.5 py-2 border border-border bg-background/85 text-foreground rounded-xl text-[0.95rem]"
                 />
                 {shortlistSearchTerm && (
                   <button

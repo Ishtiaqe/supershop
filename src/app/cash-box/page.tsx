@@ -149,27 +149,27 @@ export default function CashBoxPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-success/10 border border-success/20 rounded-xl p-5">
-          <p className="text-sm text-success font-medium mb-1">
+        <div className="stat-card stat-card-success">
+          <p className="stat-label text-success">
             💰 Cash In (period)
           </p>
-          <p className="text-2xl font-bold text-success">
+          <p className="stat-value text-success">
             {summaryLoading ? "…" : formatBDT(summary?.cashIn ?? 0)}
           </p>
         </div>
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-5">
-          <p className="text-sm text-destructive font-medium mb-1">
+        <div className="stat-card stat-card-danger">
+          <p className="stat-label text-destructive">
             💸 Cash Out (period)
           </p>
-          <p className="text-2xl font-bold text-destructive">
+          <p className="stat-value text-destructive">
             {summaryLoading ? "…" : formatBDT(summary?.cashOut ?? 0)}
           </p>
         </div>
-        <div className="bg-primary/10 border border-primary/20 rounded-xl p-5">
-          <p className="text-sm text-primary font-medium mb-1">
+        <div className="stat-card stat-card-primary">
+          <p className="stat-label text-primary">
             🏦 Current Balance (all-time)
           </p>
-          <p className={`text-2xl font-bold ${balanceColor}`}>
+          <p className={`stat-value ${balanceColor}`}>
             {summaryLoading ? "…" : formatBDT(summary?.currentBalance ?? 0)}
           </p>
         </div>
@@ -216,7 +216,7 @@ export default function CashBoxPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="surface-card overflow-hidden">
         <Table
           columns={columns}
           dataSource={entriesData?.data ?? []}

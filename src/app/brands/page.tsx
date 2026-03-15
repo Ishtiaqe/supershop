@@ -3,13 +3,13 @@ import { Card } from "antd";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Brands - SuperShop",
+  title: "Brands",
   description: "Manage product brands",
 };
 
 const BrandsClient = dynamic(
   () => import("@/components/catalog/BrandsClient"),
-  { ssr: false }
+  { ssr: false },
 );
 
 export default function BrandsPage() {

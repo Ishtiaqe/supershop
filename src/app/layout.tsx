@@ -5,15 +5,11 @@ import "./globals.css";
 // Ant Design styles
 import "antd/dist/reset.css";
 import { Providers } from "@/components/providers";
-import dynamic from "next/dynamic";
+import AppShellGate from "@/components/layout/AppShellGate";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { cn } from "@/lib/utils";
-
-
-
-const Shell = dynamic(() => import("@/components/shell/Shell"), { ssr: false });
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,7 +27,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   themeColor: themeColors.light.primary.hex,
 };
 
@@ -43,6 +38,14 @@ export default function RootLayout({
   // Sentry is initialized via `sentry.client.config.js` and `sentry.server.config.js` in Next.js
   return (
     <html lang="en" className={cn("font-sans")}>
+      <head>
+        <link rel="preconnect" href="https://www.google-analytics.com" />
+        <link
+          rel="preconnect"
+          href="https://va.vercel-scripts.com"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className={inter.className}>
         <Providers>
           {process.env.NEXT_PUBLIC_GA_TRACKING_ID && (
@@ -61,7 +64,7 @@ export default function RootLayout({
               </Script>
             </>
           )}
-          <Shell>{children}</Shell>
+          <AppShellGate>{children}</AppShellGate>
           <SpeedInsights />
           <Analytics />
         </Providers>

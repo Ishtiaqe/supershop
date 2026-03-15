@@ -2,7 +2,7 @@ import DashboardClient from "./Dashboard.client";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Dashboard - SuperShop",
+  title: "Dashboard",
   description: "Overview of your shop's performance",
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import {
@@ -41,6 +41,7 @@ export default function SalesClient() {
   const [paymentFilter, setPaymentFilter] = useState<string | undefined>(
     undefined,
   );
+  const deferredSearchText = useDeferredValue(searchText);
 
   const { data: saleDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ["sale-details", selectedSaleId],
@@ -64,43 +65,52 @@ export default function SalesClient() {
     setSelectedSaleId(null);
   };
 
-  // Filter sales
-  const filteredSales = sales.filter((sale: Sale) => {
-    // Search filter
-    if (searchText) {
-      const search = searchText.toLowerCase();
-      const matchesReceipt = sale.receiptNumber?.toLowerCase().includes(search);
-      const matchesCustomer =
-        sale.customerName?.toLowerCase().includes(search) ||
-        sale.customerPhone?.toLowerCase().includes(search);
-      if (!matchesReceipt && !matchesCustomer) return false;
+  const normalizedSearch = deferredSearchText.trim().toLowerCase();
+  const startDate = dateRange?.[0]?.startOf("day").toDate() ?? null;
+  const endDate = dateRange?.[1]?.endOf("day").toDate() ?? null;
+
+  // Use a single memoized pass to reduce per-keystroke work on large sales datasets.
+  const { filteredSales, totalRevenue, totalProfit } = useMemo(() => {
+    const rows: Sale[] = [];
+    let revenue = 0;
+    let profit = 0;
+
+    for (const sale of sales as Sale[]) {
+      if (normalizedSearch) {
+        const matchesReceipt = sale.receiptNumber
+          ?.toLowerCase()
+          .includes(normalizedSearch);
+        const matchesCustomer =
+          sale.customerName?.toLowerCase().includes(normalizedSearch) ||
+          sale.customerPhone?.toLowerCase().includes(normalizedSearch);
+
+        if (!matchesReceipt && !matchesCustomer) {
+          continue;
+        }
+      }
+
+      if (startDate && endDate) {
+        const saleDate = new Date(sale.saleTime);
+        if (saleDate < startDate || saleDate > endDate) {
+          continue;
+        }
+      }
+
+      if (paymentFilter && sale.paymentMethod !== paymentFilter) {
+        continue;
+      }
+
+      rows.push(sale);
+      revenue += sale.totalAmount;
+      profit += sale.totalProfit;
     }
 
-    // Date range filter
-    if (dateRange && dateRange[0] && dateRange[1]) {
-      const saleDate = new Date(sale.saleTime);
-      const start = dateRange[0].startOf("day").toDate();
-      const end = dateRange[1].endOf("day").toDate();
-      if (saleDate < start || saleDate > end) return false;
-    }
-
-    // Payment method filter
-    if (paymentFilter && sale.paymentMethod !== paymentFilter) {
-      return false;
-    }
-
-    return true;
-  });
-
-  // Calculate totals
-  const totalRevenue = filteredSales.reduce(
-    (sum: number, sale: Sale) => sum + sale.totalAmount,
-    0,
-  );
-  const totalProfit = filteredSales.reduce(
-    (sum: number, sale: Sale) => sum + sale.totalProfit,
-    0,
-  );
+    return {
+      filteredSales: rows,
+      totalRevenue: revenue,
+      totalProfit: profit,
+    };
+  }, [sales, normalizedSearch, startDate, endDate, paymentFilter]);
 
   return (
     <div>
@@ -137,10 +147,12 @@ export default function SalesClient() {
         </Col>
       </Row>
 
-      {isLoading && <div>Loading…</div>}
       <Table
+        loading={isLoading}
         dataSource={filteredSales}
         rowKey={(r: Sale) => r.id}
+        virtual
+        scroll={{ y: 520 }}
         pagination={{ pageSize: 10 }}
         onRow={(record) => ({
           onClick: () => handleRowClick(record),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { memo, useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { InventoryItem } from "@/types";
@@ -64,17 +64,15 @@ function fetchInventory(q?: string) {
   }
 }
 
-export default function POSClient({
-  customerName,
-  customerPhone,
-  setCustomerName,
-  setCustomerPhone,
-}: {
-  customerName?: string;
-  customerPhone?: string;
-  setCustomerName?: (v: string) => void;
-  setCustomerPhone?: (v: string) => void;
-}) {
+type POSClientProps = {
+  getCustomerDetails?: () => {
+    customerName?: string;
+    customerPhone?: string;
+  };
+  clearCustomerDetails?: () => void;
+};
+
+function POSClient({ getCustomerDetails, clearCustomerDetails }: POSClientProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -312,22 +310,56 @@ export default function POSClient({
       }
     }
 
+    const { customerName, customerPhone } = getCustomerDetails?.() ?? {};
+
     saleMutation.mutate({
       items: payloadItems,
       customerName: customerName || undefined,
       customerPhone: customerPhone || undefined,
     });
     setCart([]);
-    setCustomerName?.("");
-    setCustomerPhone?.("");
+    clearCustomerDetails?.();
   }
 
-  const total = cart.reduce(
-    (s, it) => s + it.quantity * (it.unitPrice * (1 - it.discount / 100)),
-    0
+  const total = useMemo(
+    () =>
+      cart.reduce(
+        (s, it) => s + it.quantity * (it.unitPrice * (1 - it.discount / 100)),
+        0
+      ),
+    [cart]
   );
 
   const displayCart = useMemo(() => [...cart].reverse(), [cart]);
+  const selectOptions = useMemo(
+    () =>
+      aggregatedItems.map((it) => ({
+        label: (
+          <div className="flex justify-between items-center w-full">
+            <div className="flex flex-col">
+              <span className="font-medium text-theme-foreground">{it.name}</span>
+              <span className="text-xs text-theme-muted">SKU: {it.sku}</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="font-bold text-theme-primary">৳{it.retailPrice}</span>
+              <span
+                className={`text-xs ${
+                  it.totalQty > 0
+                    ? "text-theme-success"
+                    : "text-theme-destructive"
+                }`}
+              >
+                {it.totalQty > 0 ? `${it.totalQty} in stock` : "Out of stock"}
+              </span>
+            </div>
+          </div>
+        ),
+        value: it.key,
+        displayLabel: it.name,
+        disabled: it.totalQty <= 0,
+      })),
+    [aggregatedItems]
+  );
 
   return (
     <div>
@@ -364,39 +396,7 @@ export default function POSClient({
                 onSearch={(val) => setSearch(val)}
                 onChange={(val) => setSelectedKey(val)}
                 notFoundContent={itemsLoading ? "Searching..." : "No results"}
-                options={aggregatedItems.map((it) => ({
-                  label: (
-                    <div className="flex justify-between items-center w-full">
-                      <div className="flex flex-col">
-                        <span className="font-medium text-theme-foreground">
-                          {it.name}
-                        </span>
-                        <span className="text-xs text-theme-muted">
-                          SKU: {it.sku}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="font-bold text-theme-primary">
-                          ৳{it.retailPrice}
-                        </span>
-                        <span
-                          className={`text-xs ${
-                            it.totalQty > 0
-                              ? "text-theme-success"
-                              : "text-theme-destructive"
-                          }`}
-                        >
-                          {it.totalQty > 0
-                            ? `${it.totalQty} in stock`
-                            : "Out of stock"}
-                        </span>
-                      </div>
-                    </div>
-                  ),
-                  value: it.key,
-                  displayLabel: it.name,
-                  disabled: it.totalQty <= 0,
-                }))}
+                options={selectOptions}
                 optionLabelProp="displayLabel"
               />
             </Col>
@@ -545,3 +545,5 @@ export default function POSClient({
     </div>
   );
 }
+
+export default memo(POSClient);

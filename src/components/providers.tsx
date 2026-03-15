@@ -1,15 +1,23 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState, useEffect } from "react";
 import { ConfigProvider, theme as antdTheme } from "antd";
 import React from "react";
+import dynamic from "next/dynamic";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { OfflineProvider } from "./providers/offline-provider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { getThemeColors } from "@/lib/theme";
+
+const ReactQueryDevtools = dynamic(
+  () =>
+    import("@tanstack/react-query-devtools").then(
+      (mod) => mod.ReactQueryDevtools,
+    ),
+  { ssr: false },
+);
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -121,13 +129,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 persistOptions={{ persister }}
               >
                 {children}
-                <ReactQueryDevtools initialIsOpen={false} />
+                {process.env.NODE_ENV === "development" && (
+                  <ReactQueryDevtools initialIsOpen={false} />
+                )}
               </PersistQueryClientProvider>
             ) : (
               // Fallback for SSR or if persistence fails
               <QueryClientProvider client={queryClient}>
                 {children}
-                <ReactQueryDevtools initialIsOpen={false} />
+                {process.env.NODE_ENV === "development" && (
+                  <ReactQueryDevtools initialIsOpen={false} />
+                )}
               </QueryClientProvider>
             )}
           </AuthProvider>

@@ -77,7 +77,7 @@ export default function DashboardCharts() {
         <h2 className="text-xl font-semibold">Analytics</h2>
         <Select
           defaultValue="30d"
-          style={{ width: 120 }}
+          style={{ width: 160 }}
           onChange={(value) => setPeriod(value)}
         >
           <Option value="7d">Last 7 Days</Option>
@@ -141,6 +141,7 @@ export default function DashboardCharts() {
                     fillOpacity={1}
                     fill="url(#colorSales)"
                     strokeWidth={2}
+                    isAnimationActive={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -200,6 +201,7 @@ export default function DashboardCharts() {
                     stroke="hsl(var(--success))"
                     fill="url(#colorProfit)"
                     strokeWidth={2}
+                    isAnimationActive={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>

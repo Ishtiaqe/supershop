@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 
 import POSClient from "./POSClient";
 import { Row, Col, Card, Input, Typography } from "antd";
@@ -9,7 +9,24 @@ import { useAuth } from "@/components/auth/AuthProvider";
 export default function POSPageWrapper() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const customerNameRef = useRef("");
+  const customerPhoneRef = useRef("");
   const { user, loading } = useAuth();
+
+  const getCustomerDetails = useCallback(
+    () => ({
+      customerName: customerNameRef.current,
+      customerPhone: customerPhoneRef.current,
+    }),
+    [],
+  );
+
+  const clearCustomerDetails = useCallback(() => {
+    customerNameRef.current = "";
+    customerPhoneRef.current = "";
+    setCustomerName("");
+    setCustomerPhone("");
+  }, []);
 
   if (loading) return <div className="p-6">Loading...</div>;
 
@@ -20,12 +37,10 @@ export default function POSPageWrapper() {
   return (
     <Row gutter={16}>
       <Col xs={24} md={16}>
-        <Card title="Sales Portal">
+        <Card>
           <POSClient
-            customerName={customerName}
-            customerPhone={customerPhone}
-            setCustomerName={setCustomerName}
-            setCustomerPhone={setCustomerPhone}
+            getCustomerDetails={getCustomerDetails}
+            clearCustomerDetails={clearCustomerDetails}
           />
         </Card>
       </Col>
@@ -36,7 +51,11 @@ export default function POSPageWrapper() {
           <Input
             placeholder="Enter customer name"
             value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              customerNameRef.current = value;
+              setCustomerName(value);
+            }}
           />
 
           <div style={{ marginTop: 12 }}>
@@ -44,7 +63,11 @@ export default function POSPageWrapper() {
             <Input
               placeholder="Enter phone number"
               value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                customerPhoneRef.current = value;
+                setCustomerPhone(value);
+              }}
             />
           </div>
         </Card>

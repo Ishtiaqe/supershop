@@ -1,49 +1,49 @@
 // Shared theme colors for consistency between global.css and providers.tsx
 export const themeColors = {
   light: {
-    background: { hsl: "234 100% 99%", hex: "#FDFBFF" }, // Off-white
-    foreground: { hsl: "210 21% 11%", hex: "#1A1C1E" },
-    primary: { hsl: "217 100% 61%", hex: "#3a86ff" }, // Azure
+    background: { hsl: "202 100% 98%", hex: "#f5fbff" },
+    foreground: { hsl: "220 27% 14%", hex: "#1a2430" },
+    primary: { hsl: "207 96% 54%", hex: "#1792fa" },
     onPrimary: { hsl: "0 0% 100%", hex: "#FFFFFF" },
-    primaryContainer: { hsl: "219 100% 92%", hex: "#D6E4FF" },
-    onPrimaryContainer: { hsl: "210 100% 11%", hex: "#001C38" },
-    mutedForeground: { hsl: "215.4 16.3% 46.9%", hex: "#64748b" }, // Slate 500
-    secondary: { hsl: "265 83% 57%", hex: "#8338ec" },
+    primaryContainer: { hsl: "205 100% 92%", hex: "#d6ecff" },
+    onPrimaryContainer: { hsl: "213 94% 15%", hex: "#03284a" },
+    mutedForeground: { hsl: "217 16% 38%", hex: "#546173" },
+    secondary: { hsl: "166 73% 38%", hex: "#1aa788" },
     onSecondary: { hsl: "0 0% 100%", hex: "#FFFFFF" },
-    secondaryContainer: { hsl: "259 100% 93%", hex: "#E8DDFF" },
-    onSecondaryContainer: { hsl: "261 100% 18%", hex: "#21005D" },
-    tertiary: { hsl: "334 100% 50%", hex: "#ff006e" },
+    secondaryContainer: { hsl: "162 65% 91%", hex: "#d7f6ee" },
+    onSecondaryContainer: { hsl: "167 84% 15%", hex: "#04463b" },
+    tertiary: { hsl: "24 95% 53%", hex: "#f97a16" },
     onTertiary: { hsl: "0 0% 100%", hex: "#FFFFFF" },
-    tertiaryContainer: { hsl: "345 100% 92%", hex: "#FFD9E3" },
-    onTertiaryContainer: { hsl: "345 100% 11%", hex: "#3E0018" },
-    success: { hsl: "142 76% 36%", hex: "#16a34a" }, // Green 600
-    destructive: { hsl: "0 84.2% 60.2%", hex: "#dc2626" }, // Red 600
-    warning: { hsl: "44 92% 52%", hex: "#ffbe0b" },
-    warningContainer: { hsl: "48 100% 94%", hex: "#FFF5CC" },
-    critical: { hsl: "19 97% 50%", hex: "#fb5607" },
-    border: { hsl: "214.3 31.8% 91.4%", hex: "#e2e8f0" }, // Slate 200
+    tertiaryContainer: { hsl: "32 100% 91%", hex: "#ffe8d2" },
+    onTertiaryContainer: { hsl: "23 93% 17%", hex: "#522007" },
+    success: { hsl: "145 72% 38%", hex: "#1ba74f" },
+    destructive: { hsl: "0 78% 57%", hex: "#e74141" },
+    warning: { hsl: "39 96% 53%", hex: "#faac14" },
+    warningContainer: { hsl: "41 100% 92%", hex: "#fff1d6" },
+    critical: { hsl: "16 93% 52%", hex: "#f76014" },
+    border: { hsl: "207 35% 86%", hex: "#cfdeeb" },
     card: { hsl: "0 0% 100%", hex: "#ffffff" },
-    muted: { hsl: "210 40% 96.1%", hex: "#f1f5f9" },
+    muted: { hsl: "205 52% 95%", hex: "#eaf3fa" },
   },
   dark: {
-    background: { hsl: "222 47% 11%", hex: "#0f172a" }, // Slate 950
-    foreground: { hsl: "210 40% 98%", hex: "#f8fafc" }, // Slate 50
-    primary: { hsl: "217 100% 75%", hex: "#8fb6ff" }, // lighter azure for dark
-    onPrimary: { hsl: "0 0% 10%", hex: "#111827" },
-    primaryContainer: { hsl: "217 70% 20%", hex: "#0d355a" },
+    background: { hsl: "0 0% 9%", hex: "#161616" },
+    foreground: { hsl: "210 40% 98%", hex: "#f8fafc" },
+    primary: { hsl: "206 100% 68%", hex: "#5fbaff" },
+    onPrimary: { hsl: "222 47% 8%", hex: "#101625" },
+    primaryContainer: { hsl: "208 72% 25%", hex: "#125987" },
     onPrimaryContainer: { hsl: "210 40% 98%", hex: "#f8fafc" },
-    secondary: { hsl: "265 83% 50%", hex: "#7a2ee0" },
+    secondary: { hsl: "166 63% 46%", hex: "#2dc0a0" },
     onSecondary: { hsl: "0 0% 100%", hex: "#ffffff" },
-    secondaryContainer: { hsl: "259 30% 12%", hex: "#23143a" },
-    onSecondaryContainer: { hsl: "261 100% 94%", hex: "#f4f0ff" },
-    tertiary: { hsl: "334 100% 60%", hex: "#ff4c8d" },
+    secondaryContainer: { hsl: "166 50% 22%", hex: "#1c5448" },
+    onSecondaryContainer: { hsl: "164 76% 92%", hex: "#d7f8ef" },
+    tertiary: { hsl: "26 100% 65%", hex: "#ff9a4c" },
     onTertiary: { hsl: "0 0% 100%", hex: "#ffffff" },
-    mutedForeground: { hsl: "215 20.2% 65.1%", hex: "#94a3b8" }, // Slate 400
-    success: { hsl: "142 70% 50%", hex: "#22c55e" }, // Green 500
-    destructive: { hsl: "0 62.8% 30.6%", hex: "#ef4444" }, // Red 500
-    border: { hsl: "217.2 32.6% 17.5%", hex: "#334155" }, // Slate 700
-    card: { hsl: "222 47% 11%", hex: "#0f172a" },
-    muted: { hsl: "217.2 32.6% 17.5%", hex: "#1e293b" },
+    mutedForeground: { hsl: "214 19% 70%", hex: "#9faec6" },
+    success: { hsl: "147 67% 55%", hex: "#42d982" },
+    destructive: { hsl: "0 81% 64%", hex: "#ed5a5a" },
+    border: { hsl: "221 24% 28%", hex: "#353f58" },
+    card: { hsl: "224 28% 15%", hex: "#1c2438" },
+    muted: { hsl: "223 22% 23%", hex: "#2b3348" },
   },
 };
 

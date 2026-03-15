@@ -1,0 +1,67 @@
+/**
+ * Base Styles
+ * HTML, body, form, and default element styles
+ */
+
+/* ───── Base styles ───── */
+:root {
+  --font-size-base: clamp(14px, 0.84rem + 0.34vw, 16px);
+  --font-size-sm: 0.9rem;
+  --font-size-md: 0.95rem;
+  --font-size-lg: 1rem;
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+}
+
+html {
+    font-size: var(--font-size-base);
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(circle at 12% 8%, hsl(var(--primary) / 0.1), transparent 38%),
+      radial-gradient(circle at 88% 14%, hsl(var(--secondary) / 0.08), transparent 36%),
+      radial-gradient(circle at 50% 100%, hsl(var(--tertiary) / 0.08), transparent 44%);
+    background-attachment: fixed;
+    font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  input[type="date"],
+  select,
+  textarea {
+    color-scheme: light dark;
+  }
+
+  /* Clear focus rings for keyboard navigation */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Smooth scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}

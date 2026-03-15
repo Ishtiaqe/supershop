@@ -1,0 +1,263 @@
+/**
+ * Component Utilities
+ * All utility classes, component styles, and Ant Design overrides
+ */
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+/* ───── Glassmorphism ───── */
+.glass {
+  @apply bg-background/70 backdrop-blur-xl border-b border-border/60;
+}
+
+.glass-card {
+  @apply backdrop-blur-xl border shadow-sm;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--card) / 0.76),
+    hsl(var(--primary) / 0.12)
+  );
+  border-color: hsl(var(--primary) / 0.2);
+  box-shadow:
+    0 18px 34px -24px hsl(var(--foreground) / 0.55),
+    inset 0 1px 0 hsl(0 0% 100% / 0.26);
+}
+
+/* ───── Consistent page heading ───── */
+.page-header {
+  @apply text-3xl md:text-4xl font-bold tracking-tight text-foreground;
+}
+.page-subheader {
+  @apply text-base text-foreground/80 mt-1;
+}
+
+/* ───── Theme-aware stat cards ───── */
+.stat-card {
+  @apply rounded-2xl p-6 border;
+  box-shadow: 0 10px 24px -18px hsl(var(--foreground) / 0.35);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px -16px hsl(var(--foreground) / 0.4);
+}
+.stat-card-success {
+  background: hsl(var(--success) / 0.14);
+  border-color: hsl(var(--success) / 0.34);
+}
+.stat-card-danger {
+  background: hsl(var(--destructive) / 0.14);
+  border-color: hsl(var(--destructive) / 0.34);
+}
+.stat-card-primary {
+  background: hsl(var(--primary) / 0.14);
+  border-color: hsl(var(--primary) / 0.34);
+}
+.stat-card-info {
+  background: hsl(var(--info) / 0.14);
+  border-color: hsl(var(--info) / 0.34);
+}
+.stat-card-warning {
+  background: hsl(var(--warning) / 0.16);
+  border-color: hsl(var(--warning) / 0.34);
+}
+.stat-card-muted {
+  background: hsl(var(--muted) / 0.9);
+  border-color: hsl(var(--border));
+}
+.stat-label {
+  @apply text-base font-medium mb-1.5;
+}
+.stat-value {
+  @apply text-3xl font-bold;
+}
+
+/* Shared tinted section cards for non-stat containers */
+.surface-card {
+  @apply rounded-2xl border backdrop-blur-xl;
+  background: linear-gradient(
+    140deg,
+    hsl(var(--card) / 0.78),
+    hsl(var(--primary) / 0.06)
+  );
+  border-color: hsl(var(--border) / 0.95);
+  box-shadow:
+    0 16px 30px -24px hsl(var(--foreground) / 0.45),
+    inset 0 1px 0 hsl(0 0% 100% / 0.18);
+}
+
+/* Ant Design visual refresh */
+.ant-card,
+.ant-table-wrapper,
+.ant-modal-content,
+.ant-drawer-content,
+.ant-popover-inner,
+.ant-select-dropdown,
+.ant-picker-dropdown .ant-picker-panel-container {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: linear-gradient(
+    145deg,
+    hsl(var(--card) / 0.84),
+    hsl(var(--primary) / 0.08)
+  ) !important;
+  border: 1px solid hsl(var(--border) / 0.9) !important;
+  border-radius: 1rem !important;
+  box-shadow:
+    0 20px 32px -26px hsl(var(--foreground) / 0.55),
+    inset 0 1px 0 hsl(0 0% 100% / 0.18) !important;
+}
+
+.ant-btn {
+  min-height: 2.35rem;
+  border-radius: 0.75rem;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-input-number,
+.ant-picker,
+.ant-select-selector {
+  min-height: 2.5rem !important;
+  border-radius: 0.75rem !important;
+  font-size: var(--font-size-md) !important;
+}
+
+.ant-table-thead > tr > th {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+}
+
+.ant-table-tbody > tr > td {
+  padding-top: 0.82rem;
+  padding-bottom: 0.82rem;
+  font-size: var(--font-size-md);
+}
+
+/* ───── Row Banding (All Tables) ───── */
+.ant-table-tbody > tr:nth-child(odd) > td {
+  background-color: hsl(var(--primary) / 0.055) !important;
+}
+.ant-table-tbody > tr:nth-child(even) > td {
+  background-color: hsl(var(--secondary) / 0.05) !important;
+}
+.ant-table-tbody > tr:hover > td {
+  background-color: hsl(var(--tertiary) / 0.12) !important;
+}
+
+table[data-slot="table"] > tbody > tr:nth-child(odd),
+.surface-card table > tbody > tr:nth-child(odd),
+.glass-card table > tbody > tr:nth-child(odd),
+table > tbody > tr.banded-odd {
+  background-color: hsl(var(--primary) / 0.06);
+}
+table[data-slot="table"] > tbody > tr:nth-child(even),
+.surface-card table > tbody > tr:nth-child(even),
+.glass-card table > tbody > tr:nth-child(even),
+table > tbody > tr.banded-even {
+  background-color: hsl(var(--secondary) / 0.055);
+}
+
+/* ───── Sidebar Banding ───── */
+.custom-menu .ant-menu-item {
+  border-radius: 0.75rem;
+  margin-block: 4px;
+}
+.custom-menu .ant-menu-item:nth-child(odd):not(.ant-menu-item-selected) {
+  background: hsl(var(--sidebar-primary) / 0.1);
+}
+.custom-menu .ant-menu-item:nth-child(even):not(.ant-menu-item-selected) {
+  background: hsl(var(--sidebar-accent) / 0.42);
+}
+.custom-menu .ant-menu-item-selected {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--sidebar-primary) / 0.3),
+    hsl(var(--sidebar-primary) / 0.16)
+  ) !important;
+  border: 1px solid hsl(var(--sidebar-primary) / 0.45);
+}
+
+/* ───── Primary CTA ───── */
+.btn-primary {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: 1px solid hsl(var(--primary));
+}
+.btn-primary:hover {
+  background-color: hsl(var(--primary-hover));
+  border-color: hsl(var(--primary-hover));
+}
+.btn-primary:active {
+  background-color: hsl(var(--primary-active));
+  border-color: hsl(var(--primary-active));
+}
+
+/* ───── Ant Design input focus ───── */
+.ant-input:focus,
+.ant-input-password:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
+  box-shadow: 0 0 0 3px hsl(var(--focus) / 0.12);
+  border-color: hsl(var(--focus));
+}
+
+/* ───── Theme-aware text colors ───── */
+.text-theme-foreground    { color: hsl(var(--foreground)); }
+.text-theme-muted         { color: hsl(var(--muted-foreground)); }
+.text-theme-primary       { color: hsl(var(--primary)); }
+.text-theme-destructive   { color: hsl(var(--destructive)); }
+.text-theme-success       { color: hsl(var(--success)); }
+.text-theme-warning       { color: hsl(var(--warning)); }
+.text-theme-info          { color: hsl(var(--info)); }
+
+/* ───── POS select colors ───── */
+.pos-select-dropdown .ant-select-item-option-active,
+.pos-select-dropdown .ant-select-item-option-selected,
+.pos-select-dropdown .ant-select-item-option:hover {
+  background-color: var(--pos-select-bg) !important;
+}
+
+.pos-select-dropdown .ant-select-item-option-active .ant-select-item-option-content,
+.pos-select-dropdown .ant-select-item-option-selected .ant-select-item-option-content,
+.pos-select-dropdown .ant-select-item-option:hover .ant-select-item-option-content {
+  color: var(--pos-select-color) !important;
+}
+
+.pos-select .ant-select-selection-item {
+  color: var(--pos-select-color) !important;
+}
+
+.pos-select .ant-select-selector:focus,
+.pos-select .ant-select-selector:focus-within,
+.pos-select.ant-select-focused .ant-select-selector {
+  box-shadow: 0 0 0 3px hsl(var(--success) / 0.12);
+  border-color: var(--pos-select-color) !important;
+}
+
+/* ───── Complete Sale Button ───── */
+.complete-sale-btn:focus,
+.complete-sale-btn:focus-visible {
+  box-shadow: 0 0 0 4px rgba(255, 0, 0, 0.5) !important;
+  border-color: red !important;
+  outline: none;
+}

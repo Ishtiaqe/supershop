@@ -29,7 +29,7 @@ export const navigationConfig: NavigationItem[] = [
   {
     key: "/pos",
     icon: ShoppingCartOutlined as any,
-    label: "Point of Sale",
+    label: "Sales Portal",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {

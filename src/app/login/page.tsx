@@ -1,35 +1,51 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, startTransition, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { Form, Input, Button, Alert } from "antd";
 import UserOutlined from "@ant-design/icons/UserOutlined";
 import LockOutlined from "@ant-design/icons/LockOutlined";
 import ShoppingOutlined from "@ant-design/icons/ShoppingOutlined";
-import { motion } from "framer-motion";
-import {
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
 import { Capacitor, PluginListenerHandle } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import api from "@/lib/api";
 import { useAuth } from "@/components/auth/AuthProvider";
 
+type FirebaseDeps = {
+  auth: import("firebase/auth").Auth | null;
+  googleProvider: import("firebase/auth").GoogleAuthProvider | null;
+  signInWithPopup: typeof import("firebase/auth").signInWithPopup;
+  signInWithRedirect: typeof import("firebase/auth").signInWithRedirect;
+  getRedirectResult: typeof import("firebase/auth").getRedirectResult;
+  signInWithEmailAndPassword: typeof import("firebase/auth").signInWithEmailAndPassword;
+};
+
+async function loadFirebaseDeps(): Promise<FirebaseDeps> {
+  const [{ auth, googleProvider }, authModule] = await Promise.all([
+    import("@/lib/firebase"),
+    import("firebase/auth"),
+  ]);
+
+  return {
+    auth,
+    googleProvider,
+    signInWithPopup: authModule.signInWithPopup,
+    signInWithRedirect: authModule.signInWithRedirect,
+    getRedirectResult: authModule.getRedirectResult,
+    signInWithEmailAndPassword: authModule.signInWithEmailAndPassword,
+  };
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login, user, loading: authLoading } = useAuth();
+  const { login, user } = useAuth();
 
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      router.replace("/dashboard");
+      router.replace("/pos");
     }
   }, [user, router]);
 
@@ -41,6 +57,12 @@ export default function LoginPage() {
           if (event.url.startsWith("one.shomaj.supershop://")) {
             // Handle Firebase redirect
             try {
+              const { auth, getRedirectResult } = await loadFirebaseDeps();
+              if (!auth) {
+                setError("Google authentication not configured");
+                return;
+              }
+
               const result = await getRedirectResult(auth!);
               if (result) {
                 const idToken = await result.user.getIdToken();
@@ -49,14 +71,6 @@ export default function LoginPage() {
                 const response = await api.post("/auth/firebase", {
                   idToken,
                 });
-                console.log(
-                  "[Login] Mobile redirect - Raw response:",
-                  response,
-                );
-                console.log(
-                  "[Login] Mobile redirect - Response data:",
-                  response.data,
-                );
                 const data = response.data;
 
                 if (data?.user && data?.accessToken) {
@@ -80,11 +94,6 @@ export default function LoginPage() {
                     }
                   }
                 } else {
-                  console.warn("[Login] Firebase redirect missing tokens:", {
-                    hasUser: !!data?.user,
-                    hasAccessToken: !!data?.accessToken,
-                    data,
-                  });
                   localStorage.removeItem("accessToken");
                   localStorage.removeItem("user");
                   localStorage.removeItem("tenant");
@@ -94,7 +103,7 @@ export default function LoginPage() {
                   return;
                 }
 
-                router.push("/dashboard");
+                router.push("/pos");
               }
             } catch (err) {
               console.error("Redirect result error:", err);
@@ -127,6 +136,8 @@ export default function LoginPage() {
   }
 
   const submit = async (values: { email: string; password: string }) => {
+    const { auth, signInWithEmailAndPassword } = await loadFirebaseDeps();
+
     if (!auth) {
       setError("Authentication not configured");
       return;
@@ -148,35 +159,17 @@ export default function LoginPage() {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Send token to backend
-      console.log("[Login] Calling /auth/firebase with idToken...");
       const response = await api.post("/auth/firebase", {
         idToken,
       });
-      console.log("[Login] Full response object:", {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        data: response.data,
-        dataType: typeof response.data,
-      });
 
       const data = response.data;
-      console.log("[Login] Parsed response data:", {
-        dataKeys: data ? Object.keys(data) : [],
-        hasUser: !!data?.user,
-        hasAccessToken: !!data?.accessToken,
-        userKeys: data?.user ? Object.keys(data.user) : [],
-        accessTokenType: typeof data?.accessToken,
-        accessTokenLength: data?.accessToken?.length,
-        fullData: JSON.stringify(data, null, 2),
-      });
 
       // Handle both old backend (returns refreshToken) and new backend (httpOnly cookie)
       const accessToken = data?.accessToken;
       const user = data?.user;
 
       if (user && accessToken) {
-        console.log("[Login] Storing tokens and user data");
         // Store access token only (refresh token is now in httpOnly cookie)
         localStorage.setItem("accessToken", data.accessToken);
 
@@ -188,22 +181,9 @@ export default function LoginPage() {
           fetchTenantInfo();
         }
 
-        console.log("[Login] Redirecting to /sales...");
         // Navigate immediately - no delays needed!
-        router.push("/dashboard");
+        router.push("/pos");
       } else {
-        console.error(
-          "[Login] Missing required fields from backend response:",
-          {
-            hasUser: !!data?.user,
-            hasAccessToken: !!data?.accessToken,
-            actualData: data,
-            dataType: typeof data,
-            keys: Object.keys(data || {}),
-            accessTokenValue: data?.accessToken,
-            userValue: data?.user,
-          },
-        );
         localStorage.removeItem("accessToken");
         localStorage.removeItem("user");
         localStorage.removeItem("tenant");
@@ -239,6 +219,9 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    const { auth, googleProvider, signInWithPopup, signInWithRedirect } =
+      await loadFirebaseDeps();
+
     if (!auth && !Capacitor.isNativePlatform()) {
       setError("Google authentication not configured");
       return;
@@ -251,13 +234,21 @@ export default function LoginPage() {
       let idToken: string;
 
       if (Capacitor.isNativePlatform()) {
+        if (!auth || !googleProvider) {
+          setError("Google authentication not configured");
+          return;
+        }
         // Use signInWithRedirect for mobile
-        await signInWithRedirect(auth!, googleProvider!);
+        await signInWithRedirect(auth, googleProvider);
         // The redirect will happen, and the result will be handled in the listener
         return;
       } else {
+        if (!auth || !googleProvider) {
+          setError("Google authentication not configured");
+          return;
+        }
         // Use web Firebase Auth for browser
-        const result = await signInWithPopup(auth!, googleProvider!);
+        const result = await signInWithPopup(auth, googleProvider);
         idToken = await result.user.getIdToken();
       }
 
@@ -268,12 +259,9 @@ export default function LoginPage() {
       const response = await api.post("/auth/firebase", {
         idToken,
       });
-      console.log("[Login] Google sign-in - Raw response:", response);
-      console.log("[Login] Google sign-in - Response data:", response.data);
       const data = response.data;
 
       if (data?.user && data?.accessToken) {
-        console.log("[Login] Storing tokens and user data");
         // Store access token only (refresh token is now in httpOnly cookie)
         localStorage.setItem("accessToken", data.accessToken);
 
@@ -285,17 +273,9 @@ export default function LoginPage() {
           fetchTenantInfo();
         }
 
-        console.log("[Login] Redirecting to /sales...");
         // Navigate immediately - no delays needed!
-        router.push("/dashboard");
+        router.push("/pos");
       } else {
-        console.error("[Login] Google sign-in missing required fields:", {
-          hasUser: !!data?.user,
-          hasAccessToken: !!data?.accessToken,
-          actualData: data,
-          dataType: typeof data,
-          keys: Object.keys(data || {}),
-        });
         localStorage.removeItem("accessToken");
         localStorage.removeItem("user");
         localStorage.removeItem("tenant");
@@ -316,133 +296,50 @@ export default function LoginPage() {
     }
   };
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 },
-  };
-
-  const cardVariants = {
-    hidden: { opacity: 0, y: 30, scale: 0.95 },
-    show: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-    },
-  };
-
-  const cardTransition = {
-    duration: 0.5,
-    ease: [0.4, 0, 0.2, 1] as const,
-  };
-
   return (
     <main className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Animated Gradient Background */}
+      {/* Keep a static gradient background to avoid JS-driven animation work on first paint. */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 animate-gradient-shift" />
 
-      {/* Floating Shapes */}
+      {/* Static shapes maintain visual style without runtime animation cost */}
       <div className="absolute inset-0 overflow-hidden">
-        <motion.div
-          className="absolute top-20 left-20 w-72 h-72 bg-surface/10 rounded-full blur-3xl"
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -50, 0],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-20 right-20 w-96 h-96 bg-surface/10 rounded-full blur-3xl"
-          animate={{
-            x: [0, -100, 0],
-            y: [0, 50, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute top-1/2 left-1/2 w-64 h-64 bg-surface/5 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 30,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        />
+        <div className="absolute top-20 left-20 w-72 h-72 bg-surface/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-surface/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-surface/5 rounded-full blur-3xl" />
       </div>
 
       {/* Login Card */}
-      <motion.div
-        className="w-full max-w-md px-6 relative z-10"
-        variants={cardVariants}
-        initial="hidden"
-        animate="show"
-        transition={cardTransition}
-      >
+      <div className="w-full max-w-md px-6 relative z-10">
         <div className="glass-card rounded-2xl shadow-2xl p-8 backdrop-blur-xl bg-card/80 border border-border/20">
           {/* Logo and Title */}
-          <motion.div className="text-center mb-8" variants={itemVariants}>
-            <motion.div
-              className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 mb-4 shadow-lg"
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
-            >
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 mb-4 shadow-lg">
               <ShoppingOutlined className="text-3xl text-white" />
-            </motion.div>
+            </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Welcome Back
             </h1>
             <p className="text-muted-foreground mt-2">
               Sign in to your account
             </p>
-          </motion.div>
+          </div>
 
           {/* Error Alert */}
           {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-            >
+            <div>
               <Alert
                 type="error"
                 message={error}
                 className="mb-6 rounded-lg"
                 showIcon
               />
-            </motion.div>
+            </div>
           )}
 
           {/* Form */}
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-          >
+          <div>
             <Form onFinish={submit} layout="vertical" size="large">
-              <motion.div variants={itemVariants}>
+              <div>
                 <Form.Item
                   name="email"
                   label={
@@ -457,15 +354,17 @@ export default function LoginPage() {
                   ]}
                 >
                   <Input
+                    id="login-email"
+                    aria-label="Email address"
                     prefix={<UserOutlined className="text-muted-foreground" />}
                     placeholder="Enter your email"
                     autoComplete="email"
                     className="rounded-lg h-12 hover:border-primary-hover focus:border-primary-active transition-all duration-300"
                   />
                 </Form.Item>
-              </motion.div>
+              </div>
 
-              <motion.div variants={itemVariants}>
+              <div>
                 <Form.Item
                   name="password"
                   label={
@@ -478,20 +377,19 @@ export default function LoginPage() {
                   ]}
                 >
                   <Input.Password
+                    id="login-password"
+                    aria-label="Password"
                     prefix={<LockOutlined className="text-muted-foreground" />}
                     placeholder="Enter your password"
                     autoComplete="current-password"
                     className="rounded-lg h-12 hover:border-primary-hover focus:border-primary-active transition-all duration-300"
                   />
                 </Form.Item>
-              </motion.div>
+              </div>
 
-              <motion.div variants={itemVariants}>
+              <div>
                 <Form.Item className="mb-0">
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
+                  <div>
                     <Button
                       type="primary"
                       htmlType="submit"
@@ -501,26 +399,19 @@ export default function LoginPage() {
                     >
                       {loading ? (
                         <span className="flex items-center justify-center gap-2">
-                          <motion.span
-                            animate={{ rotate: 360 }}
-                            transition={{
-                              duration: 1,
-                              repeat: Infinity,
-                              ease: "linear",
-                            }}
-                          ></motion.span>
+                          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                           Signing in...
                         </span>
                       ) : (
                         "Sign In"
                       )}
                     </Button>
-                  </motion.div>
+                  </div>
                 </Form.Item>
-              </motion.div>
+              </div>
 
               {/* Divider */}
-              <motion.div variants={itemVariants} className="relative my-6">
+              <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-border"></div>
                 </div>
@@ -529,15 +420,13 @@ export default function LoginPage() {
                     Or continue with
                   </span>
                 </div>
-              </motion.div>
+              </div>
 
               {/* Google Sign-In Button */}
-              <motion.div variants={itemVariants}>
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
+              <div>
+                <div>
                   <Button
+                    aria-label="Sign in with Google"
                     block
                     size="large"
                     className="h-12 rounded-lg font-semibold border-2 border-border hover:border-primary-hover hover:bg-primary-container transition-all duration-300 flex items-center justify-center gap-3"
@@ -569,22 +458,17 @@ export default function LoginPage() {
                     </svg>
                     <span className="text-foreground">Sign in with Google</span>
                   </Button>
-                </motion.div>
-              </motion.div>
+                </div>
+              </div>
             </Form>
-          </motion.div>
+          </div>
 
           {/* Footer */}
-          <motion.div
-            className="mt-6 text-center text-sm text-muted-foreground"
-            variants={itemVariants}
-            initial="hidden"
-            animate="show"
-          >
+          <div className="mt-6 text-center text-sm text-muted-foreground">
             <p>Secure login powered by SuperShop</p>
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
     </main>
   );

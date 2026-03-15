@@ -33,7 +33,7 @@ const { Header, Sider, Content } = Layout;
 // Map path to readable label
 const PATH_LABELS: Record<string, string> = {
   "/dashboard": "Dashboard",
-  "/pos": "Point of Sale",
+  "/pos": "Sales Portal",
   "/sales": "Sales History",
   "/inventory": "Inventory",
   "/catalog": "Catalog",
@@ -261,7 +261,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">

@@ -3,7 +3,7 @@ import { Card } from "antd";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Product Catalog - SuperShop",
+  title: "Product Catalog",
   description: "Manage products and variants",
 };
 
