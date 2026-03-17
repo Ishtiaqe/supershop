@@ -183,6 +183,11 @@ Structure supports:
 | HTTP Client | Axios |
 | Deployment | Vercel |
 
+## 🧹 Dependency Cleanup
+
+- Removed unused client packages: `idb-keyval`, `zustand` to reduce dependency surface and bundle size.
+- Removed `@playwright/test` devDependency from the frontend (E2E tests are optional and can be re-added when needed).
+
 ## 📚 Documentation Files
 
 1. **README.md** - Main project documentation

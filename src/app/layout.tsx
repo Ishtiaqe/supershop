@@ -35,7 +35,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Sentry is initialized via `sentry.client.config.js` and `sentry.server.config.js` in Next.js
+  
   return (
     <html lang="en" className={cn("font-sans")}>
       <head>

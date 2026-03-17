@@ -93,7 +93,7 @@ export class OfflineQueue {
       payload.tenantId = tenantId;
     }
 
-    console.log(`Processing ${operation} ${entityType} ${entityId}`, payload);
+    
 
     try {
       switch (operation) {

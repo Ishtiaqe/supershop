@@ -88,13 +88,7 @@ async function performRefresh() {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (process.env.NODE_ENV !== 'production') {
-      console.debug('[api] Response error:', {
-        url: error.config?.url,
-        status: error.response?.status,
-        data: error.response?.data,
-      })
-    }
+    
     const originalRequest = error.config
 
     if (error.response?.status === 401) {
@@ -103,9 +97,7 @@ api.interceptors.response.use(
         originalRequest._retry = true
       }
 
-      if (process.env.NODE_ENV !== 'production') {
-        console.debug('[api] 401 received for', originalRequest?.url)
-      }
+      
 
       if (isRefreshing) {
         // Queue this request until refresh completes
@@ -167,13 +159,7 @@ api.interceptors.response.use(
       }
     }
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.debug('[api] Final response error (no auth/refresh):', {
-        url: originalRequest?.url,
-        status: error.response?.status,
-        data: error.response?.data,
-      })
-    }
+    
     return Promise.reject(error)
   }
 )

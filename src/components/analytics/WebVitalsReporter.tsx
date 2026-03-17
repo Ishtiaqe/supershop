@@ -42,15 +42,7 @@ export default function WebVitalsReporter() {
       });
     }
 
-    if (process.env.NODE_ENV !== "production") {
-      console.info("[web-vitals]", {
-        route,
-        name: metricName,
-        value: metric.value,
-        delta: metric.delta,
-        navigationType: metric.navigationType,
-      });
-    }
+    
   });
 
   return null;

@@ -107,7 +107,7 @@ export function OfflineProvider({ children }: OfflineProviderProps) {
         );
       }
 
-      console.log('Offline storage cleared');
+      
     } catch (error) {
       console.error('Failed to clear storage:', error);
     }

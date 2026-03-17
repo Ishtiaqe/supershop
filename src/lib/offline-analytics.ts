@@ -142,10 +142,6 @@ class OfflineAnalytics {
 
   private sendToAnalytics(event: OfflineAnalyticsEvent) {
     // Future: Send to analytics service when online
-    // For now, just log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Offline Analytics Event:', event);
-    }
   }
 
   getStats(): OfflineUsageStats {

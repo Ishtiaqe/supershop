@@ -87,24 +87,20 @@ class OfflineDatabase {
 
     this.db = await openDB<SuperShopDBSchema>(this.dbName, this.dbVersion, {
       upgrade(db, oldVersion, newVersion) {
-        console.log(`🔄 Upgrading IndexedDB from version ${oldVersion} to ${newVersion}`);
 
         // Users store
         if (!db.objectStoreNames.contains('users')) {
-          console.log('📦 Creating users store');
           const userStore = db.createObjectStore('users', { keyPath: 'id' });
           userStore.createIndex('by-tenant', 'tenantId');
         }
 
         // Tenants store
         if (!db.objectStoreNames.contains('tenants')) {
-          console.log('📦 Creating tenants store');
           db.createObjectStore('tenants', { keyPath: 'id' });
         }
 
         // Products store
         if (!db.objectStoreNames.contains('products')) {
-          console.log('📦 Creating products store');
           const productStore = db.createObjectStore('products', { keyPath: 'id' });
           productStore.createIndex('by-tenant', 'tenantId');
           productStore.createIndex('by-category', 'categoryId');
@@ -113,7 +109,6 @@ class OfflineDatabase {
 
         // Variants store
         if (!db.objectStoreNames.contains('variants')) {
-          console.log('📦 Creating variants store');
           const variantStore = db.createObjectStore('variants', { keyPath: 'id' });
           variantStore.createIndex('by-product', 'productId');
           variantStore.createIndex('by-tenant', 'tenantId');
@@ -121,7 +116,6 @@ class OfflineDatabase {
 
         // Inventory store
         if (!db.objectStoreNames.contains('inventory')) {
-          console.log('📦 Creating inventory store');
           const inventoryStore = db.createObjectStore('inventory', { keyPath: 'id' });
           inventoryStore.createIndex('by-tenant', 'tenantId');
           inventoryStore.createIndex('by-variant', 'variantId');
@@ -131,7 +125,6 @@ class OfflineDatabase {
 
         // Sales store
         if (!db.objectStoreNames.contains('sales')) {
-          console.log('📦 Creating sales store');
           const salesStore = db.createObjectStore('sales', { keyPath: 'id' });
           salesStore.createIndex('by-tenant', 'tenantId');
           salesStore.createIndex('by-employee', 'employeeId');
@@ -141,7 +134,6 @@ class OfflineDatabase {
 
         // Sale items store
         if (!db.objectStoreNames.contains('saleItems')) {
-          console.log('📦 Creating saleItems store');
           const saleItemStore = db.createObjectStore('saleItems', { keyPath: 'id' });
           saleItemStore.createIndex('by-sale', 'saleId');
           saleItemStore.createIndex('by-inventory', 'inventoryId');
@@ -150,7 +142,6 @@ class OfflineDatabase {
 
         // Medicine stores - Always create if upgrading to version 3+
         if (!db.objectStoreNames.contains('medicines')) {
-          console.log('💊 Creating medicines store');
           const medicineStore = db.createObjectStore('medicines', { keyPath: 'id' });
           medicineStore.createIndex('by-brand', 'brandName');
           medicineStore.createIndex('by-generic', 'genericId');
@@ -158,21 +149,18 @@ class OfflineDatabase {
         }
 
         if (!db.objectStoreNames.contains('medicineGenerics')) {
-          console.log('💊 Creating medicineGenerics store');
           const genericStore = db.createObjectStore('medicineGenerics', { keyPath: 'id' });
           genericStore.createIndex('by-name', 'genericName');
           genericStore.createIndex('by-class', 'drugClassId');
         }
 
         if (!db.objectStoreNames.contains('medicineManufacturers')) {
-          console.log('💊 Creating medicineManufacturers store');
           const manufacturerStore = db.createObjectStore('medicineManufacturers', { keyPath: 'id' });
           manufacturerStore.createIndex('by-name', 'manufacturerName');
         }
 
         // Offline queue store
         if (!db.objectStoreNames.contains('offlineQueue')) {
-          console.log('📋 Creating offlineQueue store');
           const queueStore = db.createObjectStore('offlineQueue', { keyPath: 'id' });
           queueStore.createIndex('by-entity', ['entityType', 'entityId']);
           queueStore.createIndex('by-timestamp', 'timestamp');
@@ -181,22 +169,17 @@ class OfflineDatabase {
 
         // Sync metadata store
         if (!db.objectStoreNames.contains('syncMetadata')) {
-          console.log('🔄 Creating syncMetadata store');
           db.createObjectStore('syncMetadata', { keyPath: 'id' });
         }
 
         // API cache store
         if (!db.objectStoreNames.contains('apiCache')) {
-          console.log('💾 Creating apiCache store');
           const cacheStore = db.createObjectStore('apiCache', { keyPath: 'url' });
           cacheStore.createIndex('by-expires', 'expiresAt');
         }
 
-        console.log('✅ IndexedDB upgrade completed');
       },
     });
-
-    console.log('IndexedDB initialized with version', this.dbVersion);
   }
 
   // Reset database for testing (deletes and recreates)
@@ -211,7 +194,6 @@ class OfflineDatabase {
 
     // Reinitialize
     await this.init();
-    console.log('Database reset and reinitialized');
   }
 
   // Generic CRUD operations with specific store types
