@@ -2,6 +2,7 @@
 
 import { useDeferredValue, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import {
   Table,
@@ -28,9 +29,11 @@ function fetchSaleDetails(saleId: string) {
 }
 
 export default function SalesClient() {
+  const queryClient = useQueryClient();
   const { data: sales = [], isLoading } = useQuery({
     queryKey: ["sales"],
     queryFn: fetchSales,
+    staleTime: 30 * 1000,
   });
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,6 +61,14 @@ export default function SalesClient() {
   const handleRowClick = (record: Sale) => {
     setSelectedSaleId(record.id);
     setIsModalOpen(true);
+  };
+
+  const prefetchSaleDetails = (saleId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ["sale-details", saleId],
+      queryFn: () => fetchSaleDetails(saleId),
+      staleTime: 30 * 1000,
+    });
   };
 
   const handleCloseModal = () => {
@@ -156,22 +167,33 @@ export default function SalesClient() {
         pagination={{ pageSize: 10 }}
         onRow={(record) => ({
           onClick: () => handleRowClick(record),
+          onMouseEnter: () => prefetchSaleDetails(record.id),
           style: { cursor: "pointer" },
         })}
         footer={() => (
           <div style={{ textAlign: "right", fontWeight: "bold" }}>
             <span className="mr-8">Total Sales: {filteredSales.length}</span>
             <span className="mr-8">
-              Total Revenue4: ৳{totalRevenue.toFixed(2)}
+              Total Revenue: ৳{totalRevenue.toFixed(2)}
             </span>
             <span>Total Profit: ৳{totalProfit.toFixed(2)}</span>
           </div>
         )}
       >
         <Table.Column
+          title="Receipt Number"
+          dataIndex="receiptNumber"
+          key="receiptNumber"
+        />
+        <Table.Column
           title="Customer Name"
           dataIndex="customerName"
           key="customerName"
+        />
+        <Table.Column
+          title="Customer Phone"
+          dataIndex="customerPhone"
+          key="customerPhone"
         />
         <Table.Column
           title="Time"

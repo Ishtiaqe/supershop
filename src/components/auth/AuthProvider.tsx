@@ -20,11 +20,7 @@ export function useAuth(): AuthContextType {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any | null>(() => {
-    if (typeof window === "undefined") return null;
-    const u = localStorage.getItem("user");
-    return u ? JSON.parse(u) : null;
-  });
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   const hydrateFromProfile = useCallback((profile: any) => {
@@ -117,6 +113,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchProfile, refresh]);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const hydratedUser = localStorage.getItem("user");
+        if (hydratedUser) {
+          setUser(JSON.parse(hydratedUser));
+        }
+      } catch {}
+    }
+
     // Start proactive refresh to keep session warm
     const stop = startProactiveRefresh(12 * 60 * 1000);
     // Bootstrap current session on mount

@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
 import { Skeleton } from "antd";
 
 const DashboardSummaryClient = dynamic(
@@ -21,23 +20,6 @@ const DashboardCharts = dynamic(
 );
 
 export default function DashboardClient() {
-  const [showHeavyWidgets, setShowHeavyWidgets] = useState(false);
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    const schedule = () => setShowHeavyWidgets(true);
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      const idleId = window.requestIdleCallback(schedule, { timeout: 800 });
-      return () => window.cancelIdleCallback(idleId);
-    }
-
-    timer = setTimeout(schedule, 250);
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, []);
-
   return (
     <div className="space-y-6">
       <div>
@@ -47,15 +29,11 @@ export default function DashboardClient() {
         </p>
       </div>
 
-      {showHeavyWidgets ? (
-        <>
-          {/* Client-side summary/fallback (hydrates server skeleton) */}
-          <DashboardSummaryClient />
-          <DashboardCharts />
-        </>
-      ) : (
-        <Skeleton active paragraph={{ rows: 10 }} />
-      )}
+      <>
+        {/* Client-side summary/fallback (hydrates server skeleton) */}
+        <DashboardSummaryClient />
+        <DashboardCharts />
+      </>
     </div>
   );
 }

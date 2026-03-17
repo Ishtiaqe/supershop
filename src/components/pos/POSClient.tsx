@@ -26,7 +26,7 @@ type CartItem = {
   batches: InventoryItem[];
 };
 
-function fetchInventory(q?: string) {
+function fetchInventory(q?: string, signal?: AbortSignal) {
   try {
     if (typeof window !== "undefined" && q && q.length > 0) {
       const key = `pos-inventory:${q}`;
@@ -42,7 +42,9 @@ function fetchInventory(q?: string) {
       }
     }
 
-    return api.get("/inventory", { params: q ? { q } : {} }).then((r) => {
+    return api
+      .get("/inventory", { params: q ? { q } : {}, signal })
+      .then((r) => {
       if (typeof window !== "undefined" && q && q.length > 0) {
         // store TTL of 2 minutes in sessionStorage
         const key = `pos-inventory:${q}`;
@@ -54,12 +56,12 @@ function fetchInventory(q?: string) {
         }
       }
 
-      return r.data;
-    });
+        return r.data;
+      });
   } catch {
     // Fallback to direct request
     return api
-      .get("/inventory", { params: q ? { q } : {} })
+      .get("/inventory", { params: q ? { q } : {}, signal })
       .then((r) => r.data);
   }
 }
@@ -112,7 +114,7 @@ function POSClient({ getCustomerDetails, clearCustomerDetails }: POSClientProps)
 
   // debounce input so we don't call the API on every keystroke
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
     return () => clearTimeout(t);
   }, [search]);
 
@@ -123,7 +125,9 @@ function POSClient({ getCustomerDetails, clearCustomerDetails }: POSClientProps)
     error: itemsErrorObj,
   } = useQuery({
     queryKey: ["inventory", debouncedSearch],
-    queryFn: () => fetchInventory(debouncedSearch),
+    queryFn: ({ signal }) => fetchInventory(debouncedSearch, signal),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   // Aggregate items by variant/product
@@ -201,15 +205,20 @@ function POSClient({ getCustomerDetails, clearCustomerDetails }: POSClientProps)
       customerPhone?: string;
     }) => api.post("/sales", payload).then((r) => r.data),
     onSuccess() {
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({
+        queryKey: ["inventory", debouncedSearch],
+        exact: true,
+      });
+      queryClient.removeQueries({ queryKey: ["inventory"], type: "inactive" });
+
       // clear local sessionStorage cache for POS so search reflects new quantities
       try {
+        const keysToDelete: string[] = [];
         for (let i = 0; i < sessionStorage.length; i++) {
           const key = sessionStorage.key(i);
-          if (key && key.startsWith("pos-inventory:")) {
-            sessionStorage.removeItem(key);
-          }
+          if (key && key.startsWith("pos-inventory:")) keysToDelete.push(key);
         }
+        keysToDelete.forEach((key) => sessionStorage.removeItem(key));
       } catch {
         // ignore sessionStorage errors
       }

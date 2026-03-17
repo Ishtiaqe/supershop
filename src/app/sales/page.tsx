@@ -1,15 +1,11 @@
-import dynamic from "next/dynamic";
 import { Card } from "antd";
 import { Metadata } from "next";
+import SalesClient from "@/components/sales/SalesClient";
 
 export const metadata: Metadata = {
   title: "Sales History",
   description: "View and analyze sales transactions",
 };
-
-const SalesClient = dynamic(() => import("@/components/sales/SalesClient"), {
-  ssr: false,
-});
 
 export default function SalesPage() {
   return (

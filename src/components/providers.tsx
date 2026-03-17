@@ -45,26 +45,31 @@ export function Providers({ children }: { children: React.ReactNode }) {
       })
   );
 
-  const [persister] = useState(() => {
-    if (typeof window !== "undefined") {
-      return createSyncStoragePersister({
-        storage: window.localStorage,
-      });
-    }
-    return undefined;
-  });
+  const [persister, setPersister] = useState<
+    ReturnType<typeof createSyncStoragePersister> | undefined
+  >(undefined);
 
-  const [mode, setMode] = useState<ThemeMode>(() => {
-    if (typeof window === "undefined") return "light";
-    return (localStorage.getItem("theme") as ThemeMode) || "system";
-  });
+  const [mode, setMode] = useState<ThemeMode>("system");
 
   // Track system dark preference reactively
-  const [systemDark, setSystemDark] = useState(() =>
-    typeof window !== "undefined"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-      : false
-  );
+  const [systemDark, setSystemDark] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    setPersister(
+      createSyncStoragePersister({
+        storage: window.localStorage,
+      })
+    );
+
+    const storedTheme = localStorage.getItem("theme") as ThemeMode | null;
+    if (storedTheme === "light" || storedTheme === "dark" || storedTheme === "system") {
+      setMode(storedTheme);
+    }
+
+    setSystemDark(window.matchMedia("(prefers-color-scheme: dark)").matches);
+  }, []);
 
   useEffect(() => {
     if (mode === "system") {
@@ -76,6 +81,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   // Listen for OS theme changes in real time
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
     mq.addEventListener("change", handler);

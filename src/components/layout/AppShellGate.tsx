@@ -1,11 +1,7 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-
-const Shell = dynamic(() => import("@/components/shell/Shell"), {
-  ssr: false,
-});
+import Shell from "@/components/shell/Shell";
 
 const AUTH_ROUTES = new Set(["/login", "/register"]);
 

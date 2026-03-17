@@ -28,7 +28,6 @@ export function useShortlistMutation(
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shortlist'] })
       queryClient.invalidateQueries({ queryKey: ['shortlist-stats'] })
-      queryClient.invalidateQueries({ queryKey: ['inventory'] })
       options?.onSuccess?.()
     },
   })
