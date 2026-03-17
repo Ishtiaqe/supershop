@@ -138,7 +138,7 @@ export function safeJsonParse<T>(json: string, fallback: T): T {
   }
 }
 
-export default {
+const uiHelpers = {
   formatBytes,
   getStatusColor,
   getStatusMessage,
@@ -151,4 +151,6 @@ export default {
   truncate,
   groupBy,
   safeJsonParse,
-}
+};
+
+export default uiHelpers;

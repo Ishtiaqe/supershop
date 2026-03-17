@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import api from '../../lib/api';
 import useShortlistMutation from '../../hooks/useShortlist';
 import debounce from 'lodash/debounce';
@@ -19,8 +19,8 @@ export default function GlobalSearchWithShortList() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Search for items
-  const debouncedSearch = useCallback(
+  // Search for items (debounced via stable ref)
+  const debouncedSearch = useRef(
     debounce(async (term: string) => {
       if (term.length < 2) {
         setResults([]);
@@ -28,21 +28,27 @@ export default function GlobalSearchWithShortList() {
       }
 
       try {
-        const response = await api.get(`/api/v1/inventory?q=${term}`)
+        const response = await api.get(`/api/v1/inventory?q=${term}`);
         setResults(response.data.slice(0, 10));
         setIsOpen(true);
       } catch (error) {
         console.error('Search failed:', error);
       }
     }, 300),
-    []
   );
 
   const handleInputChange = (value: string) => {
     setSearchTerm(value);
     setSelectedIndex(-1);
-    debouncedSearch(value);
+    debouncedSearch.current(value);
   };
+
+  useEffect(() => {
+    const ds = debouncedSearch.current;
+    return () => {
+      ds.cancel?.();
+    };
+  }, []);
 
   // Add to short list
   const addMutation = useShortlistMutation({

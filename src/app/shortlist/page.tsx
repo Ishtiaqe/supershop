@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import Link from "next/link";
@@ -42,29 +42,37 @@ export default function ShortListPage() {
   const [shortlistSearchTerm, setShortlistSearchTerm] = useState("");
   const [debouncedShortlistSearch, setDebouncedShortlistSearch] = useState("");
 
-  // Debounce inventory search
-  const debouncedInventorySearch = useCallback(
+  // Debounce inventory search (stable ref + cleanup)
+  const debouncedInventorySearch = useRef(
     debounce((term: string) => {
       setDebouncedSearchTerm(term);
     }, 300),
-    []
   );
 
-  // Debounce shortlist search
-  const debouncedTableSearch = useCallback(
+  // Debounce shortlist search (stable ref + cleanup)
+  const debouncedTableSearch = useRef(
     debounce((term: string) => {
       setDebouncedShortlistSearch(term);
     }, 300),
-    []
   );
 
   useEffect(() => {
-    debouncedInventorySearch(searchTerm);
-  }, [searchTerm, debouncedInventorySearch]);
+    debouncedInventorySearch.current(searchTerm);
+  }, [searchTerm]);
 
   useEffect(() => {
-    debouncedTableSearch(shortlistSearchTerm);
-  }, [shortlistSearchTerm, debouncedTableSearch]);
+    debouncedTableSearch.current(shortlistSearchTerm);
+  }, [shortlistSearchTerm]);
+
+  // Cancel debounced timers on unmount
+  useEffect(() => {
+    const inv = debouncedInventorySearch.current;
+    const tab = debouncedTableSearch.current;
+    return () => {
+      inv.cancel?.();
+      tab.cancel?.();
+    };
+  }, []);
 
   // Fetch short list items
   const { data, isLoading, error } = useQuery({
@@ -434,7 +442,7 @@ export default function ShortListPage() {
                 {filteredShortlistItems(data.data).length === 0 && shortlistSearchTerm ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                      No items found matching "{shortlistSearchTerm}"
+                      No items found matching &quot;{shortlistSearchTerm}&quot;
                     </td>
                   </tr>
                 ) : (

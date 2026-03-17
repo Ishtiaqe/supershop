@@ -176,7 +176,7 @@ export default function UserDataExportComponent() {
 
         {searchEmail && !userSearch.isPending && users?.length === 0 && (
           <div className="text-center text-gray-500 py-8">
-            No users found matching "{searchEmail}"
+            No users found matching &quot;{searchEmail}&quot;
           </div>
         )}
       </Space>

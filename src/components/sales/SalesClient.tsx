@@ -54,10 +54,6 @@ export default function SalesClient() {
 
   const { user } = useAuth();
 
-  if (!user || (user.role !== "OWNER" && user.role !== "EMPLOYEE")) {
-    return <div className="p-6">Access denied — Owners and employees only</div>;
-  }
-
   const handleRowClick = (record: Sale) => {
     setSelectedSaleId(record.id);
     setIsModalOpen(true);
@@ -116,6 +112,10 @@ export default function SalesClient() {
       filteredSales: rows,
     };
   }, [sales, normalizedSearch, startDate, endDate, paymentFilter]);
+
+  if (!user || (user.role !== "OWNER" && user.role !== "EMPLOYEE")) {
+    return <div className="p-6">Access denied — Owners and employees only</div>;
+  }
 
   return (
     <div>

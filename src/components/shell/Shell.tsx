@@ -255,7 +255,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         router.push("/login");
       }
     }
-  }, [pathname, loading, user]);
+  }, [pathname, loading, user, router]);
 
   if (pathname === "/login" || pathname === "/register") {
     return <>{children}</>;
