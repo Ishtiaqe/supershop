@@ -117,7 +117,7 @@ export default function SalesClient() {
       <Row gutter={16} className="mb-4">
         <Col span={8}>
           <Input
-            placeholder="Search by receipt or customer..."
+            placeholder="Search"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             prefix={<SearchOutlined />}
@@ -169,9 +169,9 @@ export default function SalesClient() {
         )}
       >
         <Table.Column
-          title="Receipt"
-          dataIndex="receiptNumber"
-          key="receiptNumber"
+          title="Customer Name"
+          dataIndex="customerName"
+          key="customerName"
         />
         <Table.Column
           title="Time"
@@ -186,20 +186,10 @@ export default function SalesClient() {
           render={(t: number) => `৳${t.toFixed(2)}`}
         />
         <Table.Column
-          title="Employee"
-          dataIndex="employee"
-          key="employee"
-          render={(
-            e: string | { fullName?: string } | undefined,
-            record: Sale,
-          ) => {
-            if (typeof e === "string") return e;
-            if (e && typeof e === "object" && "fullName" in e && e.fullName)
-              return e.fullName;
-            return (
-              record?.employeeName ?? record?.employeeFullName ?? "Cashier"
-            );
-          }}
+          title="Profit"
+          dataIndex="totalProfit"
+          key="totalProfit"
+          render={(t: number) => `৳${t.toFixed(2)}`}
         />
       </Table>
 
@@ -210,6 +200,7 @@ export default function SalesClient() {
         footer={null}
         width={800}
       >
+        <div id={selectedSaleId ? `sale-modal-${selectedSaleId}` : "sale-modal"}>
         {isLoadingDetails ? (
           <div className="flex justify-center py-8">
             <Spin size="large" />
@@ -220,8 +211,14 @@ export default function SalesClient() {
               <Descriptions.Item label="Receipt Number">
                 {saleDetails.receiptNumber}
               </Descriptions.Item>
+              <Descriptions.Item label="Customer Name">
+                {saleDetails.customerName || "N/A"}
+              </Descriptions.Item>
               <Descriptions.Item label="Sale Time">
                 {new Date(saleDetails.saleTime).toLocaleString()}
+              </Descriptions.Item>
+              <Descriptions.Item label="Customer Phone">
+                {saleDetails.customerPhone || "N/A"}
               </Descriptions.Item>
               <Descriptions.Item label="Employee">
                 {saleDetails.employee?.fullName || "N/A"}
@@ -327,6 +324,7 @@ export default function SalesClient() {
         ) : (
           <div>No details available</div>
         )}
+        </div>
       </Modal>
     </div>
   );

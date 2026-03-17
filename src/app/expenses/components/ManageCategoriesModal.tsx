@@ -19,9 +19,10 @@ import {
 interface ManageCategoriesModalProps {
   isOpen: boolean;
   onClose: () => void;
+  id?: string;
 }
 
-export function ManageCategoriesModal({ isOpen, onClose }: ManageCategoriesModalProps) {
+export function ManageCategoriesModal({ isOpen, onClose, id }: ManageCategoriesModalProps) {
   const { data: categories, isLoading } = useCategories();
   const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
   const { mutate: updateCategory, isPending: isUpdating } = useUpdateCategory();
@@ -61,7 +62,7 @@ export function ManageCategoriesModal({ isOpen, onClose }: ManageCategoriesModal
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[450px]">
+      <DialogContent id={id} className="sm:max-w-[450px]">
         <DialogHeader>
           <DialogTitle>Manage Expense Categories</DialogTitle>
         </DialogHeader>

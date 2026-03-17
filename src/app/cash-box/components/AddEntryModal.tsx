@@ -48,7 +48,13 @@ interface AddEntryModalProps {
   onClose: () => void;
 }
 
-export function AddEntryModal({ isOpen, onClose }: AddEntryModalProps) {
+interface AddEntryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  id?: string;
+}
+
+export function AddEntryModal({ isOpen, onClose, id }: AddEntryModalProps) {
   const { mutate: createEntry, isPending } = useCreateCashBoxEntry();
 
   const form = useForm<FormValues>({
@@ -80,7 +86,7 @@ export function AddEntryModal({ isOpen, onClose }: AddEntryModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent id={id} className="sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle>Add Cash Box Entry</DialogTitle>
         </DialogHeader>

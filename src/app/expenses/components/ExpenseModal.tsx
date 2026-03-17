@@ -42,9 +42,10 @@ interface ExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
   expenseId: string | null;
+  id?: string;
 }
 
-export function ExpenseModal({ isOpen, onClose, expenseId }: ExpenseModalProps) {
+export function ExpenseModal({ isOpen, onClose, expenseId, id }: ExpenseModalProps) {
   const isEditing = !!expenseId;
   const { data: categories } = useCategories();
   
@@ -114,7 +115,7 @@ export function ExpenseModal({ isOpen, onClose, expenseId }: ExpenseModalProps) 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent id={id} className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Expense" : "Add Expense"}</DialogTitle>
         </DialogHeader>
