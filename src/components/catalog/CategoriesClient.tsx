@@ -141,7 +141,7 @@ export default function CategoriesClient() {
         columns={columns}
         rowKey="id"
         loading={isLoading}
-        pagination={{ pageSize: 20 }}
+        pagination={{ pageSize: 10 }}
       />
 
       <Modal

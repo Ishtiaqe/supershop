@@ -63,7 +63,7 @@ export function ExpenseModal({ isOpen, onClose, expenseId, id }: ExpenseModalPro
     defaultValues: {
       amount: 0,
       categoryId: "",
-      expenseDate: format(new Date(), "yyyy-MM-dd"),
+          expenseDate: format(new Date(), "dd/MM/yyyy"),
       description: "",
     },
   });
@@ -74,14 +74,14 @@ export function ExpenseModal({ isOpen, onClose, expenseId, id }: ExpenseModalPro
         form.reset({
           amount: expenseToEdit.amount,
           categoryId: expenseToEdit.categoryId,
-          expenseDate: format(new Date(expenseToEdit.expenseDate), "yyyy-MM-dd"),
+              expenseDate: format(new Date(expenseToEdit.expenseDate), "dd/MM/yyyy"),
           description: expenseToEdit.description || "",
         });
       } else {
         form.reset({
           amount: 0,
           categoryId: "",
-          expenseDate: format(new Date(), "yyyy-MM-dd"),
+              expenseDate: format(new Date(), "dd/MM/yyyy"),
           description: "",
         });
       }

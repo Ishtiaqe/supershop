@@ -46,10 +46,11 @@ export function getStatusMessage(percentage: number): string {
  */
 export function formatDate(date: Date | string, format: 'short' | 'long' = 'short'): string {
   const d = typeof date === 'string' ? new Date(date) : date
-  if (format === 'short') {
-    return d.toLocaleDateString()
-  }
-  return d.toLocaleString()
+    // Always return dd/mm/yyyy
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
 }
 
 /**

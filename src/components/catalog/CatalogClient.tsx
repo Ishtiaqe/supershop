@@ -261,7 +261,7 @@ export default function CatalogClient() {
         columns={columns}
         rowKey="variantId"
         loading={isLoading}
-        pagination={{ pageSize: 20 }}
+        pagination={{ pageSize: 10 }}
       />
 
       <Modal

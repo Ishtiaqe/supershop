@@ -101,7 +101,7 @@ export default function UserDataExportComponent() {
       title: "Created",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (date: string) => formatDate(date),
+      render: (date: string) => formatDate(date, "short"),
     },
     {
       title: "Action",

@@ -41,6 +41,8 @@ export default function CashBoxPage() {
   });
 
   const [startDate, endDate] = dateRange;
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
   const { data: summary, isLoading: summaryLoading } = useCashBoxSummary(
     startDate,
@@ -49,7 +51,8 @@ export default function CashBoxPage() {
   const { data: entriesData, isLoading: entriesLoading } = useCashBoxEntries({
     startDate,
     endDate,
-    limit: 100,
+    page,
+    limit: pageSize,
   });
   const { mutate: deleteEntry } = useDeleteCashBoxEntry();
 
@@ -61,7 +64,6 @@ export default function CashBoxPage() {
       title: "Date & Time",
       dataIndex: "entryDate",
       key: "entryDate",
-      width: 160,
       render: (v: string) => dayjs(v).format("DD MMM YYYY, hh:mm A"),
       sorter: (a, b) =>
         new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime(),
@@ -138,12 +140,6 @@ export default function CashBoxPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-header">Cash Box</h1>
-          <p className="page-subheader">
-            Track all cash inflows and outflows
-          </p>
-        </div>
         <Button onClick={() => setIsAddModalOpen(true)}>+ Add Entry</Button>
       </div>
 
@@ -183,9 +179,10 @@ export default function CashBoxPage() {
           onChange={(dates) => {
             if (dates && dates[0] && dates[1]) {
               setDateRange([
-                dates[0].format("YYYY-MM-DD"),
-                dates[1].format("YYYY-MM-DD"),
+                dates[0].format("DD/MM/YYYY"),
+                dates[1].format("DD/MM/YYYY"),
               ]);
+              setPage(1);
             }
           }}
         />
@@ -194,6 +191,7 @@ export default function CashBoxPage() {
           onClick={() => {
             const today = new Date().toISOString().split("T")[0];
             setDateRange([today, today]);
+            setPage(1);
           }}
         >
           Today
@@ -209,6 +207,7 @@ export default function CashBoxPage() {
               .toISOString()
               .split("T")[0];
             setDateRange([first, last]);
+            setPage(1);
           }}
         >
           This Month
@@ -222,7 +221,17 @@ export default function CashBoxPage() {
           dataSource={entriesData?.data ?? []}
           rowKey="id"
           loading={entriesLoading}
-          pagination={false}
+          pagination={{
+            current: entriesData?.page ?? page,
+            pageSize: entriesData?.limit ?? pageSize,
+            total: entriesData?.total ?? 0,
+            onChange: (p, ps) => {
+              setPage(p);
+              setPageSize(ps);
+            },
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "25", "50", "100"],
+          }}
           size="middle"
           locale={{ emptyText: "No cash movements in this period" }}
           summary={() => {

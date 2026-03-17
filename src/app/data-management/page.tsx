@@ -147,7 +147,7 @@ export default function DataManagementPage() {
               <p>
                 <strong>Last Backup:</strong>{" "}
                 {backupStatus.data.lastBackupTime
-                  ? formatDate(backupStatus.data.lastBackupTime, "long")
+                  ? formatDate(backupStatus.data.lastBackupTime, "short")
                   : "Never"}
               </p>
               {backupStatus.data.backupSize && (

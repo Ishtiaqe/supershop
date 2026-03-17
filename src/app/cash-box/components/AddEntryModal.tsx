@@ -63,7 +63,7 @@ export function AddEntryModal({ isOpen, onClose, id }: AddEntryModalProps) {
       entryType: "MANUAL_IN",
       amount: "" as any,
       note: "",
-      entryDate: format(new Date(), "yyyy-MM-dd"),
+      entryDate: format(new Date(), "dd/MM/yyyy"),
     },
   });
 

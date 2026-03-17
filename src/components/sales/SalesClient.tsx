@@ -81,10 +81,8 @@ export default function SalesClient() {
   const endDate = dateRange?.[1]?.endOf("day").toDate() ?? null;
 
   // Use a single memoized pass to reduce per-keystroke work on large sales datasets.
-  const { filteredSales, totalRevenue, totalProfit } = useMemo(() => {
+  const { filteredSales } = useMemo(() => {
     const rows: Sale[] = [];
-    let revenue = 0;
-    let profit = 0;
 
     for (const sale of sales as Sale[]) {
       if (normalizedSearch) {
@@ -112,14 +110,10 @@ export default function SalesClient() {
       }
 
       rows.push(sale);
-      revenue += sale.totalAmount;
-      profit += sale.totalProfit;
     }
 
     return {
       filteredSales: rows,
-      totalRevenue: revenue,
-      totalProfit: profit,
     };
   }, [sales, normalizedSearch, startDate, endDate, paymentFilter]);
 
@@ -170,15 +164,6 @@ export default function SalesClient() {
           onMouseEnter: () => prefetchSaleDetails(record.id),
           style: { cursor: "pointer" },
         })}
-        footer={() => (
-          <div style={{ textAlign: "right", fontWeight: "bold" }}>
-            <span className="mr-8">Total Sales: {filteredSales.length}</span>
-            <span className="mr-8">
-              Total Revenue: ৳{totalRevenue.toFixed(2)}
-            </span>
-            <span>Total Profit: ৳{totalProfit.toFixed(2)}</span>
-          </div>
-        )}
       >
         <Table.Column
           title="Receipt Number"

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
     const url = `${backendUrl}/sales/analytics/summary`;
 
     const res = await fetch(url, {

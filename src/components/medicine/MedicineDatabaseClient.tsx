@@ -63,7 +63,7 @@ export default function MedicineDatabaseClient() {
         columns={columns}
         rowKey="id"
         loading={isLoading}
-        pagination={{ pageSize: 20 }}
+        pagination={{ pageSize: 10 }}
         expandable={{
           expandedRowRender: (record: Medicine) => (
             <div>

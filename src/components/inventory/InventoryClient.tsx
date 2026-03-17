@@ -511,11 +511,11 @@ export default function InventoryClient() {
           </Form.Item>
 
           {/* <Form.Item name="expiryDate" label="Expiry Date (Optional)">
-            <DatePicker style={{ width: 160 }} format="YYYY-MM-DD" />
+            <DatePicker style={{ width: 160 }} format="DD/MM/YYYY" />
           </Form.Item>
 
           <Form.Item name="mfgDate" label="Mfg Date (Optional)">
-            <DatePicker style={{ width: 160 }} format="YYYY-MM-DD" />
+            <DatePicker style={{ width: 160 }} format="DD/MM/YYYY" />
           </Form.Item> */}
         </Space>
 
@@ -548,7 +548,7 @@ export default function InventoryClient() {
           <Table
             dataSource={filteredDataSource}
             rowKey="key"
-            pagination={{ pageSize: 20 }}
+            pagination={{ pageSize: 10 }}
             expandable={{
               expandedRowRender: (record: { subItems: InventoryItem[] }) => (
                 <div className="overflow-x-auto">
@@ -578,7 +578,7 @@ export default function InventoryClient() {
                       //   title: "Expiry",
                       //   dataIndex: "expiryDate",
                       //   render: (d) =>
-                      //     d ? dayjs(d).format("YYYY-MM-DD") : "-",
+                      //     d ? dayjs(d).format("DD/MM/YYYY") : "-",
                       // },
                       {
                         title: "Actions",
