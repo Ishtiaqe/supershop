@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { ConfigProvider, theme as antdTheme } from "antd";
+import { ConfigProvider, theme as antdTheme, App } from "antd";
 import React from "react";
 import dynamic from "next/dynamic";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -108,18 +108,34 @@ export function Providers({ children }: { children: React.ReactNode }) {
     algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
     token: {
       colorPrimary: colors.primary.hex,
+      colorInfo: colors.primary.hex,
+      colorSuccess: colors.success.hex,
+      colorWarning: colors.warning.hex,
+      colorError: colors.destructive.hex,
+      colorBgBase: colors.background.hex,
       colorBgContainer: colors.card.hex,
       colorBgElevated: colors.card.hex,
-      colorText: colors.foreground.hex,
+      colorTextBase: colors.foreground.hex,
       colorTextSecondary: colors.mutedForeground.hex,
       colorBorder: colors.border.hex,
       colorBgLayout: colors.background.hex,
       borderRadius: 8,
+      fontFamily: "inherit",
     },
     components: {
       Menu: {
         itemHeight: 48,
         itemFontSize: 15,
+      },
+      Button: {
+        borderRadius: 6,
+        fontWeight: 500,
+      },
+      Card: {
+        borderRadiusLG: 12,
+      },
+      Table: {
+        borderRadius: 12,
       },
     },
   };
@@ -127,30 +143,33 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeContext.Provider value={{ mode, setMode }}>
       <ConfigProvider theme={themeConfig}>
-        <OfflineProvider>
-          <AuthProvider>
-            {persister ? (
-              <PersistQueryClientProvider
-                client={queryClient}
-                persistOptions={{ persister }}
-              >
-                {children}
-                {process.env.NODE_ENV === "development" && (
-                  <ReactQueryDevtools initialIsOpen={false} />
-                )}
-              </PersistQueryClientProvider>
-            ) : (
-              // Fallback for SSR or if persistence fails
-              <QueryClientProvider client={queryClient}>
-                {children}
-                {process.env.NODE_ENV === "development" && (
-                  <ReactQueryDevtools initialIsOpen={false} />
-                )}
-              </QueryClientProvider>
-            )}
-          </AuthProvider>
-        </OfflineProvider>
+        <App>
+          <OfflineProvider>
+            <AuthProvider>
+              {persister ? (
+                <PersistQueryClientProvider
+                  client={queryClient}
+                  persistOptions={{ persister }}
+                >
+                  {children}
+                  {process.env.NODE_ENV === "development" && (
+                    <ReactQueryDevtools initialIsOpen={false} />
+                  )}
+                </PersistQueryClientProvider>
+              ) : (
+                // Fallback for SSR or if persistence fails
+                <QueryClientProvider client={queryClient}>
+                  {children}
+                  {process.env.NODE_ENV === "development" && (
+                    <ReactQueryDevtools initialIsOpen={false} />
+                  )}
+                </QueryClientProvider>
+              )}
+            </AuthProvider>
+          </OfflineProvider>
+        </App>
       </ConfigProvider>
     </ThemeContext.Provider>
   );
 }
+

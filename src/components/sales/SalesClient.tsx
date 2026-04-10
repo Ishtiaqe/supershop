@@ -121,11 +121,13 @@ export default function SalesClient() {
     <div>
       <Row gutter={16} className="mb-4">
         <Col span={8}>
-          <Input
-            placeholder="Search"
+          <Input.Search
+            placeholder="Search by receipt or customer..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            prefix={<SearchOutlined />}
+            onSearch={(val) => setSearchText(val)}
+            allowClear
+            enterButton
           />
         </Col>
         <Col span={8}>
@@ -156,15 +158,19 @@ export default function SalesClient() {
         loading={isLoading}
         dataSource={filteredSales}
         rowKey={(r: Sale) => r.id}
-        virtual
-        scroll={{ y: 520 }}
-        pagination={{ pageSize: 10 }}
+        scroll={{ x: 'max-content' }}
+        pagination={{ 
+          pageSize: 10,
+          showSizeChanger: true,
+          showTotal: (total) => `Total ${total} sales`
+        }}
         onRow={(record) => ({
           onClick: () => handleRowClick(record),
           onMouseEnter: () => prefetchSaleDetails(record.id),
           style: { cursor: "pointer" },
         })}
       >
+
         <Table.Column
           title="Receipt Number"
           dataIndex="receiptNumber"

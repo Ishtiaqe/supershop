@@ -1,20 +1,29 @@
 "use client";
-
 import { useState } from "react";
-import { Plus, Settings2 } from "lucide-react";
-import { format } from "date-fns";
+import { PlusOutlined, SettingOutlined } from "@ant-design/icons";
+import { 
+  Button, 
+  Card, 
+  Input, 
+  Table, 
+  Select, 
+  Space, 
+  Typography, 
+  Tag, 
+  Row, 
+  Col, 
+  DatePicker 
+} from "antd";
+import dayjs from "dayjs";
 import { useExpenses, useExpenseSummary, ExpenseFilters } from "./hooks/useExpensesHooks";
 import { ExpenseModal } from "./components/ExpenseModal";
 import { ManageCategoriesModal } from "./components/ManageCategoriesModal";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories } from "./hooks/useExpensesHooks";
 
+const { Title, Text } = Typography;
+
 export default function ExpensesPage() {
-  const [filters, setFilters] = useState<ExpenseFilters>({ page: 1, limit: 20 });
+  const [filters, setFilters] = useState<ExpenseFilters>({ page: 1, limit: 10 });
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
@@ -39,144 +48,142 @@ export default function ExpensesPage() {
     setIsExpenseModalOpen(true);
   };
 
+  const columns = [
+    {
+      title: "Date",
+      dataIndex: "expenseDate",
+      key: "expenseDate",
+      render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
+    },
+    {
+      title: "Category",
+      dataIndex: ["category", "name"],
+      key: "category",
+      render: (name: string) => <Tag color="blue">{name}</Tag>,
+    },
+    {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      ellipsis: true,
+      render: (text: string) => text || "-",
+    },
+    {
+      title: "Logged By",
+      dataIndex: ["employee", "fullName"],
+      key: "employee",
+    },
+    {
+      title: "Amount",
+      dataIndex: "amount",
+      key: "amount",
+      align: "right" as const,
+      render: (amount: number) => <Text strong>{formatCurrency(amount)}</Text>,
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      align: "right" as const,
+      render: (_: any, record: any) => (
+        <Button type="link" size="small" onClick={() => openEditModal(record.id)}>
+          Edit
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={() => setIsCategoriesModalOpen(true)}>
-            <Settings2 className="mr-2 h-4 w-4" />
+      <div className="flex items-center justify-between mb-4">
+        <Title level={2} style={{ margin: 0 }}>Expenses</Title>
+        <Space>
+          <Button icon={<SettingOutlined />} onClick={() => setIsCategoriesModalOpen(true)}>
             Manage Categories
           </Button>
-          <Button onClick={openAddModal}>
-            <Plus className="mr-2 h-4 w-4" /> Add Expense
+          <Button type="primary" icon={<PlusOutlined />} onClick={openAddModal}>
+            Add Expense
           </Button>
-        </div>
+        </Space>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="stat-card stat-card-danger">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-destructive/90">Total Expenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">
+      <Row gutter={16}>
+        <Col span={6}>
+          <Card className="stat-card stat-card-danger">
+            <Text type="secondary">Total Expenses</Text>
+            <div className="text-2xl font-bold text-destructive mt-1">
               {isLoadingSummary ? "..." : formatCurrency(summaryData?.totalAmount || 0)}
             </div>
-          </CardContent>
-        </Card>
+          </Card>
+        </Col>
         
-        {/* Top Category Card */}
-        <Card className="stat-card stat-card-warning">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-warning/95">Top Category</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold truncate text-warning">
+        <Col span={6}>
+          <Card className="stat-card stat-card-warning">
+            <Text type="secondary">Top Category</Text>
+            <div className="text-2xl font-bold truncate text-warning mt-1">
               {isLoadingSummary 
                 ? "..." 
                 : (summaryData?.categorySummary?.[0]?.name || "N/A")}
             </div>
-            <p className="text-xs text-warning/85 mt-1">
-              {summaryData?.categorySummary?.[0]?.amount 
-                ? formatCurrency(summaryData.categorySummary[0].amount) 
-                : ""}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            {summaryData?.categorySummary?.[0]?.amount && (
+              <p className="text-xs text-warning/85 mt-1">
+                {formatCurrency(summaryData.categorySummary[0].amount)}
+              </p>
+            )}
+          </Card>
+        </Col>
+      </Row>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 py-4">
-        <div className="space-y-1">
-          <label htmlFor="expenses-start-date" className="text-xs font-medium text-muted-foreground">
-            Start Date
-          </label>
-          <Input
-            id="expenses-start-date"
-            type="date"
-            value={filters.startDate || ""}
-            onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value, page: 1 }))}
-            className="w-40"
-            placeholder="Start Date"
-          />
-        </div>
-        <div className="space-y-1">
-          <label htmlFor="expenses-end-date" className="text-xs font-medium text-muted-foreground">
-            End Date
-          </label>
-          <Input
-            id="expenses-end-date"
-            type="date"
-            value={filters.endDate || ""}
-            onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value, page: 1 }))}
-            className="w-40"
-            placeholder="End Date"
-          />
-        </div>
-        <Select 
-          value={filters.categoryId || "all"} 
-          onValueChange={(val) => setFilters(prev => ({ ...prev, categoryId: val === "all" ? undefined : val, page: 1 }))}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories?.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Total records: {expensesData?.meta?.total ?? expensesData?.data?.length ?? 0}
-      </p>
+      <Card size="small" className="mb-4">
+        <Space wrap size="middle">
+          <div className="flex flex-col">
+            <Text type="secondary">Start Date</Text>
+            <DatePicker 
+              value={filters.startDate ? dayjs(filters.startDate) : null}
+              onChange={(date) => setFilters(prev => ({ ...prev, startDate: date?.format("YYYY-MM-DD"), page: 1 }))}
+              placeholder="Start Date"
+            />
+          </div>
+          <div className="flex flex-col">
+            <Text type="secondary">End Date</Text>
+            <DatePicker 
+              value={filters.endDate ? dayjs(filters.endDate) : null}
+              onChange={(date) => setFilters(prev => ({ ...prev, endDate: date?.format("YYYY-MM-DD"), page: 1 }))}
+              placeholder="End Date"
+            />
+          </div>
+          <div className="flex flex-col">
+            <Text type="secondary">Category</Text>
+            <Select 
+              style={{ width: 200 }}
+              value={filters.categoryId || "all"} 
+              onChange={(val) => setFilters(prev => ({ ...prev, categoryId: val === "all" ? undefined : val, page: 1 }))}
+            >
+              <Select.Option value="all">All Categories</Select.Option>
+              {categories?.map((c) => (
+                <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
+              ))}
+            </Select>
+          </div>
+        </Space>
+      </Card>
 
       {/* Data Table */}
-      <div className="surface-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Logged By</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoadingExpenses ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">Loading expenses...</TableCell>
-              </TableRow>
-            ) : expensesData?.data?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">No expenses found.</TableCell>
-              </TableRow>
-            ) : (
-              expensesData?.data.map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell>{format(new Date(expense.expenseDate), "dd/MM/yyyy")}</TableCell>
-                  <TableCell>
-                    <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
-                      {expense.category.name}
-                    </div>
-                  </TableCell>
-                  <TableCell className="max-w-[300px] truncate" title={expense.description}>{expense.description || "-"}</TableCell>
-                  <TableCell>{expense.employee.fullName}</TableCell>
-                  <TableCell className="text-right font-medium">{formatCurrency(expense.amount)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => openEditModal(expense.id)}>
-                      Edit
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <Table
+        columns={columns}
+        dataSource={expensesData?.data || []}
+        rowKey="id"
+        loading={isLoadingExpenses}
+        scroll={{ x: 'max-content' }}
+        pagination={{
+          current: filters.page,
+          pageSize: filters.limit,
+          total: expensesData?.meta?.total || 0,
+          onChange: (page, pageSize) => setFilters(prev => ({ ...prev, page, limit: pageSize })),
+          showSizeChanger: true,
+          showTotal: (total) => `Total ${total} expenses`
+        }}
+      />
 
       {/* Modals */}
       <ExpenseModal 
@@ -192,3 +199,4 @@ export default function ExpensesPage() {
     </div>
   );
 }
+

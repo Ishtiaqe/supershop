@@ -99,16 +99,20 @@ export default function AdminTenantsPage() {
   return (
     <div style={{ maxWidth: 960, margin: "0 auto" }}>
       <Card title="Tenants (Super Admin)" variant="outlined">
-        {loading && <div>Loading…</div>}
         {error && <Alert type="error" message={error} className="mb-4" />}
 
-        <div className="overflow-x-auto">
-          <Table
-            dataSource={tenants}
-            rowKey={(r) => r.id}
-            pagination={false}
-            className="mb-6"
-          >
+        <Table
+          dataSource={tenants}
+          rowKey={(r) => r.id}
+          loading={loading}
+          pagination={{ 
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `Total ${total} tenants`
+          }}
+          className="mb-6"
+        >
+
             <Table.Column title="Tenant" dataIndex="name" key="name" />
             <Table.Column title="ID" dataIndex="id" key="id" />
             <Table.Column
@@ -121,9 +125,9 @@ export default function AdminTenantsPage() {
               )}
             />
           </Table>
-        </div>
 
         <Form
+
           layout="vertical"
           onFinish={handleCreateTenant}
           className="space-y-3"

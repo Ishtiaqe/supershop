@@ -41,11 +41,13 @@ export const themeColors = {
     mutedForeground: { hsl: "214 19% 70%", hex: "#9faec6" },
     success: { hsl: "147 67% 55%", hex: "#42d982" },
     destructive: { hsl: "0 81% 64%", hex: "#ed5a5a" },
+    warning: { hsl: "41 96% 65%", hex: "#ffc53d" },
     border: { hsl: "221 24% 28%", hex: "#353f58" },
     card: { hsl: "224 28% 15%", hex: "#1c2438" },
     muted: { hsl: "223 22% 23%", hex: "#2b3348" },
   },
 };
+
 
 // Helper to get colors for a mode
 export function getThemeColors(mode: 'light' | 'dark') {

@@ -1,26 +1,16 @@
 import { useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { format } from "date-fns";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { 
+  Modal, 
+  Form, 
+  Input, 
+  Button, 
+  Select, 
+  DatePicker, 
+  Popconfirm, 
+  message,
+  InputNumber
+} from "antd";
+import dayjs from "dayjs";
 import { 
   useCategories, 
   useCreateExpense, 
@@ -28,15 +18,6 @@ import {
   useExpenses,
   useDeleteExpense 
 } from "../hooks/useExpensesHooks";
-
-const expenseSchema = z.object({
-  amount: z.union([z.string(), z.number()]).transform((val) => Number(val)).refine((val) => val > 0, { message: "Amount must be greater than 0" }),
-  categoryId: z.string().min(1, "Please select a category"),
-  expenseDate: z.string().min(1, "Date is required"),
-  description: z.string().optional(),
-});
-
-type ExpenseFormValues = z.input<typeof expenseSchema>;
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -46,177 +27,169 @@ interface ExpenseModalProps {
 }
 
 export function ExpenseModal({ isOpen, onClose, expenseId, id }: ExpenseModalProps) {
+  const [form] = Form.useForm();
   const isEditing = !!expenseId;
   const { data: categories } = useCategories();
   
-  // To fetch a single expense to edit we reuse the hook with a large limit,
-  // alternatively we could create a `useExpense(id)` hook.
   const { data: expensesData } = useExpenses({ page: 1, limit: 100 });
-  const expenseToEdit = expensesData?.data?.find(e => e.id === expenseId);
+  const expenseToEdit = expensesData?.data?.find((e: any) => e.id === expenseId);
 
   const { mutate: createExpense, isPending: isCreating } = useCreateExpense();
   const { mutate: updateExpense, isPending: isUpdating } = useUpdateExpense();
   const { mutate: deleteExpense, isPending: isDeleting } = useDeleteExpense();
 
-  const form = useForm<ExpenseFormValues>({
-    resolver: zodResolver(expenseSchema),
-    defaultValues: {
-      amount: 0,
-      categoryId: "",
-          expenseDate: format(new Date(), "dd/MM/yyyy"),
-      description: "",
-    },
-  });
-
   useEffect(() => {
     if (isOpen) {
       if (isEditing && expenseToEdit) {
-        form.reset({
+        form.setFieldsValue({
           amount: expenseToEdit.amount,
           categoryId: expenseToEdit.categoryId,
-              expenseDate: format(new Date(expenseToEdit.expenseDate), "dd/MM/yyyy"),
+          expenseDate: dayjs(expenseToEdit.expenseDate),
           description: expenseToEdit.description || "",
         });
       } else {
-        form.reset({
-          amount: 0,
-          categoryId: "",
-              expenseDate: format(new Date(), "dd/MM/yyyy"),
-          description: "",
+        form.resetFields();
+        form.setFieldsValue({
+          expenseDate: dayjs(),
         });
       }
     }
   }, [isOpen, isEditing, expenseToEdit, form]);
 
-  const onSubmit = (values: ExpenseFormValues) => {
-    // Schema transforms it to number, we can cast it safely for our API hook
-    const parsedValues = {
+  const onFinish = (values: any) => {
+    const payload = {
       ...values,
-      amount: Number(values.amount)
+      expenseDate: values.expenseDate.format("YYYY-MM-DD"),
     };
 
     if (isEditing) {
       updateExpense(
-        { id: expenseId as string, ...parsedValues },
-        { onSuccess: onClose }
+        { id: expenseId as string, ...payload },
+        { 
+          onSuccess: () => {
+            message.success("Expense updated successfully");
+            onClose();
+          } 
+        }
       );
     } else {
-      createExpense(parsedValues as Parameters<typeof createExpense>[0], { onSuccess: onClose });
+      createExpense(payload, { 
+        onSuccess: () => {
+          message.success("Expense added successfully");
+          onClose();
+        } 
+      });
     }
   };
 
   const handleDelete = () => {
-    if (confirm("Are you sure you want to delete this expense?")) {
-      deleteExpense(expenseId as string, { onSuccess: onClose });
-    }
+    deleteExpense(expenseId as string, { 
+      onSuccess: () => {
+        message.success("Expense deleted successfully");
+        onClose();
+      } 
+    });
   };
 
   const isSaving = isCreating || isUpdating;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent id={id} className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Expense" : "Add Expense"}</DialogTitle>
-        </DialogHeader>
+    <Modal
+      title={isEditing ? "Edit Expense" : "Add Expense"}
+      open={isOpen}
+      onCancel={onClose}
+      footer={[
+        <div key="footer-row" className="flex justify-between items-center w-full">
+          {isEditing ? (
+            <Popconfirm
+              title="Delete expense"
+              description="Are you sure you want to delete this expense?"
+              onConfirm={handleDelete}
+              okText="Yes"
+              cancelText="No"
+              disabled={isDeleting || isSaving}
+            >
+              <Button 
+                danger 
+                disabled={isDeleting || isSaving}
+                loading={isDeleting}
+              >
+                Delete
+              </Button>
+            </Popconfirm>
+          ) : <div /> }
+          <div className="flex gap-2">
+            <Button onClick={onClose} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button 
+              type="primary" 
+              onClick={() => form.submit()} 
+              loading={isSaving}
+              disabled={isSaving}
+            >
+              {isEditing ? "Save Changes" : "Add Expense"}
+            </Button>
+          </div>
+        </div>
+      ]}
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+        initialValues={{
+          amount: 0,
+          expenseDate: dayjs(),
+        }}
+        className="pt-4"
+      >
+        <Form.Item
+          name="amount"
+          label="Amount (৳)"
+          rules={[{ required: true, message: "Amount must be greater than 0" }]}
+        >
+          <InputNumber 
+            className="w-full" 
+            min={0.01} 
+            step={0.01} 
+            placeholder="0.00"
+          />
+        </Form.Item>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount (৳)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <Form.Item
+          name="categoryId"
+          label="Category"
+          rules={[{ required: true, message: "Please select a category" }]}
+        >
+          <Select placeholder="Select an expense category">
+            {categories?.map((cat) => (
+              <Select.Option key={cat.id} value={cat.id}>
+                {cat.name}
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
 
-            <FormField
-              control={form.control}
-              name="categoryId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an expense category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {categories?.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <Form.Item
+          name="expenseDate"
+          label="Date"
+          rules={[{ required: true, message: "Date is required" }]}
+        >
+          <DatePicker className="w-full" format="DD/MM/YYYY" />
+        </Form.Item>
 
-            <FormField
-              control={form.control}
-              name="expenseDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Notes or details about this expense..." 
-                      className="resize-none"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-between items-center pt-4">
-              {isEditing ? (
-                <Button 
-                  type="button" 
-                  variant="destructive" 
-                  onClick={handleDelete}
-                  disabled={isDeleting || isSaving}
-                >
-                  Delete
-                </Button>
-              ) : <div></div>}
-              
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSaving}>
-                  {isSaving ? "Saving..." : isEditing ? "Save Changes" : "Add Expense"}
-                </Button>
-              </div>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+        <Form.Item
+          name="description"
+          label="Description (Optional)"
+        >
+          <Input.TextArea 
+            placeholder="Notes or details about this expense..." 
+            autoSize={{ minRows: 3, maxRows: 6 }}
+          />
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 }
+

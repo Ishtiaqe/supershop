@@ -1,5 +1,4 @@
 import dynamic from "next/dynamic";
-import { Card } from "antd";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -16,10 +15,8 @@ const InventoryClient = dynamic(
 
 export default function InventoryPage() {
   return (
-    <div className="w-full space-y-4">
-      <Card>
-        <InventoryClient />
-      </Card>
+    <div className="w-full">
+      <InventoryClient />
     </div>
   );
 }

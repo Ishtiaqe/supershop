@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import Link from "next/link";
 import { debounce } from "lodash";
-import { Select } from "antd";
+import { Select, Table, Button, Input, Space, Popconfirm } from "antd";
 
 interface ShortListItem {
   id: string;
@@ -158,17 +158,18 @@ export default function ShortListPage() {
   };
 
   // Search inventory items (not shortlist items)
-  const { data: inventorySearchResults = [], isLoading: isSearching } = useQuery({
-    queryKey: ["inventory-search", debouncedSearchTerm],
-    queryFn: async () => {
-      if (!debouncedSearchTerm || debouncedSearchTerm.length < 2) return [];
-      const response = await api.get(
-        `/inventory?q=${encodeURIComponent(debouncedSearchTerm)}`,
-      );
-      return response.data?.data ?? response.data ?? [];
-    },
-    enabled: debouncedSearchTerm.length >= 2,
-  });
+  const { data: inventorySearchResults = [], isLoading: isSearching } =
+    useQuery({
+      queryKey: ["inventory-search", debouncedSearchTerm],
+      queryFn: async () => {
+        if (!debouncedSearchTerm || debouncedSearchTerm.length < 2) return [];
+        const response = await api.get(
+          `/inventory?q=${encodeURIComponent(debouncedSearchTerm)}`,
+        );
+        return response.data?.data ?? response.data ?? [];
+      },
+      enabled: debouncedSearchTerm.length >= 2,
+    });
 
   // Add item to shortlist
   const addToShortlistMutation = useMutation({
@@ -186,16 +187,66 @@ export default function ShortListPage() {
   const filteredShortlistItems = (items: ShortListItem[] | undefined) => {
     if (!items) return [];
     if (!debouncedShortlistSearch) return items;
-    
+
     return items.filter((item) => {
       const searchLower = debouncedShortlistSearch.toLowerCase();
       return (
         item.inventory.itemName.toLowerCase().includes(searchLower) ||
-        (item.inventory.variant?.sku || "").toLowerCase().includes(searchLower) ||
-        (item.inventory.variant?.product?.productName || "").toLowerCase().includes(searchLower)
+        (item.inventory.variant?.sku || "")
+          .toLowerCase()
+          .includes(searchLower) ||
+        (item.inventory.variant?.product?.productName || "")
+          .toLowerCase()
+          .includes(searchLower)
       );
     });
   };
+
+  // Table column definitions
+  const columns = [
+    {
+      title: "Item Name",
+      dataIndex: ["inventory", "itemName"],
+      key: "itemName",
+      render: (text: string, record: ShortListItem) => (
+        <Link
+          href={`/inventory?id=${record.inventoryId}`}
+          className="text-primary hover:underline"
+        >
+          {text}
+        </Link>
+      ),
+    },
+    {
+      title: "Current Qty",
+      dataIndex: ["inventory", "quantity"],
+      key: "quantity",
+      render: (qty: number) => <span className="font-medium text-foreground">{qty}</span>,
+    },
+    {
+      title: "Last Restock Qty",
+      dataIndex: ["inventory", "lastRestockQty"],
+      key: "lastRestockQty",
+      render: (qty: number | null) => <span className="text-muted-foreground">{qty || "N/A"}</span>,
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_: any, record: ShortListItem) => (
+        <Popconfirm
+          title="Remove from shortlist"
+          description="Are you sure you want to remove this item?"
+          onConfirm={() => removeMutation.mutate(record.inventoryId)}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Button danger type="link" loading={removeMutation.isPending}>
+            Remove
+          </Button>
+        </Popconfirm>
+      ),
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -204,47 +255,9 @@ export default function ShortListPage() {
         <div className="mb-8">
           <h1 className="page-header mb-2">Short List</h1>
           <p className="text-muted-foreground">
-            Items that need restocking based on the 50% rule or slow item
-            detection
+            Items that need restocking. detection
           </p>
         </div>
-
-        {/* Statistics Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="stat-card stat-card-info">
-              <div className="text-info/90 text-sm font-medium">
-                Total Items
-              </div>
-              <div className="text-2xl font-bold text-info mt-2">
-                {stats.total}
-              </div>
-            </div>
-            <div className="stat-card stat-card-primary">
-              <div className="text-primary/90 text-sm font-medium">
-                50% Rule Items
-              </div>
-              <div className="text-2xl font-bold text-primary mt-2">
-                {stats.autoRuleItems}
-              </div>
-            </div>
-            <div className="stat-card stat-card-warning">
-              <div className="text-warning/95 text-sm font-medium">
-                Slow Items
-              </div>
-              <div className="text-2xl font-bold text-warning mt-2">
-                {stats.slowItems}
-              </div>
-            </div>
-            <div className="stat-card stat-card-success">
-              <div className="text-success/90 text-sm font-medium">Total Qty</div>
-              <div className="text-2xl font-bold text-success mt-2">
-                {stats.totalQuantity}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Controls */}
         <div className="surface-card p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
@@ -257,7 +270,7 @@ export default function ShortListPage() {
                 showSearch
                 allowClear
                 filterOption={false}
-                placeholder="Type to search inventory or SKU..."
+                placeholder="Type to search"
                 style={{ width: "100%" }}
                 value={undefined}
                 searchValue={searchTerm}
@@ -286,11 +299,10 @@ export default function ShortListPage() {
                           ৳{item.retailPrice ?? "-"}
                         </span>
                         <span
-                          className={`text-xs ${
-                            item.quantity > 0
-                              ? "text-success"
-                              : "text-destructive"
-                          }`}
+                          className={`text-xs ${item.quantity > 0
+                            ? "text-success"
+                            : "text-destructive"
+                            }`}
                         >
                           {item.quantity > 0
                             ? `${item.quantity} in stock`
@@ -315,181 +327,87 @@ export default function ShortListPage() {
               <label className="block text-xs font-medium text-muted-foreground mb-2">
                 Sort By
               </label>
-              <select
+              <Select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full h-11 px-3.5 py-2 border border-border bg-background/85 text-foreground rounded-xl text-[0.95rem]"
-              >
-                <option value="quantity">Lowest Stock First</option>
-                <option value="addedAt">Recently Added</option>
-                <option value="name">Item Name</option>
-              </select>
-            </div>
-
-            {/* Filter */}
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-2">
-                Filter
-              </label>
-              <select
-                value={filterSlow === null ? "" : filterSlow.toString()}
-                onChange={(e) =>
-                  setFilterSlow(
-                    e.target.value === "" ? null : e.target.value === "true",
-                  )
-                }
-                className="w-full h-11 px-3.5 py-2 border border-border bg-background/85 text-foreground rounded-xl text-[0.95rem]"
-              >
-                <option value="">All Items</option>
-                <option value="true">Slow Items Only</option>
-                <option value="false">50% Rule Only</option>
-              </select>
+                onChange={(value) => setSortBy(value as any)}
+                className="w-full"
+                size="large"
+                options={[
+                  { value: "quantity", label: "Lowest Stock First" },
+                  { value: "addedAt", label: "Recently Added" },
+                  { value: "name", label: "Item Name" },
+                ]}
+              />
             </div>
           </div>
 
           {/* Export Buttons */}
-          <div className="flex flex-wrap gap-2">
-            <button
+          <Space wrap className="mb-2">
+            <Button
+              type="primary"
+              size="large"
               onClick={() => exportPdf("shortlist")}
-              className="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90"
             >
               Download Shortlist
-            </button>
-            <button
+            </Button>
+            <Button
+              size="large"
               onClick={() => exportPdf("inventory")}
-              className="px-5 py-2.5 bg-success text-success-foreground text-sm font-semibold rounded-xl hover:bg-success/90"
             >
               Download Inventory
-            </button>
-            <button
+            </Button>
+            <Button
+              size="large"
               onClick={() => exportPdf("analytics")}
-              className="px-5 py-2.5 bg-info text-info-foreground text-sm font-semibold rounded-xl hover:bg-info/90"
             >
               Download Analytics
-            </button>
-            <button
+            </Button>
+            <Button
+              size="large"
               onClick={() => exportBackup()}
-              className="px-5 py-2.5 bg-warning text-warning-foreground text-sm font-semibold rounded-xl hover:bg-warning/90"
             >
               Download Backup
-            </button>
-          </div>
+            </Button>
+          </Space>
         </div>
 
-
-
         {/* Shortlist Items Table */}
-        {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading...</div>
-        ) : error ? (
+        {error ? (
           <div className="text-center py-12 text-destructive">
             Error loading short list
-          </div>
-        ) : !data?.data || data.data.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            No items in short list
           </div>
         ) : (
           <div className="surface-card overflow-hidden">
             <div className="p-4 border-b border-border">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-foreground">
-                  Shortlist Items ({filteredShortlistItems(data.data).length})
+                  Shortlist Items ({filteredShortlistItems(data?.data).length})
                 </h3>
               </div>
-              <div className="mt-3 relative">
-                <input
-                  type="text"
+              <div className="mt-3">
+                <Input.Search
                   placeholder="Search shortlist by item name, SKU, or product..."
                   value={shortlistSearchTerm}
                   onChange={(e) => setShortlistSearchTerm(e.target.value)}
-                  className="w-full h-11 px-3.5 py-2 border border-border bg-background/85 text-foreground rounded-xl text-[0.95rem]"
+                  allowClear
+                  size="large"
+                  className="w-full"
                 />
-                {shortlistSearchTerm && (
-                  <button
-                    onClick={() => setShortlistSearchTerm("")}
-                    className="absolute right-3 top-10 text-muted-foreground hover:text-foreground"
-                  >
-                    ✕
-                  </button>
-                )}
               </div>
             </div>
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                    Item Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                    SKU
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                    Current Qty
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                    Last Restock
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                    Reason
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredShortlistItems(data.data).length === 0 && shortlistSearchTerm ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                      No items found matching &quot;{shortlistSearchTerm}&quot;
-                    </td>
-                  </tr>
-                ) : (
-                  filteredShortlistItems(data.data).map((item: ShortListItem) => (
-                    <tr key={item.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-6 py-4 text-sm text-foreground">
-                      <Link
-                        href={`/inventory?id=${item.inventoryId}`}
-                        className="text-primary hover:underline"
-                      >
-                        {item.inventory.itemName}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {item.inventory.variant?.sku || "N/A"}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium text-foreground">
-                      {item.inventory.quantity}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {item.inventory.lastRestockQty || "N/A"}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          item.isSlowItem
-                            ? "bg-warning/15 text-warning"
-                            : "bg-primary/15 text-primary"
-                        }`}
-                      >
-                        {item.isSlowItem ? "🐢 Slow Item" : "📊 50% Rule"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <button
-                        onClick={() => removeMutation.mutate(item.inventoryId)}
-                        disabled={removeMutation.isPending}
-                        className="text-destructive hover:text-destructive/80 text-sm font-medium disabled:opacity-50"
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <Table
+              columns={columns}
+              dataSource={filteredShortlistItems(data?.data)}
+              rowKey="id"
+              loading={isLoading}
+              pagination={{ pageSize: 10 }}
+              scroll={{ x: 600 }}
+              locale={{
+                emptyText: shortlistSearchTerm
+                  ? `No items found matching "${shortlistSearchTerm}"`
+                  : "No items in short list",
+              }}
+            />
           </div>
         )}
       </div>

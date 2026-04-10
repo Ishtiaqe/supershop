@@ -248,10 +248,11 @@ export default function CatalogClient() {
         </Button>
       </div>
 
-      <Input
+      <Input.Search
         placeholder="Search catalog..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        onSearch={setSearch}
         style={{ marginBottom: 16, width: 300 }}
         allowClear
       />

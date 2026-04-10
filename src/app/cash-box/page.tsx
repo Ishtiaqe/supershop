@@ -11,7 +11,6 @@ import {
   CashBoxEntry,
 } from "./hooks/useCashBoxHooks";
 import { AddEntryModal } from "./components/AddEntryModal";
-import { Button } from "@/components/ui/button";
 
 const { RangePicker } = DatePicker;
 
@@ -140,7 +139,7 @@ export default function CashBoxPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Button onClick={() => setIsAddModalOpen(true)}>+ Add Entry</Button>
+        <AntButton type="primary" onClick={() => setIsAddModalOpen(true)}>+ Add Entry</AntButton>
       </div>
 
       {/* Summary Cards */}

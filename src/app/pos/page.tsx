@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import POSPageWrapper from "@/components/pos/POSPageWrapper";
+import POSClient from "@/components/pos/POSClient";
 
 export const metadata: Metadata = {
   title: "Sales Portal",
@@ -7,9 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function POSPage() {
-  return (
-    <div className="w-full space-y-4">
-      <POSPageWrapper />
-    </div>
-  );
+  return <POSClient />;
 }

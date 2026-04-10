@@ -25,7 +25,7 @@ export function OfflineProvider({ children }: OfflineProviderProps) {
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
   const [offlineStatus, setOfflineStatus] = useState<OfflineStatus>({
     isOnline: true,
-    lastOnline: Date.now(),
+    lastOnline: 0,
     syncInProgress: false,
     pendingOperations: 0
   });
@@ -34,7 +34,13 @@ export function OfflineProvider({ children }: OfflineProviderProps) {
 
   useEffect(() => {
     // Initialize network status
-    setIsOnline(networkDetector.isOnline());
+    const online = networkDetector.isOnline();
+    setIsOnline(online);
+    setOfflineStatus(prev => ({
+      ...prev,
+      isOnline: online,
+      lastOnline: Date.now()
+    }));
 
     // Listen for network changes
     const unsubscribe = networkDetector.onStatusChange((online) => {

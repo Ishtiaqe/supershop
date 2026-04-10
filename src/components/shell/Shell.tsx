@@ -404,7 +404,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <NotificationSetup />
         <Content
           style={{
-            margin: "20px 24px",
             minHeight: 280,
           }}
         >

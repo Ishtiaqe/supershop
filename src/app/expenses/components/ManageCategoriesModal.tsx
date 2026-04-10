@@ -1,13 +1,6 @@
 import { useState } from "react";
-import { Plus, Trash2, Pencil } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Modal, Button, Input, List, Popconfirm, message, Typography } from "antd";
+import { PlusOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { 
   useCategories, 
   useCreateCategory, 
@@ -22,7 +15,10 @@ interface ManageCategoriesModalProps {
   id?: string;
 }
 
+const { Text } = Typography;
+
 export function ManageCategoriesModal({ isOpen, onClose, id }: ManageCategoriesModalProps) {
+
   const { data: categories, isLoading } = useCategories();
   const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
   const { mutate: updateCategory, isPending: isUpdating } = useUpdateCategory();
@@ -35,7 +31,10 @@ export function ManageCategoriesModal({ isOpen, onClose, id }: ManageCategoriesM
   const handleCreate = () => {
     if (!newCatName.trim()) return;
     createCategory({ name: newCatName.trim() }, {
-      onSuccess: () => setNewCatName("")
+      onSuccess: () => {
+        setNewCatName("");
+        message.success("Category created successfully");
+      }
     });
   };
 
@@ -50,84 +49,120 @@ export function ManageCategoriesModal({ isOpen, onClose, id }: ManageCategoriesM
       onSuccess: () => {
         setEditingCatId(null);
         setEditingCatName("");
+        message.success("Category updated successfully");
       }
     });
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure? This category will be deleted. Ensure no expenses are using it.")) {
-      deleteCategory(id);
-    }
+    deleteCategory(id, {
+      onSuccess: () => message.success("Category deleted successfully"),
+      onError: () => message.error("Failed to delete category")
+    });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent id={id} className="sm:max-w-[450px]">
-        <DialogHeader>
-          <DialogTitle>Manage Expense Categories</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4 pt-4">
-          <div className="flex items-center gap-2">
-            <Input 
-              placeholder="New category name..." 
-              value={newCatName}
-              onChange={(e) => setNewCatName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-            />
-            <Button onClick={handleCreate} disabled={!newCatName.trim() || isCreating}>
-              <Plus className="h-4 w-4 mr-2" /> Add
-            </Button>
-          </div>
-
-          <div className="border rounded-md divide-y max-h-[300px] overflow-y-auto">
-            {isLoading ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>
-            ) : categories?.length === 0 ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">No categories defined.</div>
-            ) : (
-              categories?.map((cat) => (
-                <div key={cat.id} className="flex items-center justify-between p-3 flex-wrap gap-2">
-                  {editingCatId === cat.id ? (
-                    <div className="flex-1 flex items-center gap-2">
-                      <Input
-                        value={editingCatName}
-                        onChange={(e) => setEditingCatName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleUpdate(cat.id)}
-                        autoFocus
-                      />
-                      <Button size="sm" onClick={() => handleUpdate(cat.id)} disabled={!editingCatName.trim() || isUpdating}>
-                        Save
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setEditingCatId(null)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <span className="font-medium text-sm pl-1">{cat.name}</span>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(cat)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => handleDelete(cat.id)}
-                          disabled={isDeleting}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+    <Modal
+      title="Manage Expense Categories"
+      open={isOpen}
+      onCancel={onClose}
+      footer={null}
+    >
+      <div className="space-y-4 pt-4">
+        <div className="flex items-center gap-2">
+          <Input 
+            placeholder="New category name..." 
+            value={newCatName}
+            onChange={(e) => setNewCatName(e.target.value)}
+            onPressEnter={handleCreate}
+          />
+          <Button 
+            type="primary" 
+            onClick={handleCreate} 
+            disabled={!newCatName.trim() || isCreating}
+            icon={<PlusOutlined />}
+            loading={isCreating}
+          >
+            Add
+          </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+
+        <List
+          bordered
+          size="small"
+          loading={isLoading}
+          dataSource={categories || []}
+          className="max-h-[300px] overflow-y-auto rounded-md"
+          locale={{ emptyText: "No categories defined." }}
+          renderItem={(cat: ExpenseCategory) => (
+
+            <List.Item
+              actions={[
+                editingCatId === cat.id ? (
+                  <Button 
+                    key="save" 
+                    type="link" 
+                    size="small" 
+                    onClick={() => handleUpdate(cat.id)}
+                    disabled={!editingCatName.trim() || isUpdating}
+                  >
+                    Save
+                  </Button>
+                ) : (
+                  <Button 
+                    key="edit" 
+                    type="link" 
+                    icon={<EditOutlined />} 
+                    size="small" 
+                    onClick={() => startEdit(cat)} 
+                  />
+                ),
+                editingCatId === cat.id ? (
+                  <Button 
+                    key="cancel" 
+                    type="link" 
+                    size="small" 
+                    onClick={() => setEditingCatId(null)}
+                  >
+                    Cancel
+                  </Button>
+                ) : (
+                  <Popconfirm
+                    key="delete"
+                    title="Delete category"
+                    description="Are you sure? This category will be deleted. Ensure no expenses are using it."
+                    onConfirm={() => handleDelete(cat.id)}
+                    okText="Yes"
+                    cancelText="No"
+                    disabled={isDeleting}
+                  >
+                    <Button 
+                      type="link" 
+                      danger 
+                      icon={<DeleteOutlined />} 
+                      size="small" 
+                      disabled={isDeleting}
+                    />
+                  </Popconfirm>
+                ),
+              ]}
+            >
+              {editingCatId === cat.id ? (
+                <Input
+                  value={editingCatName}
+                  onChange={(e) => setEditingCatName(e.target.value)}
+                  onPressEnter={() => handleUpdate(cat.id)}
+                  autoFocus
+                  size="small"
+                />
+              ) : (
+                <Typography.Text>{cat.name}</Typography.Text>
+              )}
+            </List.Item>
+          )}
+        />
+      </div>
+    </Modal>
   );
 }
+

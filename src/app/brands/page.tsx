@@ -1,5 +1,4 @@
 import dynamic from "next/dynamic";
-import { Card } from "antd";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -21,9 +20,7 @@ export default function BrandsPage() {
         </h1>
         <p className="text-muted-foreground">Manage product brands</p>
       </div>
-      <Card variant="borderless" className="glass-card">
-        <BrandsClient />
-      </Card>
+      <BrandsClient />
     </div>
   );
 }

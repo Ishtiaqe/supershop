@@ -1,7 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Input, List, Card, Button, Typography, message, Empty } from 'antd';
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../../lib/api';
 import useShortlistMutation from '../../hooks/useShortlist';
 import debounce from 'lodash/debounce';
+
+const { Text } = Typography;
 
 interface SearchItem {
   id: string;
@@ -16,73 +20,53 @@ export default function GlobalSearchWithShortList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<SearchItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [loading, setLoading] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Search for items (debounced via stable ref)
-  const debouncedSearch = useRef(
-    debounce(async (term: string) => {
-      if (term.length < 2) {
-        setResults([]);
-        return;
-      }
+  // Search for items (debounced)
+  const debouncedSearch = useMemo(
+    () =>
+      debounce(async (term: string) => {
+        if (term.length < 2) {
+          setResults([]);
+          setLoading(false);
+          return;
+        }
 
-      try {
-        const response = await api.get(`/api/v1/inventory?q=${term}`);
-        setResults(response.data.slice(0, 10));
-        setIsOpen(true);
-      } catch (error) {
-        console.error('Search failed:', error);
-      }
-    }, 300),
+        setLoading(true);
+        try {
+          const response = await api.get(`/api/v1/inventory?q=${term}`);
+          setResults(response.data.slice(0, 10));
+          setIsOpen(true);
+        } catch (error) {
+          console.error('Search failed:', error);
+          message.error('Search failed');
+        } finally {
+          setLoading(false);
+        }
+      }, 300),
+    []
   );
 
   const handleInputChange = (value: string) => {
     setSearchTerm(value);
-    setSelectedIndex(-1);
-    debouncedSearch.current(value);
+    debouncedSearch(value);
   };
 
   useEffect(() => {
-    const ds = debouncedSearch.current;
     return () => {
-      ds.cancel?.();
+      debouncedSearch.cancel();
     };
-  }, []);
+  }, [debouncedSearch]);
 
-  // Add to short list
   const addMutation = useShortlistMutation({
     onSuccess: () => {
+      message.success('Added to shortlist');
       setSearchTerm('');
       setResults([]);
       setIsOpen(false);
     },
   });
-
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isOpen) return;
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % results.length);
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + results.length) % results.length);
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (selectedIndex >= 0) {
-          addMutation.mutate({ inventoryId: results[selectedIndex].id, action: 'add' });
-        }
-        break;
-      case 'Escape':
-        setIsOpen(false);
-        break;
-    }
-  };
 
   // Close on outside click
   useEffect(() => {
@@ -97,53 +81,60 @@ export default function GlobalSearchWithShortList() {
   }, []);
 
   return (
-    <div ref={searchRef} className="relative">
-      <input
-        type="text"
+    <div ref={searchRef} className="relative w-full">
+      <Input.Search
         placeholder="Search items to add to short list..."
         value={searchTerm}
         onChange={(e) => handleInputChange(e.target.value)}
-        onKeyDown={handleKeyDown}
         onFocus={() => results.length > 0 && setIsOpen(true)}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+        allowClear
+        loading={loading}
+        enterButton
       />
 
-      {isOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
-          {results.map((item, index) => (
-            <div
-              key={item.id}
-              onClick={() => addMutation.mutate({ inventoryId: item.id, action: 'add' })}
-              className={`px-4 py-3 cursor-pointer flex justify-between items-center ${
-                index === selectedIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
-              } border-b last:border-b-0`}
-            >
-              <div className="flex-1">
-                <div className="font-medium text-sm text-gray-900">{item.itemName}</div>
-                <div className="text-xs text-gray-500">
-                  SKU: {item.variant?.sku || 'N/A'} • Qty: {item.quantity}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  addMutation.mutate({ inventoryId: item.id, action: 'add' })
-                }}
-                className="ml-4 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+      {isOpen && (searchTerm.length >= 2 || results.length > 0) && (
+        <Card
+          className="absolute top-full left-0 right-0 mt-2 z-50 shadow-xl"
+          styles={{ body: { padding: 0 } }}
+        >
+          <List
+            loading={loading}
+            dataSource={results}
+            locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No items found" /> }}
+            renderItem={(item) => (
+              <List.Item
+                className="px-4 py-3 hover:bg-theme-muted transition-colors cursor-pointer"
+                onClick={() => addMutation.mutate({ inventoryId: item.id, action: 'add' })}
+                actions={[
+                  <Button
+                    key="add"
+                    type="primary"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addMutation.mutate({ inventoryId: item.id, action: 'add' });
+                    }}
+                  >
+                    Add
+                  </Button>
+                ]}
               >
-                + Add
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+                <List.Item.Meta
+                  title={<Text strong>{item.itemName}</Text>}
+                  description={
+                    <Text type="secondary">
+                      SKU: {item.variant?.sku || 'N/A'} • Qty: {item.quantity}
+                    </Text>
+                  }
+                />
 
-      {isOpen && searchTerm.length >= 2 && results.length === 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 p-4 text-center text-sm text-gray-500">
-          No items found
-        </div>
+              </List.Item>
+            )}
+          />
+        </Card>
       )}
     </div>
   );
 }
+

@@ -1,52 +1,14 @@
-"use client";
-
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { 
+  Modal, 
+  Form, 
+  Input, 
+  InputNumber, 
+  Select, 
+  DatePicker, 
+  message 
+} from "antd";
+import dayjs from "dayjs";
 import { useCreateCashBoxEntry } from "../hooks/useCashBoxHooks";
-import { format } from "date-fns";
-
-const schema = z.object({
-  entryType: z.enum(["MANUAL_IN", "MANUAL_OUT"]),
-  amount: z
-    .union([z.string(), z.number()])
-    .transform((v) => Number(v))
-    .refine((v) => v > 0, { message: "Amount must be greater than 0" }),
-  note: z.string().optional(),
-  entryDate: z.string().min(1, "Date is required"),
-});
-
-type FormValues = z.input<typeof schema>;
-
-interface AddEntryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
 
 interface AddEntryModalProps {
   isOpen: boolean;
@@ -55,131 +17,104 @@ interface AddEntryModalProps {
 }
 
 export function AddEntryModal({ isOpen, onClose, id }: AddEntryModalProps) {
+  const [form] = Form.useForm();
   const { mutate: createEntry, isPending } = useCreateCashBoxEntry();
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      entryType: "MANUAL_IN",
-      amount: "" as any,
-      note: "",
-      entryDate: format(new Date(), "dd/MM/yyyy"),
-    },
-  });
-
-  const onSubmit = (values: FormValues) => {
+  const handleSubmit = (values: any) => {
     createEntry(
       {
         entryType: values.entryType,
         amount: Number(values.amount),
         note: values.note,
-        entryDate: values.entryDate,
+        entryDate: values.entryDate.format("YYYY-MM-DD"),
       },
       {
         onSuccess: () => {
-          form.reset();
+          message.success("Entry added successfully");
+          form.resetFields();
           onClose();
         },
+        onError: (err: any) => {
+          message.error(err?.response?.data?.message || "Failed to add entry");
+        }
       }
     );
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent id={id} className="sm:max-w-[420px]">
-        <DialogHeader>
-          <DialogTitle>Add Cash Box Entry</DialogTitle>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="entryType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="MANUAL_IN">
-                        💰 Deposit (Cash In)
-                      </SelectItem>
-                      <SelectItem value="MANUAL_OUT">
-                        💸 Withdrawal (Cash Out)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+    <Modal
+      title="Add Cash Box Entry"
+      open={isOpen}
+      onCancel={() => {
+        form.resetFields();
+        onClose();
+      }}
+      onOk={() => form.submit()}
+      confirmLoading={isPending}
+      okText="Save Entry"
+      destroyOnClose
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        initialValues={{
+          entryType: "MANUAL_IN",
+          entryDate: dayjs(),
+        }}
+        className="mt-4"
+      >
+        <Form.Item
+          name="entryType"
+          label="Type"
+          rules={[{ required: true, message: "Please select entry type" }]}
+        >
+          <Select placeholder="Select type">
+            <Select.Option value="MANUAL_IN">
+              💰 Deposit (Cash In)
+            </Select.Option>
+            <Select.Option value="MANUAL_OUT">
+              💸 Withdrawal (Cash Out)
+            </Select.Option>
+          </Select>
+        </Form.Item>
 
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount (৳)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" min="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <Form.Item
+          name="amount"
+          label="Amount (৳)"
+          rules={[
+            { required: true, message: "Please enter amount" },
+            { type: "number", min: 0.01, message: "Amount must be at least 0.01" }
+          ]}
+        >
+          <InputNumber
+            className="w-full"
+            step="0.01"
+            min={0.01}
+            precision={2}
+            placeholder="0.00"
+          />
+        </Form.Item>
 
-            <FormField
-              control={form.control}
-              name="entryDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <Form.Item
+          name="entryDate"
+          label="Date"
+          rules={[{ required: true, message: "Please select date" }]}
+        >
+          <DatePicker className="w-full" format="DD/MM/YYYY" />
+        </Form.Item>
 
-            <FormField
-              control={form.control}
-              name="note"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Note (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="e.g. Owner withdrawal, shop expenses..."
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isPending}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Saving..." : "Save Entry"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+        <Form.Item
+          name="note"
+          label="Note (Optional)"
+        >
+          <Input.TextArea
+            placeholder="e.g. Owner withdrawal, shop expenses..."
+            rows={3}
+          />
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 }
+

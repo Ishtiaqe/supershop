@@ -126,12 +126,12 @@ export default function LoginPage() {
   // Prevent form flicker if user is logged in
   if (user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <main className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Redirecting...</p>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -397,14 +397,7 @@ export default function LoginPage() {
                       loading={loading}
                       className="h-12 rounded-lg font-semibold text-base bg-gradient-to-r from-blue-500 to-purple-600 border-0 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300"
                     >
-                      {loading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                          Signing in...
-                        </span>
-                      ) : (
-                        "Sign In"
-                      )}
+                      {loading ? "Signing in..." : "Sign In"}
                     </Button>
                   </div>
                 </Form.Item>

@@ -14,7 +14,9 @@ import {
   Typography,
   message,
   Alert,
+  Input,
 } from "antd";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 type CartItem = {
   key: string;
@@ -66,19 +68,18 @@ function fetchInventory(q?: string, signal?: AbortSignal) {
   }
 }
 
-type POSClientProps = {
-  getCustomerDetails?: () => {
-    customerName?: string;
-    customerPhone?: string;
-  };
-  clearCustomerDetails?: () => void;
-};
-
-function POSClient({ getCustomerDetails, clearCustomerDetails }: POSClientProps) {
+function POSClient() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const selectRef = useRef<React.ComponentRef<typeof Select>>(null);
+
+  // Customer state moved from POSPageWrapper
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const customerNameRef = useRef("");
+  const customerPhoneRef = useRef("");
+  const { user, loading } = useAuth();
 
   // Keyboard shortcut: focus the Select field when pressing '/'
   // Double Shift: focus the "Complete Sale" button
@@ -319,15 +320,16 @@ function POSClient({ getCustomerDetails, clearCustomerDetails }: POSClientProps)
       }
     }
 
-    const { customerName, customerPhone } = getCustomerDetails?.() ?? {};
-
     saleMutation.mutate({
       items: payloadItems,
       customerName: customerName || undefined,
       customerPhone: customerPhone || undefined,
     });
     setCart([]);
-    clearCustomerDetails?.();
+    setCustomerName("");
+    setCustomerPhone("");
+    customerNameRef.current = "";
+    customerPhoneRef.current = "";
   }
 
   const total = useMemo(
@@ -433,10 +435,35 @@ function POSClient({ getCustomerDetails, clearCustomerDetails }: POSClientProps)
           </Row>
         </Col>
 
-        {/* Customer inputs are controlled by the parent page; moved to page layout */}
+        <Col xs={24} md={8} lg={8}>
+          <div>
+            <Typography.Text>Customer Name (Optional)</Typography.Text>
+            <Input
+              placeholder="Enter customer name"
+              value={customerName}
+              onChange={(e) => {
+                const value = e.target.value;
+                customerNameRef.current = value;
+                setCustomerName(value);
+              }}
+            />
+
+            <div style={{ marginTop: 12 }}>
+              <Typography.Text>Customer Phone (Optional)</Typography.Text>
+              <Input
+                placeholder="Enter phone number"
+                value={customerPhone}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  customerPhoneRef.current = value;
+                  setCustomerPhone(value);
+                }}
+              />
+            </div>
+          </div>
+        </Col>
       </Row>
 
-      {/* Customer fields moved into right-side card above */}
       {/* Add to cart button is included in the left column above */}
 
       <div style={{ marginTop: 16 }}>
