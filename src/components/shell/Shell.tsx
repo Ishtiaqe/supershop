@@ -16,11 +16,9 @@ import { theme } from "antd";
 import { useTheme } from "@/components/providers";
 import { getFilteredNavigation } from "@/config/navigation";
 import { NetworkStatus } from "./NetworkStatus";
-import api from "@/lib/api";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 import MenuOutlined from "@ant-design/icons/MenuOutlined";
-import UserOutlined from "@ant-design/icons/UserOutlined";
 import DesktopOutlined from "@ant-design/icons/DesktopOutlined";
 import SunOutlined from "@ant-design/icons/SunOutlined";
 import MoonOutlined from "@ant-design/icons/MoonOutlined";
@@ -51,6 +49,7 @@ const AppSidebar = ({
   collapsed,
   isMobile,
   setMobileOpen,
+  setCollapsed,
   items,
   selectedKey,
   user,
@@ -60,6 +59,7 @@ const AppSidebar = ({
   collapsed: boolean;
   isMobile: boolean;
   setMobileOpen: (open: boolean) => void;
+    setCollapsed: (collapsed: boolean) => void;
   items: any[];
   selectedKey: string;
   user: any;
@@ -69,16 +69,14 @@ const AppSidebar = ({
   <div className="flex flex-col h-full">
     {/* Logo Area */}
     <div
-      className={`flex items-center ${
-        collapsed ? "justify-center px-3 py-4" : "gap-3 px-5 py-4"
-      }`}
+      className={`flex items-center justify-start px-3 py-4 gap-2`}
     >
       <div
-        className={`rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-md flex-shrink-0 ${
-          collapsed ? "w-9 h-9 text-lg" : "w-10 h-10 text-xl"
-        }`}
+        className={`flex items-center justify-center font-bold flex-shrink-0 w-9 h-9 text-lg cursor-pointer hover:bg-accent/70 active:bg-accent rounded-lg transition-all duration-200`}
+        onClick={() => isMobile ? setMobileOpen(false) : setCollapsed?.(!collapsed)}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
-        S
+        <MenuOutlined />
       </div>
       {!collapsed && (
         <span className="font-bold text-lg text-foreground tracking-tight truncate">
@@ -96,7 +94,7 @@ const AppSidebar = ({
         style={{
           background: "transparent",
           border: "none",
-          fontSize: 15,
+          fontSize: 14,
         }}
         className="custom-menu"
         onClick={() => isMobile && setMobileOpen(false)}
@@ -104,7 +102,7 @@ const AppSidebar = ({
     </div>
 
     {/* Footer / User Profile */}
-    <div className="p-4 border-t border-border/50">
+    <div className="p-3 border-t border-border/50">
       <Dropdown
         trigger={["click"]}
         menu={{
@@ -112,7 +110,7 @@ const AppSidebar = ({
             {
               key: "profile",
               label: (
-                <Link href="/profile" className="flex items-center gap-2">
+                <Link href="/profile" className="flex items-center gap-2 px-2 py-1.5">
                   <UserSwitchOutlined /> Profile
                 </Link>
               ),
@@ -124,7 +122,7 @@ const AppSidebar = ({
               key: "logout",
               danger: true,
               label: (
-                <a onClick={onLogout} className="flex items-center gap-2">
+                <a onClick={onLogout} className="flex items-center gap-2 px-2 py-1.5">
                   <LogoutOutlined /> Sign out
                 </a>
               ),
@@ -133,9 +131,9 @@ const AppSidebar = ({
         }}
       >
         <div
-          className={`cursor-pointer flex items-center gap-3 ${
-            collapsed ? "p-0 w-10 h-10 justify-center" : "p-2"
-          } rounded-lg hover:bg-accent transition-colors`}
+          className={`cursor-pointer flex items-center gap-3 ${collapsed ? "p-0 w-10 h-10 justify-center" : "p-2"
+            } rounded-lg hover:bg-accent/80 active:bg-accent transition-all duration-200`}
+          title="User menu"
         >
           <Avatar
             style={{
@@ -143,7 +141,7 @@ const AppSidebar = ({
               verticalAlign: "middle",
               flexShrink: 0,
             }}
-            size={40}
+            size={36}
           >
             {(user?.fullName || "U")[0]}
           </Avatar>
@@ -185,11 +183,10 @@ const ThemeToggle = ({
           key={opt.value}
           onClick={() => setMode(opt.value)}
           title={opt.label}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-ring ${
-            mode === opt.value
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-ring ${mode === opt.value
+            ? "bg-background text-foreground"
+            : "text-muted-foreground hover:text-foreground"
+            }`}
         >
           {opt.icon}
           {!compact && <span className="hidden md:inline">{opt.label}</span>}
@@ -200,7 +197,7 @@ const ThemeToggle = ({
 };
 
 export default function Shell({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [drawerCollapse, setDrawerCollapsed] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -218,7 +215,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       if (!mobile) {
         setMobileOpen(false);
       } else {
-        setCollapsed(false);
+        setMobileOpen(false);
       }
     }
     checkWidth();
@@ -284,23 +281,17 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     return matched || pathname;
   })();
 
-  // Current page label for breadcrumb
-  const pageLabel =
-    PATH_LABELS[selectedKey] ||
-    PATH_LABELS[pathname] ||
-    (pathname.replace("/", "").replace(/-/g, " ") || "");
-
   const handleLogout = async () => {
     await logout();
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", background: token.colorBgLayout }}>
+    <Layout style={{ minHeight: "100vh", background: "transparent" }}>
       {!isMobile && (
         <Sider
           trigger={null}
           collapsible
-          collapsed={collapsed}
+          collapsed={drawerCollapse}
           width={240}
           collapsedWidth={64}
           className="glass border-r border-border/50"
@@ -314,9 +305,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           }}
         >
           <AppSidebar
-            collapsed={collapsed}
+            collapsed={drawerCollapse}
             isMobile={isMobile}
             setMobileOpen={setMobileOpen}
+            setCollapsed={setDrawerCollapsed}
             items={items}
             selectedKey={selectedKey}
             user={user}
@@ -335,15 +327,17 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           styles={{
             body: {
               padding: 0,
-              background: token.colorBgContainer,
+              background: "transparent",
             },
           }}
           closable={false}
+          maskClosable={true}
         >
           <AppSidebar
             collapsed={false}
             isMobile={isMobile}
             setMobileOpen={setMobileOpen}
+            setCollapsed={setDrawerCollapsed}
             items={items}
             selectedKey={selectedKey}
             user={user}
@@ -355,44 +349,38 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
       <Layout style={{ background: "transparent" }}>
         <Header
-          className="glass sticky top-0 z-40 flex items-center justify-between"
+          className="glass sticky top-0 z-40 flex items-center justify-between border-b border-border/50"
           style={{
-            height: 60,
+            height: 64,
             background: "transparent",
-            paddingInline: 16,
+            paddingInline: 24,
           }}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button
               type="text"
               icon={<MenuOutlined />}
+              hidden={!isMobile}
               onClick={() =>
-                isMobile ? setMobileOpen(true) : setCollapsed(!collapsed)
+                isMobile ? setMobileOpen(true) : setDrawerCollapsed(!drawerCollapse)
               }
-              style={{ fontSize: "18px", width: 44, height: 44 }}
+              className="hover:bg-accent transition-colors"
+              style={{ fontSize: "18px", width: 40, height: 40, borderRadius: 8 }}
             />
-
-            {/* Tenant + page breadcrumb */}
-            <div className="flex items-center gap-2 text-foreground">
-              <span className="font-bold text-lg tracking-tight hidden sm:inline">
-                {tenantName}
-              </span>
-              {pageLabel && (
-                <>
-                  <span className="text-border hidden sm:inline">/</span>
-                  <span className="font-medium text-base text-muted-foreground">
-                    {pageLabel}
-                  </span>
-                </>
-              )}
-              {/* Mobile: show only page label */}
-              <span className="font-bold text-base sm:hidden">
-                {pageLabel || tenantName}
-              </span>
-            </div>
+            {!isMobile && (
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setDrawerCollapsed(!drawerCollapse)}
+                className="hover:bg-accent transition-colors"
+                style={{ fontSize: "18px", width: 40, height: 40, borderRadius: 8 }}
+              />
+            )}
           </div>
-
-          <div className="flex items-center gap-3">
+          <div className="font-semibold text-lg text-foreground tracking-tight">
+            {PATH_LABELS[pathname] || pathname}
+          </div>
+          <div className="flex items-center gap-2">
             <NetworkStatus />
             <ThemeToggle
               mode={themeContext.mode}
@@ -404,7 +392,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <NotificationSetup />
         <Content
           style={{
-            minHeight: 280,
+            minHeight: "calc(100vh - 64px)",
+            padding: isMobile ? "16px" : "24px",
           }}
         >
           <div key={pathname} className="transition-opacity duration-200">
@@ -415,3 +404,4 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     </Layout>
   );
 }
+

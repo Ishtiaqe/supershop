@@ -15,10 +15,8 @@ export default function CatalogPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Product Catalog
-        </h1>
-        <p className="text-muted-foreground">
+        <h1 className="page-header">Product Catalog</h1>
+        <p className="page-subheader">
           Manage your product catalog with variants, pricing, and medicine
           information
         </p>

@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "check:colors": "node ./scripts/check-color-vars.js",
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
     "build:static": "NEXT_PUBLIC_OUTPUT=export next build",
     "build-mobile": "npm run build:static && npx cap sync android",

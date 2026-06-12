@@ -11,7 +11,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase only if config is available
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : null;
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = app ? getAuth(app) : null;

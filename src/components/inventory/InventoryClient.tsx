@@ -365,12 +365,13 @@ export default function InventoryClient() {
   }
 
   return (
-    <>
+    <div className="space-y-4">
+      <div className="surface-card p-4 md:p-6">
       <Form
         form={addFormInstance}
         layout="vertical"
         onFinish={submitAdd}
-        className="mb-6"
+        className="mb-0"
         onValuesChange={(changedValues, allValues) => {
           if (
             "purchasePrice" in changedValues ||
@@ -533,9 +534,10 @@ export default function InventoryClient() {
           </Button>
         </Form.Item>
       </Form>
+      </div>
 
+      <div className="surface-card p-4 md:p-6">
       <div className="flex justify-between items-center mb-4">
-        <Typography.Title level={4} style={{ margin: 0 }}>Inventory Items</Typography.Title>
         <Input.Search
           placeholder="Search by product name..."
           value={search}
@@ -547,6 +549,7 @@ export default function InventoryClient() {
         />
       </div>
 
+      <div className="overflow-x-auto">
       <Table
         dataSource={filteredDataSource}
         rowKey="key"
@@ -658,7 +661,8 @@ export default function InventoryClient() {
           }
         />
       </Table>
-
+      </div>
+      </div>
 
       <Modal
         title="Edit Inventory Item"
@@ -804,6 +808,6 @@ export default function InventoryClient() {
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </div>
   );
 }

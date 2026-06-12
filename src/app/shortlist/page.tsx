@@ -249,17 +249,16 @@ export default function ShortListPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="page-header mb-2">Short List</h1>
-          <p className="text-muted-foreground">
-            Items that need restocking. detection
-          </p>
-        </div>
-        {/* Controls */}
-        <div className="surface-card p-6 mb-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="page-header">Short List</h1>
+        <p className="page-subheader">
+          Items that need restocking
+        </p>
+      </div>
+      {/* Controls */}
+      <div className="surface-card p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             {/* Add to Shortlist Search */}
             <div className="md:col-span-2">
@@ -410,7 +409,6 @@ export default function ShortListPage() {
             />
           </div>
         )}
-      </div>
     </div>
   );
 }

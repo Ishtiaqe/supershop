@@ -94,8 +94,11 @@ export default function ExpensesPage() {
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between mb-4">
-        <Title level={2} style={{ margin: 0 }}>Expenses</Title>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div>
+          <h1 className="page-header">Expenses</h1>
+          <p className="page-subheader">Track and categorize shop expenses</p>
+        </div>
         <Space>
           <Button icon={<SettingOutlined />} onClick={() => setIsCategoriesModalOpen(true)}>
             Manage Categories

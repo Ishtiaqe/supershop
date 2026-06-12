@@ -22,11 +22,15 @@ const DashboardCharts = dynamic(
 export default function DashboardClient() {
   return (
     <div className="space-y-6">
-      <>
-        {/* Client-side summary/fallback (hydrates server skeleton) */}
-        <DashboardSummaryClient />
-        <DashboardCharts />
-      </>
+      <div>
+        <h1 className="page-header">Dashboard</h1>
+        <p className="page-subheader">
+          An overview of your shop&apos;s performance
+        </p>
+      </div>
+      {/* Client-side summary/fallback (hydrates server skeleton) */}
+      <DashboardSummaryClient />
+      <DashboardCharts />
     </div>
   );
 }

@@ -235,35 +235,39 @@ export default function CatalogClient() {
 
   return (
     <div>
-      <div className="mb-4 flex justify-between items-center">
-        <div className="text-sm text-muted-foreground">
-          {catalogItems.length} products in catalog
+      <div className="surface-card p-4 md:p-6">
+        <div className="mb-4 flex justify-between items-center">
+          <div className="text-sm text-muted-foreground">
+            {catalogItems.length} products in catalog
+          </div>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => handleOpenModal()}
+          >
+            Add to Catalog
+          </Button>
         </div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => handleOpenModal()}
-        >
-          Add to Catalog
-        </Button>
+
+        <Input.Search
+          placeholder="Search catalog..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onSearch={setSearch}
+          style={{ marginBottom: 16, width: 300 }}
+          allowClear
+        />
+
+        <div className="overflow-x-auto">
+          <Table
+            dataSource={filteredCatalogItems}
+            columns={columns}
+            rowKey="variantId"
+            loading={isLoading}
+            pagination={{ pageSize: 10 }}
+          />
+        </div>
       </div>
-
-      <Input.Search
-        placeholder="Search catalog..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onSearch={setSearch}
-        style={{ marginBottom: 16, width: 300 }}
-        allowClear
-      />
-
-      <Table
-        dataSource={filteredCatalogItems}
-        columns={columns}
-        rowKey="variantId"
-        loading={isLoading}
-        pagination={{ pageSize: 10 }}
-      />
 
       <Modal
         title={editingItem ? "Edit Product" : "Add to Catalog"}

@@ -373,70 +373,72 @@ function POSClient() {
   );
 
   return (
-    <div>
-      <Row gutter={16} align="bottom">
+    <div className="space-y-4">
+      <Row gutter={16} align="stretch">
         <Col xs={24} md={16} lg={16}>
-          {/* Left: Select, Quantity, Add to Cart, Cart Table, Total & Checkout */}
-          <Row gutter={16}>
-            <Col span={24}>
-              {itemsError && (
-                <div style={{ marginBottom: 8 }}>
-                  <Alert
-                    type="error"
-                    showIcon
-                    message={
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      (itemsErrorObj as any)?.response?.status === 401
-                        ? "Not signed in — please login to access inventory"
-                        : "Failed to load inventory"
-                    }
-                  />
-                </div>
-              )}
-              <Typography.Text>Select Item</Typography.Text>
-              <Select
-                className="pos-select"
-                classNames={{ popup: { root: "pos-select-dropdown" } }}
-                ref={selectRef}
-                showSearch
-                filterOption={false}
-                allowClear
-                placeholder="Type to search inventory or SKU..."
-                style={{ width: "100%" }}
-                value={selectedKey ?? undefined}
-                onSearch={(val) => setSearch(val)}
-                onChange={(val) => setSelectedKey(val)}
-                notFoundContent={itemsLoading ? "Searching..." : "No results"}
-                options={selectOptions}
-                optionLabelProp="displayLabel"
-              />
-            </Col>
-            <Col span={8} className="mt-2">
-              <Typography.Text>Quantity</Typography.Text>
-              <InputNumber
-                variant="outlined"
-                className="w-full"
-                min={1}
-                value={qty}
-                onChange={(value) => setQty(Number(value))}
-                onPressEnter={addToCart}
-                changeOnWheel
-              />
-            </Col>
-            <Col span={24} style={{ marginTop: 12 }}>
-              <Button
-                type="primary"
-                onClick={addToCart}
-                disabled={!selectedKey}
-              >
-                Add to cart
-              </Button>
-            </Col>
-          </Row>
+          {/* Left: Select, Quantity, Add to Cart */}
+          <div className="surface-card p-4 md:p-6 h-full">
+            <Row gutter={16}>
+              <Col span={24}>
+                {itemsError && (
+                  <div style={{ marginBottom: 8 }}>
+                    <Alert
+                      type="error"
+                      showIcon
+                      message={
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        (itemsErrorObj as any)?.response?.status === 401
+                          ? "Not signed in — please login to access inventory"
+                          : "Failed to load inventory"
+                      }
+                    />
+                  </div>
+                )}
+                <Typography.Text>Select Item</Typography.Text>
+                <Select
+                  className="pos-select"
+                  classNames={{ popup: { root: "pos-select-dropdown" } }}
+                  ref={selectRef}
+                  showSearch
+                  filterOption={false}
+                  allowClear
+                  placeholder="Type to search inventory or SKU..."
+                  style={{ width: "100%" }}
+                  value={selectedKey ?? undefined}
+                  onSearch={(val) => setSearch(val)}
+                  onChange={(val) => setSelectedKey(val)}
+                  notFoundContent={itemsLoading ? "Searching..." : "No results"}
+                  options={selectOptions}
+                  optionLabelProp="displayLabel"
+                />
+              </Col>
+              <Col span={8} className="mt-2">
+                <Typography.Text>Quantity</Typography.Text>
+                <InputNumber
+                  variant="outlined"
+                  className="w-full"
+                  min={1}
+                  value={qty}
+                  onChange={(value) => setQty(Number(value))}
+                  onPressEnter={addToCart}
+                  changeOnWheel
+                />
+              </Col>
+              <Col span={24} style={{ marginTop: 12 }}>
+                <Button
+                  type="primary"
+                  onClick={addToCart}
+                  disabled={!selectedKey}
+                >
+                  Add to cart
+                </Button>
+              </Col>
+            </Row>
+          </div>
         </Col>
 
         <Col xs={24} md={8} lg={8}>
-          <div>
+          <div className="surface-card p-4 md:p-6 h-full">
             <Typography.Text>Customer Name (Optional)</Typography.Text>
             <Input
               placeholder="Enter customer name"
@@ -466,7 +468,7 @@ function POSClient() {
 
       {/* Add to cart button is included in the left column above */}
 
-      <div style={{ marginTop: 16 }}>
+      <div className="surface-card p-4 md:p-6">
         <div className="overflow-x-auto">
           <Table<CartItem>
             dataSource={displayCart}

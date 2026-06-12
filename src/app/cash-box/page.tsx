@@ -138,7 +138,11 @@ export default function CashBoxPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="page-header">Cash Box</h1>
+          <p className="page-subheader">Track cash movements and balance</p>
+        </div>
         <AntButton type="primary" onClick={() => setIsAddModalOpen(true)}>+ Add Entry</AntButton>
       </div>
 

@@ -15,7 +15,13 @@ const InventoryClient = dynamic(
 
 export default function InventoryPage() {
   return (
-    <div className="w-full">
+    <div className="w-full space-y-6">
+      <div>
+        <h1 className="page-header">Inventory Management</h1>
+        <p className="page-subheader">
+          Manage stock levels, batches, and pricing
+        </p>
+      </div>
       <InventoryClient />
     </div>
   );

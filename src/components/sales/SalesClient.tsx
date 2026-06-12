@@ -119,6 +119,7 @@ export default function SalesClient() {
 
   return (
     <div>
+      <div className="surface-card p-4 md:p-6">
       <Row gutter={16} className="mb-4">
         <Col span={8}>
           <Input.Search
@@ -154,12 +155,13 @@ export default function SalesClient() {
         </Col>
       </Row>
 
+      <div className="overflow-x-auto">
       <Table
         loading={isLoading}
         dataSource={filteredSales}
         rowKey={(r: Sale) => r.id}
         scroll={{ x: 'max-content' }}
-        pagination={{ 
+        pagination={{
           pageSize: 10,
           showSizeChanger: true,
           showTotal: (total) => `Total ${total} sales`
@@ -205,6 +207,8 @@ export default function SalesClient() {
           render={(t: number) => `৳${t.toFixed(2)}`}
         />
       </Table>
+      </div>
+      </div>
 
       <Modal
         title={`Transaction Details - ${saleDetails?.receiptNumber || ""}`}

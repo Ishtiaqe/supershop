@@ -27,9 +27,10 @@ html {
   body {
     @apply bg-background text-foreground;
     background-image:
-      radial-gradient(circle at 12% 8%, hsl(var(--primary) / 0.1), transparent 38%),
-      radial-gradient(circle at 88% 14%, hsl(var(--secondary) / 0.08), transparent 36%),
-      radial-gradient(circle at 50% 100%, hsl(var(--tertiary) / 0.08), transparent 44%);
+      radial-gradient(circle at 12% 8%, hsl(var(--primary) / 0.16), transparent 40%),
+      radial-gradient(circle at 88% 14%, hsl(var(--secondary) / 0.12), transparent 38%),
+      radial-gradient(circle at 50% 100%, hsl(var(--tertiary) / 0.12), transparent 46%),
+      radial-gradient(circle at 50% 50%, hsl(var(--info) / 0.05), transparent 60%);
     background-attachment: fixed;
     font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
     line-height: 1.6;

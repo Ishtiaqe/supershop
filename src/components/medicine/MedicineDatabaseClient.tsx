@@ -48,8 +48,6 @@ export default function MedicineDatabaseClient() {
 
   return (
     <div>
-      <Typography.Title level={3}>Medicine Database</Typography.Title>
-
       <Input
         placeholder="Search medicines..."
         value={search}
