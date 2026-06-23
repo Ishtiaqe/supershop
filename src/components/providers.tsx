@@ -9,6 +9,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { OfflineProvider } from "./providers/offline-provider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { ItemDetailProvider } from "@/components/providers/ItemDetailContext";
 import { getThemeColors } from "@/lib/theme";
 
 const ReactQueryDevtools = dynamic(
@@ -151,7 +152,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
                   client={queryClient}
                   persistOptions={{ persister }}
                 >
-                  {children}
+                  <ItemDetailProvider>
+                    {children}
+                  </ItemDetailProvider>
                   {process.env.NODE_ENV === "development" && (
                     <ReactQueryDevtools initialIsOpen={false} />
                   )}
@@ -159,7 +162,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
               ) : (
                 // Fallback for SSR or if persistence fails
                 <QueryClientProvider client={queryClient}>
-                  {children}
+                  <ItemDetailProvider>
+                    {children}
+                  </ItemDetailProvider>
                   {process.env.NODE_ENV === "development" && (
                     <ReactQueryDevtools initialIsOpen={false} />
                   )}
