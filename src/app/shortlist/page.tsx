@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
-import Link from "next/link";
 import { debounce } from "lodash";
 import { Select, Table, Button, Input, Space, Popconfirm } from "antd";
+import { useItemDetail } from "@/components/providers/ItemDetailContext";
 
 interface ShortListItem {
   id: string;
@@ -22,6 +22,7 @@ interface ShortListItem {
     retailPrice: number;
     purchasePrice: number;
     variant: {
+      id: string;
       sku: string;
       product: {
         productName: string;
@@ -32,6 +33,7 @@ interface ShortListItem {
 
 export default function ShortListPage() {
   const queryClient = useQueryClient();
+  const { openItem } = useItemDetail();
   const [sortBy, setSortBy] = useState<"quantity" | "addedAt" | "name">(
     "quantity",
   );
@@ -208,14 +210,19 @@ export default function ShortListPage() {
       title: "Item Name",
       dataIndex: ["inventory", "itemName"],
       key: "itemName",
-      render: (text: string, record: ShortListItem) => (
-        <Link
-          href={`/inventory?id=${record.inventoryId}`}
-          className="text-primary hover:underline"
-        >
-          {text}
-        </Link>
-      ),
+      render: (text: string, record: ShortListItem) => {
+        const variantId = record.inventory?.variant?.id;
+        return variantId ? (
+          <button
+            onClick={() => openItem(variantId, { showBatches: false })}
+            className="text-primary hover:underline text-left"
+          >
+            {text}
+          </button>
+        ) : (
+          <span>{text}</span>
+        );
+      },
     },
     {
       title: "Current Qty",
@@ -288,9 +295,6 @@ export default function ShortListPage() {
                       <div className="flex flex-col">
                         <span className="font-medium text-foreground">
                           {item.itemName || "Unnamed Item"}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          SKU: {item.variant?.sku || "N/A"}
                         </span>
                       </div>
                       <div className="flex flex-col items-end">
