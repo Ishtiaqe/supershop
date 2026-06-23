@@ -4,8 +4,24 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { debounce } from "lodash";
-import { Select, Table, Button, Input, Space, Popconfirm } from "antd";
+import {
+  Select,
+  SelectItem,
+  Button,
+  Input,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@heroui/react";
 import { useItemDetail } from "@/components/providers/ItemDetailContext";
+import { Loader2, Download, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface ShortListItem {
   id: string;
@@ -34,6 +50,7 @@ interface ShortListItem {
 export default function ShortListPage() {
   const queryClient = useQueryClient();
   const { openItem } = useItemDetail();
+  const shortlistTableRef = useRef<HTMLDivElement>(null);
   const [sortBy, setSortBy] = useState<"quantity" | "addedAt" | "name">(
     "quantity",
   );
@@ -108,6 +125,10 @@ export default function ShortListPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shortlist"] });
       queryClient.invalidateQueries({ queryKey: ["shortlist-stats"] });
+      toast.success("Item removed from shortlist");
+    },
+    onError: () => {
+      toast.error("Failed to remove item from shortlist");
     },
   });
 
@@ -129,9 +150,10 @@ export default function ShortListPage() {
       link.click();
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
+      toast.success(`${type} downloaded successfully`);
     } catch (err) {
       console.error("Failed to export PDF:", err);
-      alert("Failed to export PDF. Please try again.");
+      toast.error("Failed to export PDF. Please try again.");
     }
   };
 
@@ -153,9 +175,28 @@ export default function ShortListPage() {
       link.click();
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
+      toast.success("Backup downloaded successfully");
     } catch (err) {
       console.error("Failed to export backup:", err);
-      alert("Failed to export backup. Please try again.");
+      toast.error("Failed to export backup. Please try again.");
+    }
+  };
+
+  // Download shortlist as image
+  const downloadAsImage = async () => {
+    if (!shortlistTableRef.current) return;
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(shortlistTableRef.current, { scale: 2 });
+      const link = document.createElement('a');
+      const today = new Date().toISOString().split('T')[0];
+      link.download = `shortlist-${today}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      toast.success('Shortlist image downloaded successfully');
+    } catch (err) {
+      console.error('Failed to download shortlist as image:', err);
+      toast.error('Failed to download shortlist as image. Please try again.');
     }
   };
 
@@ -182,6 +223,10 @@ export default function ShortListPage() {
       queryClient.invalidateQueries({ queryKey: ["shortlist"] });
       queryClient.invalidateQueries({ queryKey: ["shortlist-stats"] });
       setSearchTerm(""); // Clear search after adding
+      toast.success("Item added to shortlist");
+    },
+    onError: () => {
+      toast.error("Failed to add item to shortlist");
     },
   });
 
@@ -204,56 +249,7 @@ export default function ShortListPage() {
     });
   };
 
-  // Table column definitions
-  const columns = [
-    {
-      title: "Item Name",
-      dataIndex: ["inventory", "itemName"],
-      key: "itemName",
-      render: (text: string, record: ShortListItem) => {
-        const variantId = record.inventory?.variant?.id;
-        return variantId ? (
-          <button
-            onClick={() => openItem(variantId, { showBatches: false })}
-            className="text-primary hover:underline text-left"
-          >
-            {text}
-          </button>
-        ) : (
-          <span>{text}</span>
-        );
-      },
-    },
-    {
-      title: "Current Qty",
-      dataIndex: ["inventory", "quantity"],
-      key: "quantity",
-      render: (qty: number) => <span className="font-medium text-foreground">{qty}</span>,
-    },
-    {
-      title: "Last Restock Qty",
-      dataIndex: ["inventory", "lastRestockQty"],
-      key: "lastRestockQty",
-      render: (qty: number | null) => <span className="text-muted-foreground">{qty || "N/A"}</span>,
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_: any, record: ShortListItem) => (
-        <Popconfirm
-          title="Remove from shortlist"
-          description="Are you sure you want to remove this item?"
-          onConfirm={() => removeMutation.mutate(record.inventoryId)}
-          okText="Yes"
-          cancelText="No"
-        >
-          <Button danger type="link" loading={removeMutation.isPending}>
-            Remove
-          </Button>
-        </Popconfirm>
-      ),
-    },
-  ];
+  const shortlistItems = filteredShortlistItems(data?.data);
 
   return (
     <div className="space-y-6">
@@ -264,155 +260,272 @@ export default function ShortListPage() {
           Items that need restocking
         </p>
       </div>
+
       {/* Controls */}
       <div className="surface-card p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            {/* Add to Shortlist Search */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-muted-foreground mb-2">
-                Add Item to Shortlist
-              </label>
-              <Select
-                showSearch
-                allowClear
-                filterOption={false}
-                placeholder="Type to search"
-                style={{ width: "100%" }}
-                value={undefined}
-                searchValue={searchTerm}
-                onSearch={(val) => setSearchTerm(val)}
-                onClear={() => setSearchTerm("")}
-                notFoundContent={
-                  debouncedSearchTerm.length >= 2
-                    ? isSearching
-                      ? "Searching..."
-                      : "No results"
-                    : "Type at least 2 characters"
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {/* Add to Shortlist Search */}
+          <div className="md:col-span-2">
+            <label className="block text-xs font-medium text-muted-foreground mb-2">
+              Add Item to Shortlist
+            </label>
+            <Select
+              items={
+                debouncedSearchTerm.length >= 2
+                  ? inventorySearchResults.map((item: any) => ({
+                      key: item.id,
+                      id: item.id,
+                      itemName: item.itemName || "Unnamed Item",
+                      retailPrice: item.retailPrice ?? "-",
+                      quantity: item.quantity,
+                    }))
+                  : []
+              }
+              placeholder="Type to search..."
+              searchValue={searchTerm}
+              onSearchChange={setSearchTerm}
+              className="w-full"
+              isLoading={isSearching}
+              isClearable
+              onSelectionChange={(key) => {
+                if (key && key !== "") {
+                  addToShortlistMutation.mutate(String(key));
                 }
-                options={inventorySearchResults.map((item: any) => ({
-                  label: (
-                    <div className="flex justify-between items-center w-full">
-                      <div className="flex flex-col">
-                        <span className="font-medium text-foreground">
-                          {item.itemName || "Unnamed Item"}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="font-bold text-primary">
-                          ৳{item.retailPrice ?? "-"}
-                        </span>
-                        <span
-                          className={`text-xs ${item.quantity > 0
+              }}
+              description={
+                debouncedSearchTerm.length < 2
+                  ? "Type at least 2 characters"
+                  : undefined
+              }
+              startContent={
+                isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : null
+              }
+            >
+              {(item: any) => (
+                <SelectItem key={item.key} value={item.key}>
+                  <div className="flex justify-between items-center w-full gap-4">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">
+                        {item.itemName}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="font-bold text-primary">
+                        ৳{item.retailPrice}
+                      </span>
+                      <span
+                        className={`text-xs ${
+                          item.quantity > 0
                             ? "text-success"
                             : "text-destructive"
-                            }`}
-                        >
-                          {item.quantity > 0
-                            ? `${item.quantity} in stock`
-                            : "Out of stock"}
-                        </span>
-                      </div>
+                        }`}
+                      >
+                        {item.quantity > 0
+                          ? `${item.quantity} in stock`
+                          : "Out of stock"}
+                      </span>
                     </div>
-                  ),
-                  value: item.id,
-                  displayLabel: item.itemName || "Unnamed Item",
-                }))}
-                optionLabelProp="displayLabel"
-                onSelect={(value) => {
-                  addToShortlistMutation.mutate(String(value));
-                  setSearchTerm("");
-                }}
-              />
-            </div>
-
-            {/* Sort By */}
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-2">
-                Sort By
-              </label>
-              <Select
-                value={sortBy}
-                onChange={(value) => setSortBy(value as any)}
-                className="w-full"
-                size="large"
-                options={[
-                  { value: "quantity", label: "Lowest Stock First" },
-                  { value: "addedAt", label: "Recently Added" },
-                  { value: "name", label: "Item Name" },
-                ]}
-              />
-            </div>
+                  </div>
+                </SelectItem>
+              )}
+            </Select>
           </div>
 
-          {/* Export Buttons */}
-          <Space wrap className="mb-2">
-            <Button
-              type="primary"
-              size="large"
-              onClick={() => exportPdf("shortlist")}
+          {/* Sort By */}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-2">
+              Sort By
+            </label>
+            <Select
+              selectedKeys={[sortBy]}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="w-full"
             >
-              Download Shortlist
-            </Button>
-            <Button
-              size="large"
-              onClick={() => exportPdf("inventory")}
-            >
-              Download Inventory
-            </Button>
-            <Button
-              size="large"
-              onClick={() => exportPdf("analytics")}
-            >
-              Download Analytics
-            </Button>
-            <Button
-              size="large"
-              onClick={() => exportBackup()}
-            >
-              Download Backup
-            </Button>
-          </Space>
+              <SelectItem key="quantity" value="quantity">
+                Lowest Stock First
+              </SelectItem>
+              <SelectItem key="addedAt" value="addedAt">
+                Recently Added
+              </SelectItem>
+              <SelectItem key="name" value="name">
+                Item Name
+              </SelectItem>
+            </Select>
+          </div>
         </div>
 
-        {/* Shortlist Items Table */}
-        {error ? (
-          <div className="text-center py-12 text-destructive">
-            Error loading short list
-          </div>
-        ) : (
-          <div className="surface-card overflow-hidden">
-            <div className="p-4 border-b border-border">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">
-                  Shortlist Items ({filteredShortlistItems(data?.data).length})
-                </h3>
-              </div>
-              <div className="mt-3">
-                <Input.Search
-                  placeholder="Search shortlist by item name, SKU, or product..."
-                  value={shortlistSearchTerm}
-                  onChange={(e) => setShortlistSearchTerm(e.target.value)}
-                  allowClear
-                  size="large"
-                  className="w-full"
-                />
-              </div>
+        {/* Export Buttons */}
+        <div className="flex flex-wrap gap-2 mb-2">
+          <Button
+            onPress={() => exportPdf("shortlist")}
+            color="primary"
+            startContent={<Download className="w-4 h-4" />}
+          >
+            Download Shortlist
+          </Button>
+          <Button
+            onPress={() => exportPdf("inventory")}
+            variant="bordered"
+            startContent={<Download className="w-4 h-4" />}
+          >
+            Download Inventory
+          </Button>
+          <Button
+            onPress={() => exportPdf("analytics")}
+            variant="bordered"
+            startContent={<Download className="w-4 h-4" />}
+          >
+            Download Analytics
+          </Button>
+          <Button
+            onPress={() => exportBackup()}
+            variant="bordered"
+            startContent={<Download className="w-4 h-4" />}
+          >
+            Download Backup
+          </Button>
+          <Button
+            onPress={downloadAsImage}
+            variant="bordered"
+            startContent={<Download className="w-4 h-4" />}
+          >
+            Download as Image
+          </Button>
+        </div>
+      </div>
+
+      {/* Shortlist Items Table */}
+      {error ? (
+        <div className="text-center py-12 text-destructive">
+          Error loading short list
+        </div>
+      ) : (
+        <div ref={shortlistTableRef} className="surface-card overflow-hidden rounded-lg">
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-foreground">
+                Shortlist Items ({shortlistItems.length})
+              </h3>
             </div>
-            <Table
-              columns={columns}
-              dataSource={filteredShortlistItems(data?.data)}
-              rowKey="id"
-              loading={isLoading}
-              pagination={{ pageSize: 10 }}
-              scroll={{ x: 600 }}
-              locale={{
-                emptyText: shortlistSearchTerm
-                  ? `No items found matching "${shortlistSearchTerm}"`
-                  : "No items in short list",
-              }}
-            />
+            <div>
+              <Input
+                isClearable
+                onClear={() => setShortlistSearchTerm("")}
+                value={shortlistSearchTerm}
+                onValueChange={setShortlistSearchTerm}
+                placeholder="Search shortlist by item name, SKU, or product..."
+                className="w-full"
+              />
+            </div>
           </div>
-        )}
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : shortlistItems.length === 0 ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              {shortlistSearchTerm
+                ? `No items found matching "${shortlistSearchTerm}"`
+                : "No items in short list"}
+            </div>
+          ) : (
+            <Table
+              aria-label="Shortlist items table"
+              className="w-full"
+              removeWrapper
+            >
+              <TableHeader>
+                <TableColumn>Item Name</TableColumn>
+                <TableColumn>Current Qty</TableColumn>
+                <TableColumn>Last Restock Qty</TableColumn>
+                <TableColumn>Actions</TableColumn>
+              </TableHeader>
+              <TableBody items={shortlistItems}>
+                {(item: ShortListItem) => {
+                  const variantId = item.inventory?.variant?.id;
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        {variantId ? (
+                          <button
+                            onClick={() =>
+                              openItem(variantId, { showBatches: false })
+                            }
+                            className="text-primary hover:underline text-left font-medium"
+                          >
+                            {item.inventory.itemName}
+                          </button>
+                        ) : (
+                          <span className="font-medium">
+                            {item.inventory.itemName}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium text-foreground">
+                          {item.inventory.quantity}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground">
+                          {item.inventory.lastRestockQty || "N/A"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Popover placement="left">
+                          <PopoverTrigger asChild>
+                            <Button
+                              isIconOnly
+                              color="danger"
+                              variant="light"
+                              isLoading={removeMutation.isPending}
+                              size="sm"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-72">
+                            <div className="px-1 py-2 space-y-3">
+                              <div className="text-sm font-semibold">
+                                Remove from shortlist
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                Are you sure you want to remove this item from
+                                the shortlist?
+                              </div>
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="light"
+                                  onPress={() => {
+                                    // Close popover by clicking outside
+                                  }}
+                                >
+                                  No
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  color="danger"
+                                  onPress={() => {
+                                    removeMutation.mutate(item.inventoryId);
+                                  }}
+                                >
+                                  Yes, Remove
+                                </Button>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      )}
     </div>
   );
 }
