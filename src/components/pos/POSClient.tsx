@@ -15,6 +15,7 @@ import {
   message,
   Alert,
   Input,
+  Switch,
 } from "antd";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -193,6 +194,8 @@ function POSClient() {
   const [qty, setQty] = useState<number>(1);
   // customerName, customerPhone, and setters are now provided by parent (page)
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCreditSale, setIsCreditSale] = useState(false);
+  const [cashReceived, setCashReceived] = useState<number>(0);
 
   const saleMutation = useMutation({
     mutationFn: (payload: {
@@ -204,6 +207,9 @@ function POSClient() {
       }>;
       customerName?: string;
       customerPhone?: string;
+      paymentMethod?: string;
+      amountPaid?: number;
+      dueAmount?: number;
     }) => api.post("/sales", payload).then((r) => r.data),
     onSuccess() {
       queryClient.invalidateQueries({
@@ -224,6 +230,13 @@ function POSClient() {
         // ignore sessionStorage errors
       }
       message.success("Sale completed successfully!");
+      setCart([]);
+      setCustomerName("");
+      setCustomerPhone("");
+      customerNameRef.current = "";
+      customerPhoneRef.current = "";
+      setIsCreditSale(false);
+      setCashReceived(0);
     },
     onError(err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -285,6 +298,17 @@ function POSClient() {
   }
 
   function checkout() {
+    if (isCreditSale) {
+      if (!customerName.trim()) {
+        message.error("Customer name is required for credit sales");
+        return;
+      }
+      if (!customerPhone.trim()) {
+        message.error("Customer phone number is required for credit sales");
+        return;
+      }
+    }
+
     const payloadItems: Array<{
       inventoryId: string;
       quantity: number;
@@ -324,12 +348,10 @@ function POSClient() {
       items: payloadItems,
       customerName: customerName || undefined,
       customerPhone: customerPhone || undefined,
+      paymentMethod: isCreditSale ? "CREDIT" : undefined,
+      amountPaid: isCreditSale ? cashReceived : undefined,
+      dueAmount: isCreditSale ? Math.max(0, total - cashReceived) : undefined,
     });
-    setCart([]);
-    setCustomerName("");
-    setCustomerPhone("");
-    customerNameRef.current = "";
-    customerPhoneRef.current = "";
   }
 
   const total = useMemo(
@@ -566,6 +588,39 @@ function POSClient() {
         <div style={{ fontWeight: 700, fontSize: "1.2em" }}>
           Total: ৳{total.toFixed(2)}
         </div>
+
+        {/* Credit Sale toggle */}
+        <div className="flex items-center gap-3 mt-3">
+          <Switch
+            checked={isCreditSale}
+            onChange={(checked) => {
+              setIsCreditSale(checked);
+              if (!checked) setCashReceived(0);
+            }}
+            size="small"
+          />
+          <span className="text-sm font-medium">Credit Sale (Due)</span>
+        </div>
+
+        {isCreditSale && (
+          <div className="mt-2 space-y-1">
+            <label className="text-xs text-muted-foreground">
+              Cash Received (৳)
+            </label>
+            <InputNumber
+              min={0}
+              max={total}
+              value={cashReceived}
+              onChange={(val) => setCashReceived(val ?? 0)}
+              className="w-full"
+              placeholder="0"
+            />
+            <div className="text-sm font-medium text-destructive">
+              Due Amount: ৳{Math.max(0, total - cashReceived).toFixed(2)}
+            </div>
+          </div>
+        )}
+
         <Button
           ref={completeSaleBtnRef}
           type="primary"
