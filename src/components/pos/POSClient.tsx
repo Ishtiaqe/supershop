@@ -621,53 +621,56 @@ function POSClient() {
         </div>
       </div>
 
-      <div style={{ marginTop: 16 }}>
-        <div style={{ fontWeight: 700, fontSize: "1.2em" }}>
-          Total: ৳{total.toFixed(2)}
-        </div>
-
-        {/* Credit Sale toggle */}
-        <div className="flex items-center gap-3 mt-3">
-          <Switch
-            checked={isCreditSale}
-            onChange={(checked) => {
-              setIsCreditSale(checked);
-              if (!checked) setCashReceived(0);
-            }}
-            size="small"
-          />
-          <span className="text-sm font-medium">Credit Sale (Due)</span>
-        </div>
-
-        {isCreditSale && (
-          <div className="mt-2 space-y-1">
-            <label className="text-xs text-muted-foreground">
-              Cash Received (৳)
-            </label>
-            <InputNumber
-              min={0}
-              max={total}
-              value={cashReceived}
-              onChange={(val) => setCashReceived(val ?? 0)}
-              className="w-full"
-              placeholder="0"
-            />
-            <div className="text-sm font-medium text-destructive">
-              Due Amount: ৳{Math.max(0, total - cashReceived).toFixed(2)}
-            </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4">
+        <div className="flex-1">
+          <div style={{ fontWeight: 700, fontSize: "1.2em" }} className="mb-3">
+            Total: ৳{total.toFixed(2)}
           </div>
-        )}
+
+          {/* Credit Sale toggle */}
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={isCreditSale}
+              onChange={(checked) => {
+                setIsCreditSale(checked);
+                if (!checked) setCashReceived(0);
+              }}
+              size="small"
+            />
+            <span className="text-sm font-medium">Credit Sale (Due)</span>
+          </div>
+
+          {isCreditSale && (
+            <div className="mt-3 space-y-1">
+              <label className="text-xs text-muted-foreground">
+                Cash Received (৳)
+              </label>
+              <InputNumber
+                min={0}
+                max={total}
+                value={cashReceived}
+                onChange={(val) => setCashReceived(val ?? 0)}
+                className="w-full"
+                placeholder="0"
+              />
+              <div className="text-sm font-medium text-destructive">
+                Due Amount: ৳{Math.max(0, total - cashReceived).toFixed(2)}
+              </div>
+            </div>
+          )}
+        </div>
 
         <Button
           ref={completeSaleBtnRef}
           type="primary"
           size="large"
           onClick={checkout}
-          className="mt-4 w-full complete-sale-btn"
+          className="sm:self-end complete-sale-btn"
           color="lime"
           variant="solid"
           disabled={cart.length === 0 || saleMutation.isPending}
           loading={saleMutation.isPending}
+          style={{ minWidth: "200px" }}
         >
           {saleMutation.isPending ? "Processing Sale..." : "Complete Sale"}
         </Button>
