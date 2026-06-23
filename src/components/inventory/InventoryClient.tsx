@@ -17,6 +17,7 @@ import {
   Modal,
   message,
   AutoComplete,
+  Select,
 } from "antd";
 
 const { Text } = Typography;
@@ -25,6 +26,7 @@ import SearchOutlined from "@ant-design/icons/SearchOutlined";
 import { debounce } from "lodash";
 import dayjs from "dayjs";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useItemDetail } from "@/components/providers/ItemDetailContext";
 
 interface CatalogItem {
   variantId: string;
@@ -288,6 +290,7 @@ export default function InventoryClient() {
   }
 
   const { user } = useAuth();
+  const { openItem } = useItemDetail();
 
   const dataSource = useMemo(() => {
     // Ensure items is an array before processing
@@ -365,7 +368,7 @@ export default function InventoryClient() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" >
       <div className="surface-card p-4 md:p-6">
       <Form
         form={addFormInstance}
@@ -523,6 +526,17 @@ export default function InventoryClient() {
           </Form.Item> */}
         </Space>
 
+        <Form.Item name="fundSource" label="Fund Source" initialValue="CASH_BOX">
+          <Select
+            options={[
+              { value: 'CASH_BOX', label: 'Cash Box' },
+              { value: 'NEW_INVESTMENT', label: 'New Investment' },
+              { value: 'LOAN', label: 'Loan' },
+            ]}
+            style={{ width: 200 }}
+          />
+        </Form.Item>
+
         <Form.Item>
           <Button
             type="primary"
@@ -555,66 +569,18 @@ export default function InventoryClient() {
         rowKey="key"
         loading={isLoading}
         scroll={{ x: 'max-content' }}
-        pagination={{ 
+        pagination={{
           pageSize: 10,
           showSizeChanger: true,
           showTotal: (total) => `Total ${total} items`
         }}
-        expandable={{
-          expandedRowRender: (record: { subItems: InventoryItem[] }) => (
-            <Table
-              dataSource={record.subItems}
-              rowKey="id"
-              pagination={false}
-              size="small"
-              columns={[
-                {
-                  title: "Batch #",
-                  dataIndex: "batchNo",
-                  render: (t) => t || "-",
-                },
-                { title: "Quantity", dataIndex: "quantity" },
-                {
-                  title: "Purchase",
-                  dataIndex: "purchasePrice",
-                  render: (v) => `৳${v}`,
-                },
-                {
-                  title: "Retail",
-                  dataIndex: "retailPrice",
-                  render: (v) => `৳${v}`,
-                },
-                {
-                  title: "Actions",
-                  render: (_, subRecord: InventoryItem) => (
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        setEditForm({
-                          id: subRecord.id,
-                          variantId: subRecord.variantId,
-                          itemName: subRecord.itemName || "",
-                          quantity: subRecord.quantity || 0,
-                          purchasePrice: subRecord.purchasePrice || 0,
-                          retailPrice: subRecord.retailPrice || 0,
-                        });
-                        editFormInstance.setFieldsValue({
-                          itemName: subRecord.itemName || "",
-                          quantity: subRecord.quantity || 0,
-                          purchasePrice: subRecord.purchasePrice || 0,
-                          retailPrice: subRecord.retailPrice || 0,
-                        });
-                        setModalOpen(true);
-                      }}
-                    >
-                      Edit
-                    </Button>
-                  ),
-                },
-              ]}
-            />
-          ),
-        }}
+        onRow={(record: { key: string; variant?: { id?: string }; subItems?: InventoryItem[] }) => ({
+          onClick: () => {
+            const variantId = record.variant?.id ?? record.subItems?.[0]?.variantId;
+            if (variantId) openItem(variantId, { showBatches: true });
+          },
+          style: { cursor: 'pointer' },
+        })}
       >
         <Table.Column
           title="Item Name"
