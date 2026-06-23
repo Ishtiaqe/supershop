@@ -16,6 +16,7 @@ import {
   Alert,
   Input,
   Switch,
+  Tooltip,
 } from "antd";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -23,11 +24,25 @@ type CartItem = {
   key: string;
   name: string;
   unitPrice: number;
+  purchasePrice: number;
   quantity: number;
   discount: number;
   maxDiscount: number;
   batches: InventoryItem[];
 };
+
+function getMaxAllowedDiscount(
+  retailPrice: number,
+  purchasePrice: number,
+  maxDiscountRate?: number,
+): number {
+  if (!purchasePrice || purchasePrice <= 0 || !retailPrice || retailPrice <= 0) {
+    return maxDiscountRate ?? 100;
+  }
+  const profitBasedMax = ((retailPrice - 1.04 * purchasePrice) / retailPrice) * 100;
+  const floor = Math.max(0, profitBasedMax);
+  return maxDiscountRate !== undefined ? Math.min(floor, maxDiscountRate) : floor;
+}
 
 function fetchInventory(q?: string, signal?: AbortSignal) {
   try {
@@ -275,6 +290,7 @@ function POSClient() {
           key: item.key,
           name: item.name,
           unitPrice: item.retailPrice,
+          purchasePrice: avgPurchase,
           quantity: qty,
           discount: 0, // percentage
           maxDiscount: maxDiscountPercent,
@@ -307,6 +323,15 @@ function POSClient() {
         message.error("Customer phone number is required for credit sales");
         return;
       }
+    }
+
+    const violations = cart.filter((item) => {
+      const maxAllowed = getMaxAllowedDiscount(item.unitPrice, item.purchasePrice, item.maxDiscount);
+      return item.discount > maxAllowed;
+    });
+    if (violations.length > 0) {
+      message.error(`${violations.length} item(s) have discounts exceeding the minimum 4% profit. Please reduce them.`);
+      return;
     }
 
     const payloadItems: Array<{
@@ -530,25 +555,37 @@ function POSClient() {
               title="Discount (%)"
               dataIndex="discount"
               key="discount"
-              render={(discount: number, record: CartItem) => (
-                <InputNumber
-                  min={0}
-                  max={record.maxDiscount}
-                  value={discount}
-                  onChange={(value) => {
-                    const newDiscount = Number(value) || 0;
-                    setCart((prev) =>
-                      prev.map((item) =>
-                        item.key === record.key
-                          ? { ...item, discount: newDiscount }
-                          : item
-                      )
-                    );
-                  }}
-                  style={{ width: 80 }}
-                  suffix="%"
-                />
-              )}
+              render={(discount: number, record: CartItem) => {
+                const maxAllowed = getMaxAllowedDiscount(
+                  record.unitPrice,
+                  record.purchasePrice,
+                  record.maxDiscount,
+                );
+                const isViolating = discount > maxAllowed;
+                return (
+                  <Tooltip
+                    title={isViolating ? 'Exceeds minimum 4% profit — discount will be capped' : undefined}
+                    color="red"
+                  >
+                    <InputNumber
+                      min={0}
+                      max={maxAllowed}
+                      value={discount}
+                      status={isViolating ? 'error' : undefined}
+                      onChange={(value) => {
+                        const newDiscount = Math.min(Number(value) ?? 0, maxAllowed);
+                        setCart((prev) =>
+                          prev.map((item) =>
+                            item.key === record.key ? { ...item, discount: newDiscount } : item,
+                          ),
+                        );
+                      }}
+                      style={{ width: 80 }}
+                      suffix="%"
+                    />
+                  </Tooltip>
+                );
+              }}
             />
             <Table.Column
               title="Sub Total"
