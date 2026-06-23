@@ -117,7 +117,6 @@ export default function SalesClient() {
 
   return (
     <div className="overflow-x-auto max-w-full md:max-w-7xl mx-auto w-full">
-      {/* <div className="surface-card p-4 md:p-6"> */}
       <div className="flex flex-wrap gap-3 mb-4">
         <div className="flex-1 min-w-[200px] surface-card">
           <Input.Search
@@ -206,7 +205,6 @@ export default function SalesClient() {
           />
         </Table>
       </div>
-      {/* </div> */}
 
       <Modal
         title={`Transaction Details - ${saleDetails?.receiptNumber || ""}`}
