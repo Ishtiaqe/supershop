@@ -13,8 +13,6 @@ import {
   Input,
   Select,
   DatePicker,
-  Row,
-  Col,
 } from "antd";
 import SearchOutlined from "@ant-design/icons/SearchOutlined";
 import type { Sale } from "@/types";
@@ -118,10 +116,10 @@ export default function SalesClient() {
   }
 
   return (
-    <div>
-      <div className="surface-card p-4 md:p-6">
-      <Row gutter={16} className="mb-4">
-        <Col span={8}>
+    <div className="overflow-x-auto max-w-full md:max-w-7xl mx-auto w-full">
+      {/* <div className="surface-card p-4 md:p-6"> */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex-1 min-w-[200px] surface-card">
           <Input.Search
             placeholder="Search by receipt or customer..."
             value={searchText}
@@ -130,15 +128,15 @@ export default function SalesClient() {
             allowClear
             enterButton
           />
-        </Col>
-        <Col span={8}>
+        </div>
+        <div className="flex-1 min-w-[240px] surface-card">
           <DatePicker.RangePicker
             style={{ width: "100%" }}
             value={dateRange}
             onChange={(dates) => setDateRange(dates)}
           />
-        </Col>
-        <Col span={8}>
+        </div>
+        <div className="flex-1 min-w-[180px] surface-card">
           <Select
             placeholder="Filter by payment method"
             style={{ width: "100%" }}
@@ -150,197 +148,201 @@ export default function SalesClient() {
               { label: "Card", value: "CARD" },
               { label: "Mobile Payment", value: "MOBILE_PAYMENT" },
               { label: "Other", value: "OTHER" },
+              { label: "Credit (Due)", value: "CREDIT" },
             ]}
           />
-        </Col>
-      </Row>
+        </div>
+      </div>
 
       <div className="overflow-x-auto">
-      <Table
-        loading={isLoading}
-        dataSource={filteredSales}
-        rowKey={(r: Sale) => r.id}
-        scroll={{ x: 'max-content' }}
-        pagination={{
-          pageSize: 10,
-          showSizeChanger: true,
-          showTotal: (total) => `Total ${total} sales`
-        }}
-        onRow={(record) => ({
-          onClick: () => handleRowClick(record),
-          onMouseEnter: () => prefetchSaleDetails(record.id),
-          style: { cursor: "pointer" },
-        })}
-      >
-
-        <Table.Column
-          title="Receipt Number"
-          dataIndex="receiptNumber"
-          key="receiptNumber"
-        />
-        <Table.Column
-          title="Customer Name"
-          dataIndex="customerName"
-          key="customerName"
-        />
-        <Table.Column
-          title="Customer Phone"
-          dataIndex="customerPhone"
-          key="customerPhone"
-        />
-        <Table.Column
-          title="Time"
-          dataIndex="saleTime"
-          key="saleTime"
-          render={(t: string) => new Date(t).toLocaleString()}
-        />
-        <Table.Column
-          title="Total"
-          dataIndex="totalAmount"
-          key="totalAmount"
-          render={(t: number) => `৳${t.toFixed(2)}`}
-        />
-        <Table.Column
-          title="Profit"
-          dataIndex="totalProfit"
-          key="totalProfit"
-          render={(t: number) => `৳${t.toFixed(2)}`}
-        />
-      </Table>
+        <Table
+          loading={isLoading}
+          dataSource={filteredSales}
+          rowKey={(r: Sale) => r.id}
+          scroll={{ x: "max-content" }}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `Total ${total} sales`,
+          }}
+          onRow={(record) => ({
+            onClick: () => handleRowClick(record),
+            onMouseEnter: () => prefetchSaleDetails(record.id),
+            style: { cursor: "pointer" },
+          })}
+        >
+          <Table.Column
+            title="Receipt Number"
+            dataIndex="receiptNumber"
+            key="receiptNumber"
+          />
+          <Table.Column
+            title="Customer Name"
+            dataIndex="customerName"
+            key="customerName"
+          />
+          <Table.Column
+            title="Customer Phone"
+            dataIndex="customerPhone"
+            key="customerPhone"
+          />
+          <Table.Column
+            title="Time"
+            dataIndex="saleTime"
+            key="saleTime"
+            render={(t: string) => new Date(t).toLocaleString()}
+          />
+          <Table.Column
+            title="Total"
+            dataIndex="totalAmount"
+            key="totalAmount"
+            render={(t: number) => `৳${t.toFixed(2)}`}
+          />
+          <Table.Column
+            title="Profit"
+            dataIndex="totalProfit"
+            key="totalProfit"
+            render={(t: number) => `৳${t.toFixed(2)}`}
+          />
+        </Table>
       </div>
-      </div>
+      {/* </div> */}
 
       <Modal
         title={`Transaction Details - ${saleDetails?.receiptNumber || ""}`}
         open={isModalOpen}
         onCancel={handleCloseModal}
         footer={null}
-        width={800}
+        style={{ maxWidth: "95vw" }}
+        width={760}
       >
-        <div id={selectedSaleId ? `sale-modal-${selectedSaleId}` : "sale-modal"}>
-        {isLoadingDetails ? (
-          <div className="flex justify-center py-8">
-            <Spin size="large" />
-          </div>
-        ) : saleDetails ? (
-          <div className="space-y-4">
-            <Descriptions bordered column={2} size="small">
-              <Descriptions.Item label="Receipt Number">
-                {saleDetails.receiptNumber}
-              </Descriptions.Item>
-              <Descriptions.Item label="Customer Name">
-                {saleDetails.customerName || "N/A"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Sale Time">
-                {new Date(saleDetails.saleTime).toLocaleString()}
-              </Descriptions.Item>
-              <Descriptions.Item label="Customer Phone">
-                {saleDetails.customerPhone || "N/A"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Employee">
-                {saleDetails.employee?.fullName || "N/A"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Payment Method">
-                <Tag
-                  color={
-                    saleDetails.paymentMethod === "cash" ? "green" : "blue"
-                  }
-                >
-                  {saleDetails.paymentMethod?.toUpperCase()}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Discount Type">
-                {saleDetails.discountType || "None"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Discount Value">
-                ৳{saleDetails.discountValue?.toFixed(2) || 0}
-              </Descriptions.Item>
-              <Descriptions.Item label="Total Amount" span={2}>
-                <span className="text-lg font-bold text-success">
-                  ৳{saleDetails.totalAmount?.toFixed(2)}
-                </span>
-              </Descriptions.Item>
-              <Descriptions.Item label="Total Profit" span={2}>
-                <span className="text-lg font-bold text-primary">
-                  ৳{saleDetails.totalProfit?.toFixed(2)}
-                </span>
-              </Descriptions.Item>
-            </Descriptions>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Items</h3>
-              <Table
-                dataSource={saleDetails.items || []}
-                rowKey={(item: { id: string }) => item.id}
-                pagination={false}
-                size="small"
-              >
-                <Table.Column
-                  title="Product"
-                  key="product"
-                  render={(
-                    _,
-                    item: {
-                      inventory?: {
-                        variant?: {
-                          product?: { name?: string };
-                          variantName?: string;
-                          sku?: string;
-                        };
-                        itemName?: string;
-                      };
-                    },
-                  ) => {
-                    // Check if it's a catalog item or ad-hoc
-                    if (item.inventory?.variant?.product?.name) {
-                      return item.inventory.variant.product.name;
-                    }
-                    // Fallback to ad-hoc item name
-                    return item.inventory?.itemName || "N/A";
-                  }}
-                />
-                <Table.Column
-                  title="Variant"
-                  key="variant"
-                  render={(
-                    _,
-                    item: {
-                      inventory?: {
-                        variant?: { variantName?: string; sku?: string };
-                      };
-                    },
-                  ) => {
-                    // Use variantName from schema
-                    if (item.inventory?.variant?.variantName) {
-                      return item.inventory.variant.variantName;
-                    }
-                    // For ad-hoc items, show SKU or dash
-                    return item.inventory?.variant?.sku || "-";
-                  }}
-                />
-                <Table.Column
-                  title="Quantity"
-                  dataIndex="quantity"
-                  key="quantity"
-                />
-                <Table.Column
-                  title="Unit Price"
-                  dataIndex="unitPrice"
-                  key="unitPrice"
-                  render={(price: number) => `৳${price?.toFixed(2)}`}
-                />
-                <Table.Column
-                  title="Subtotal"
-                  dataIndex="subtotal"
-                  key="subtotal"
-                  render={(subtotal: number) => `৳${subtotal?.toFixed(2)}`}
-                />
-              </Table>
+        <div
+          id={selectedSaleId ? `sale-modal-${selectedSaleId}` : "sale-modal"}
+        >
+          {isLoadingDetails ? (
+            <div className="flex justify-center py-8">
+              <Spin size="large" />
             </div>
-          </div>
-        ) : (
-          <div>No details available</div>
-        )}
+          ) : saleDetails ? (
+            <div className="space-y-4">
+              <Descriptions bordered column={{ xs: 1, sm: 2 }} size="small">
+                <Descriptions.Item label="Receipt Number">
+                  {saleDetails.receiptNumber}
+                </Descriptions.Item>
+                <Descriptions.Item label="Customer Name">
+                  {saleDetails.customerName || "N/A"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Sale Time">
+                  {new Date(saleDetails.saleTime).toLocaleString()}
+                </Descriptions.Item>
+                <Descriptions.Item label="Customer Phone">
+                  {saleDetails.customerPhone || "N/A"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Employee">
+                  {saleDetails.employee?.fullName || "N/A"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Payment Method">
+                  <Tag
+                    color={
+                      saleDetails.paymentMethod === "cash" ? "green" : "blue"
+                    }
+                  >
+                    {saleDetails.paymentMethod?.toUpperCase()}
+                  </Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Discount Type">
+                  {saleDetails.discountType || "None"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Discount Value">
+                  ৳{saleDetails.discountValue?.toFixed(2) || 0}
+                </Descriptions.Item>
+                <Descriptions.Item label="Total Amount" span={2}>
+                  <span className="text-lg font-bold text-success">
+                    ৳{saleDetails.totalAmount?.toFixed(2)}
+                  </span>
+                </Descriptions.Item>
+                <Descriptions.Item label="Total Profit" span={2}>
+                  <span className="text-lg font-bold text-primary">
+                    ৳{saleDetails.totalProfit?.toFixed(2)}
+                  </span>
+                </Descriptions.Item>
+              </Descriptions>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Items</h3>
+                <Table
+                  dataSource={saleDetails.items || []}
+                  rowKey={(item: { id: string }) => item.id}
+                  pagination={false}
+                  size="small"
+                  scroll={{ x: 400 }}
+                >
+                  <Table.Column
+                    title="Product"
+                    key="product"
+                    render={(
+                      _,
+                      item: {
+                        inventory?: {
+                          variant?: {
+                            product?: { name?: string };
+                            variantName?: string;
+                            sku?: string;
+                          };
+                          itemName?: string;
+                        };
+                      },
+                    ) => {
+                      // Check if it's a catalog item or ad-hoc
+                      if (item.inventory?.variant?.product?.name) {
+                        return item.inventory.variant.product.name;
+                      }
+                      // Fallback to ad-hoc item name
+                      return item.inventory?.itemName || "N/A";
+                    }}
+                  />
+                  <Table.Column
+                    title="Variant"
+                    key="variant"
+                    render={(
+                      _,
+                      item: {
+                        inventory?: {
+                          variant?: { variantName?: string };
+                        };
+                      },
+                    ) => {
+                      // Use variantName from schema
+                      if (item.inventory?.variant?.variantName) {
+                        return item.inventory.variant.variantName;
+                      }
+                      // For ad-hoc items, show dash
+                      return "-";
+                    }}
+                  />
+                  <Table.Column
+                    title="Quantity"
+                    dataIndex="quantity"
+                    key="quantity"
+                  />
+                  <Table.Column
+                    title="Unit Price"
+                    dataIndex="unitPrice"
+                    key="unitPrice"
+                    render={(price: number) => `৳${price?.toFixed(2)}`}
+                  />
+                  <Table.Column
+                    title="Subtotal"
+                    dataIndex="subtotal"
+                    key="subtotal"
+                    render={(subtotal: number) => `৳${subtotal?.toFixed(2)}`}
+                  />
+                </Table>
+              </div>
+            </div>
+          ) : (
+            <div>No details available</div>
+          )}
         </div>
       </Modal>
     </div>
