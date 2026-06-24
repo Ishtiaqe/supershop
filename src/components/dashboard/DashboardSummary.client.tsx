@@ -1,9 +1,8 @@
 "use client";
 
-// Card removed; using raw layout classes to reduce bundle size for critical content
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Select, Skeleton } from 'antd';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { Select, SelectItem, Skeleton } from '@heroui/react';
 import { TrendingUp, Wallet, Package, ShoppingCart } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -23,6 +22,8 @@ export default function DashboardSummaryClient() {
     queryKey: ['dashboard-summary', period],
     queryFn: () => api.get(`/sales/analytics/summary?period=${period}`).then((r) => r.data),
     refetchOnWindowFocus: false,
+    staleTime: 30 * 1000,
+    placeholderData: keepPreviousData,
   });
 
   if (isLoading) {
@@ -30,21 +31,21 @@ export default function DashboardSummaryClient() {
       <div className="space-y-3">
         <div className="flex justify-end">
           <Select
-            value={period}
-            onChange={(val) => setPeriod(val as Period)}
-            size="small"
-            style={{ width: 140 }}
-            options={[
-              { value: 'this_month', label: 'This Month' },
-              { value: 'last_30', label: 'Last 30 Days' },
-              { value: 'all_time', label: 'All Time' },
-            ]}
-          />
+            selectedKeys={[period]}
+            onSelectionChange={(keys) => setPeriod(Array.from(keys)[0] as Period)}
+            size="sm"
+            className="w-36"
+          >
+            <SelectItem key="this_month">This Month</SelectItem>
+            <SelectItem key="last_30">Last 30 Days</SelectItem>
+            <SelectItem key="all_time">All Time</SelectItem>
+          </Select>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="stat-card stat-card-muted">
-              <Skeleton active paragraph={{ rows: 1 }} title={{ width: '50%' }} />
+              <Skeleton className="rounded-lg" />
+              <Skeleton className="w-1/2 rounded-lg" />
             </div>
           ))}
         </div>
@@ -58,16 +59,15 @@ export default function DashboardSummaryClient() {
     <div className="space-y-3">
       <div className="flex justify-end">
         <Select
-          value={period}
-          onChange={(val) => setPeriod(val as Period)}
-          size="small"
-          style={{ width: 140 }}
-          options={[
-            { value: 'this_month', label: 'This Month' },
-            { value: 'last_30', label: 'Last 30 Days' },
-            { value: 'all_time', label: 'All Time' },
-          ]}
-        />
+          selectedKeys={[period]}
+          onSelectionChange={(keys) => setPeriod(Array.from(keys)[0] as Period)}
+          size="sm"
+          className="w-36"
+        >
+          <SelectItem key="this_month">This Month</SelectItem>
+          <SelectItem key="last_30">Last 30 Days</SelectItem>
+          <SelectItem key="all_time">All Time</SelectItem>
+        </Select>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="stat-card stat-card-primary space-y-2">
