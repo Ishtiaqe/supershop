@@ -60,6 +60,7 @@ export default function ShortListPage() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [shortlistSearchTerm, setShortlistSearchTerm] = useState("");
   const [debouncedShortlistSearch, setDebouncedShortlistSearch] = useState("");
+  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
 
   // Debounce inventory search (stable ref + cleanup)
   const debouncedInventorySearch = useRef(
@@ -269,66 +270,61 @@ export default function ShortListPage() {
             <label className="block text-xs font-medium text-muted-foreground mb-2">
               Add Item to Shortlist
             </label>
-            <Select
-              items={
-                debouncedSearchTerm.length >= 2
-                  ? inventorySearchResults.map((item: any) => ({
-                      key: item.id,
-                      id: item.id,
-                      itemName: item.itemName || "Unnamed Item",
-                      retailPrice: item.retailPrice ?? "-",
-                      quantity: item.quantity,
-                    }))
-                  : []
-              }
-              placeholder="Type to search..."
-              searchValue={searchTerm}
-              onSearchChange={setSearchTerm}
-              className="w-full"
-              isLoading={isSearching}
-              isClearable
-              onSelectionChange={(key) => {
-                if (key && key !== "") {
-                  addToShortlistMutation.mutate(String(key));
+            <div className="space-y-2">
+              <Input
+                placeholder="Search inventory items..."
+                value={searchTerm}
+                onValueChange={setSearchTerm}
+                isClearable
+                className="w-full"
+                disabled={isSearching}
+                description={
+                  debouncedSearchTerm.length < 2
+                    ? "Type at least 2 characters"
+                    : undefined
                 }
-              }}
-              description={
-                debouncedSearchTerm.length < 2
-                  ? "Type at least 2 characters"
-                  : undefined
-              }
-              startContent={
-                isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : null
-              }
-            >
-              {(item: any) => (
-                <SelectItem key={item.key} value={item.key}>
-                  <div className="flex justify-between items-center w-full gap-4">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-foreground">
-                        {item.itemName}
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="font-bold text-primary">
-                        ৳{item.retailPrice}
-                      </span>
-                      <span
-                        className={`text-xs ${
-                          item.quantity > 0
-                            ? "text-success"
-                            : "text-destructive"
-                        }`}
-                      >
-                        {item.quantity > 0
-                          ? `${item.quantity} in stock`
-                          : "Out of stock"}
-                      </span>
-                    </div>
-                  </div>
-                </SelectItem>
+                startContent={
+                  isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : null
+                }
+              />
+              {debouncedSearchTerm.length >= 2 && inventorySearchResults.length > 0 && (
+                <div className="border rounded-lg overflow-hidden bg-white z-10">
+                  {inventorySearchResults.map((item: any) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 border-b last:border-b-0 flex justify-between items-center"
+                      onClick={() => {
+                        addToShortlistMutation.mutate(item.id);
+                        setSearchTerm("");
+                      }}
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium text-sm">
+                          {item.itemName}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="font-bold text-primary text-sm">
+                          ৳{item.retailPrice ?? "-"}
+                        </span>
+                        <span
+                          className={`text-xs ${
+                            item.quantity > 0
+                              ? "text-success"
+                              : "text-destructive"
+                          }`}
+                        >
+                          {item.quantity > 0
+                            ? `${item.quantity} in stock`
+                            : "Out of stock"}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               )}
-            </Select>
+            </div>
           </div>
 
           {/* Sort By */}
@@ -341,13 +337,13 @@ export default function ShortListPage() {
               onChange={(e) => setSortBy(e.target.value as any)}
               className="w-full"
             >
-              <SelectItem key="quantity" value="quantity">
+              <SelectItem key="quantity">
                 Lowest Stock First
               </SelectItem>
-              <SelectItem key="addedAt" value="addedAt">
+              <SelectItem key="addedAt">
                 Recently Added
               </SelectItem>
-              <SelectItem key="name" value="name">
+              <SelectItem key="name">
                 Item Name
               </SelectItem>
             </Select>
@@ -473,7 +469,13 @@ export default function ShortListPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Popover placement="left">
+                        <Popover
+                          placement="left"
+                          isOpen={openPopoverId === item.id}
+                          onOpenChange={(open) =>
+                            setOpenPopoverId(open ? item.id : null)
+                          }
+                        >
                           <PopoverTrigger asChild>
                             <Button
                               isIconOnly
@@ -498,9 +500,7 @@ export default function ShortListPage() {
                                 <Button
                                   size="sm"
                                   variant="light"
-                                  onPress={() => {
-                                    // Close popover by clicking outside
-                                  }}
+                                  onPress={() => setOpenPopoverId(null)}
                                 >
                                   No
                                 </Button>

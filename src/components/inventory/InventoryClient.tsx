@@ -174,6 +174,7 @@ export default function InventoryClient() {
   });
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [catalogOptions, setCatalogOptions] = useState<CatalogItem[]>([]);
   const [selectedFromCatalog, setSelectedFromCatalog] =
     useState<CatalogItem | null>(null);
@@ -192,6 +193,8 @@ export default function InventoryClient() {
         if (isOnline) {
           await queryClient.invalidateQueries({ queryKey: ["catalog"] });
         }
+        await queryClient.invalidateQueries({ queryKey: ["shortlist"] });
+        await queryClient.invalidateQueries({ queryKey: ["shortlist-stats"] });
       },
     },
   );
@@ -278,23 +281,20 @@ export default function InventoryClient() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!editFormState.id) return;
-    toast.error("Confirm deletion", {
-      description: "Are you sure you want to delete this item?",
-      action: {
-        label: "Delete",
-        onClick: async () => {
-          try {
-            await deleteMutation.mutateAsync(editFormState.id!);
-          } catch (error) {
-            toast.error(
-              error instanceof Error ? error.message : "Failed to delete item",
-            );
-          }
-        },
-      },
-    });
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await deleteMutation.mutateAsync(editFormState.id!);
+      setDeleteConfirmOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete item",
+      );
+    }
   };
 
   const updateMutation = useMutation<
@@ -511,6 +511,7 @@ export default function InventoryClient() {
                     isInvalid={!!error}
                     errorMessage={error?.message}
                     min="1"
+                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                   />
                 </div>
               )}
@@ -532,6 +533,7 @@ export default function InventoryClient() {
                     errorMessage={error?.message}
                     startContent={<span className="text-gray-500">৳</span>}
                     min="0"
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </div>
               )}
@@ -553,6 +555,7 @@ export default function InventoryClient() {
                     errorMessage={error?.message}
                     startContent={<span className="text-gray-500">৳</span>}
                     min="0"
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </div>
               )}
@@ -592,13 +595,13 @@ export default function InventoryClient() {
                     if (selected) field.onChange(selected);
                   }}
                 >
-                  <SelectItem key="CASH_BOX" value="CASH_BOX">
+                  <SelectItem key="CASH_BOX">
                     Cash Box
                   </SelectItem>
-                  <SelectItem key="NEW_INVESTMENT" value="NEW_INVESTMENT">
+                  <SelectItem key="NEW_INVESTMENT">
                     New Investment
                   </SelectItem>
-                  <SelectItem key="LOAN" value="LOAN">
+                  <SelectItem key="LOAN">
                     Loan
                   </SelectItem>
                 </Select>
@@ -651,13 +654,13 @@ export default function InventoryClient() {
           >
             <TableHeader>
               <TableColumn key="itemName">Item Name</TableColumn>
-              <TableColumn key="totalQuantity" align="right">
+              <TableColumn key="totalQuantity" align="end">
                 Total Stock
               </TableColumn>
-              <TableColumn key="purchasePrice" align="right">
+              <TableColumn key="purchasePrice" align="end">
                 Purchase Price
               </TableColumn>
-              <TableColumn key="retailPrice" align="right">
+              <TableColumn key="retailPrice" align="end">
                 MRP/Unit
               </TableColumn>
               <TableColumn key="batchInfo">Batch Info</TableColumn>
@@ -714,6 +717,37 @@ export default function InventoryClient() {
         </div>
       </div>
 
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        size="sm"
+        backdrop="blur"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader>Delete Item</ModalHeader>
+              <ModalBody>
+                Are you sure you want to delete this inventory item?
+              </ModalBody>
+              <ModalFooter>
+                <Button color="default" variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  color="danger"
+                  onPress={confirmDelete}
+                  isLoading={deleteMutation.isPending}
+                >
+                  Delete
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
       {/* Edit Modal */}
       <Modal
         isOpen={modalOpen}
@@ -766,6 +800,7 @@ export default function InventoryClient() {
                           isInvalid={!!error}
                           errorMessage={error?.message}
                           min="1"
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                         />
                       </div>
                     )}
@@ -789,6 +824,7 @@ export default function InventoryClient() {
                           errorMessage={error?.message}
                           startContent={<span className="text-gray-500">৳</span>}
                           min="0"
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                       </div>
                     )}
@@ -810,6 +846,7 @@ export default function InventoryClient() {
                           errorMessage={error?.message}
                           startContent={<span className="text-gray-500">৳</span>}
                           min="0"
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                       </div>
                     )}
