@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Modal, Progress, Button, Space, Typography, Alert, List } from 'antd';
-import { DatabaseOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@heroui/modal';
+import { Progress } from '@heroui/progress';
+import { Button } from '@heroui/button';
 import { useOffline } from '@/hooks/useOffline';
-
-const { Text, Title } = Typography;
+import { Trash2, Database } from 'lucide-react';
 
 interface StorageInfo {
   used: number;
@@ -75,9 +75,56 @@ export function StorageMonitor() {
 
   const getStatusColor = () => {
     switch (storageInfo.status) {
-      case 'error': return 'hsl(var(--destructive))';
-      case 'warning': return 'hsl(var(--warning))';
-      default: return 'hsl(var(--success))';
+      case 'error':
+        return 'text-red-500';
+      case 'warning':
+        return 'text-yellow-500';
+      default:
+        return 'text-green-500';
+    }
+  };
+
+  const getStatusColorBorder = () => {
+    switch (storageInfo.status) {
+      case 'error':
+        return 'border-red-500';
+      case 'warning':
+        return 'border-yellow-500';
+      default:
+        return 'border-green-500';
+    }
+  };
+
+  const getAlertBgColor = () => {
+    switch (storageInfo.status) {
+      case 'error':
+        return 'bg-red-50 dark:bg-red-950';
+      case 'warning':
+        return 'bg-yellow-50 dark:bg-yellow-950';
+      default:
+        return 'bg-blue-50 dark:bg-blue-950';
+    }
+  };
+
+  const getAlertTextColor = () => {
+    switch (storageInfo.status) {
+      case 'error':
+        return 'text-red-800 dark:text-red-200';
+      case 'warning':
+        return 'text-yellow-800 dark:text-yellow-200';
+      default:
+        return 'text-blue-800 dark:text-blue-200';
+    }
+  };
+
+  const getProgressColor = () => {
+    switch (storageInfo.status) {
+      case 'error':
+        return 'danger';
+      case 'warning':
+        return 'warning';
+      default:
+        return 'success';
     }
   };
 
@@ -92,124 +139,107 @@ export function StorageMonitor() {
     }
   };
 
+  const cleanupItems = [
+    {
+      title: 'Clear Offline Cache',
+      description: 'Remove cached API responses and temporary data'
+    },
+    {
+      title: 'Clear IndexedDB',
+      description: 'Remove local database (use with caution)'
+    },
+    {
+      title: 'Clear Service Worker Cache',
+      description: 'Remove cached static assets'
+    }
+  ];
+
   return (
     <>
       <div
-        style={{
-          position: 'fixed',
-          bottom: 24,
-          left: 24,
-          zIndex: 1000,
-          cursor: 'pointer'
-        }}
+        className="fixed bottom-6 left-6 z-[1000] cursor-pointer"
         onClick={() => setShowModal(true)}
       >
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'hsl(var(--surface))',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            border: `2px solid ${getStatusColor()}`
-          }}
+          className={`flex items-center gap-2 bg-surface px-3 py-2 rounded-md shadow-md border-2 ${getStatusColorBorder()}`}
         >
-          <DatabaseOutlined style={{ color: getStatusColor() }} />
-          <Text style={{ color: getStatusColor(), fontWeight: 500 }}>
+          <Database className={`w-5 h-5 ${getStatusColor()}`} />
+          <span className={`${getStatusColor()} font-semibold`}>
             {Math.round(storageInfo.percentage)}%
-          </Text>
+          </span>
         </div>
       </div>
 
-      <Modal
-        title="Storage Management"
-        open={showModal}
-        onCancel={() => setShowModal(false)}
-        footer={[
-          <Button key="close" onClick={() => setShowModal(false)}>
-            Close
-          </Button>
-        ]}
-        width={500}
-      >
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div>
-            <Title level={4}>Storage Usage</Title>
-            <Progress
-              percent={Math.round(storageInfo.percentage)}
-              status={storageInfo.status === 'error' ? 'exception' : 'active'}
-              strokeColor={getStatusColor()}
-            />
-            <div style={{ marginTop: '8px' }}>
-              <Text>
+      <Modal isOpen={showModal} onOpenChange={setShowModal} size="md">
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            Storage Management
+          </ModalHeader>
+
+          <ModalBody className="gap-4">
+            {/* Storage Usage Section */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-foreground">Storage Usage</h3>
+              <Progress
+                label={`${Math.round(storageInfo.percentage)}%`}
+                value={Math.round(storageInfo.percentage)}
+                color={getProgressColor()}
+                className="max-w-md"
+              />
+              <p className="text-sm text-foreground-500">
                 {formatBytes(storageInfo.used)} of {formatBytes(storageInfo.available)} used
-              </Text>
+              </p>
             </div>
-          </div>
 
-          <Alert
-            message="Storage Status"
-            description={getStatusMessage()}
-            type={storageInfo.status === 'error' ? 'error' : storageInfo.status === 'warning' ? 'warning' : 'info'}
-            showIcon
-          />
+            {/* Status Alert */}
+            <div
+              className={`${getAlertBgColor()} ${getAlertTextColor()} rounded-lg p-3 text-sm border border-current/20`}
+            >
+              <p className="font-semibold mb-1">Storage Status</p>
+              <p>{getStatusMessage()}</p>
+            </div>
 
-          <div>
-            <Title level={5}>Cleanup Actions</Title>
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Text type="secondary">
+            {/* Cleanup Actions Section */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Cleanup Actions</h3>
+
+              <p className="text-sm text-foreground-500">
                 Clearing storage will remove cached data, offline queue, and temporary files.
                 Your core data will remain intact.
-              </Text>
+              </p>
 
-              <List size="small">
-                <List.Item>
-                  <Space>
-                    <DeleteOutlined />
-                    <div>
-                      <Text strong>Clear Offline Cache</Text>
-                      <br />
-                      <Text type="secondary">Remove cached API responses and temporary data</Text>
+              {/* Cleanup Items List */}
+              <div className="space-y-2">
+                {cleanupItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex gap-3 p-2 rounded-lg border border-divider hover:bg-default-50 dark:hover:bg-default-100"
+                  >
+                    <Trash2 className="w-4 h-4 text-foreground-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{item.title}</p>
+                      <p className="text-xs text-foreground-500">{item.description}</p>
                     </div>
-                  </Space>
-                </List.Item>
-                <List.Item>
-                  <Space>
-                    <DeleteOutlined />
-                    <div>
-                      <Text strong>Clear IndexedDB</Text>
-                      <br />
-                      <Text type="secondary">Remove local database (use with caution)</Text>
-                    </div>
-                  </Space>
-                </List.Item>
-                <List.Item>
-                  <Space>
-                    <DeleteOutlined />
-                    <div>
-                      <Text strong>Clear Service Worker Cache</Text>
-                      <br />
-                      <Text type="secondary">Remove cached static assets</Text>
-                    </div>
-                  </Space>
-                </List.Item>
-              </List>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </ModalBody>
 
-              <Button
-                type="primary"
-                danger
-                loading={isCleaning}
-                onClick={handleCleanup}
-                icon={<DeleteOutlined />}
-                block
-              >
-                {isCleaning ? 'Cleaning...' : 'Clear All Storage'}
-              </Button>
-            </Space>
-          </div>
-        </Space>
+          <ModalFooter className="gap-2">
+            <Button color="default" variant="light" onPress={() => setShowModal(false)}>
+              Close
+            </Button>
+            <Button
+              color="danger"
+              startContent={<Trash2 className="w-4 h-4" />}
+              isLoading={isCleaning}
+              onPress={handleCleanup}
+            >
+              {isCleaning ? 'Cleaning...' : 'Clear All Storage'}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
       </Modal>
     </>
   );

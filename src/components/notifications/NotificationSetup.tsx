@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, startTransition } from "react";
-import { Button, message } from "antd";
-import BellOutlined from "@ant-design/icons/BellOutlined";
+import { Button } from "@heroui/react";
+import { Bell } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/lib/api";
 
 const PUBLIC_VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BBMc..."; // Replace with real key
@@ -66,16 +67,16 @@ export default function NotificationSetup() {
         setIsSubscribed(true);
       });
 
-      message.success("Notifications enabled!");
+      toast.success("Notifications enabled!");
     } catch (error) {
       console.error("Failed to subscribe:", error);
-      message.error("Failed to enable notifications");
+      toast.error("Failed to enable notifications");
     }
   };
 
   const requestPermission = async () => {
     if (!("Notification" in window)) {
-      message.error("Notifications not supported in this environment");
+      toast.error("Notifications not supported in this environment");
       return;
     }
     const result = await window.Notification.requestPermission();
@@ -103,11 +104,11 @@ export default function NotificationSetup() {
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <Button
-        type="primary"
-        shape="round"
-        icon={<BellOutlined />}
+        isIconOnly
+        className="rounded-full shadow-lg"
+        color="primary"
         onClick={requestPermission}
-        className="shadow-lg"
+        startContent={<Bell size={20} />}
       >
         Enable Notifications
       </Button>

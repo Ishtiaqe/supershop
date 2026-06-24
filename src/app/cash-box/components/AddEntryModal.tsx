@@ -1,14 +1,34 @@
-import { 
-  Modal, 
-  Form, 
-  Input, 
-  InputNumber, 
-  Select, 
-  DatePicker, 
-  message 
-} from "antd";
-import dayjs from "dayjs";
-import { useCreateCashBoxEntry } from "../hooks/useCashBoxHooks";
+'use client';
+
+import { useForm, Controller, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import dayjs from 'dayjs';
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Input,
+  Select,
+  SelectItem,
+  Button,
+  Textarea,
+} from '@heroui/react';
+import { toast } from 'sonner';
+import { useCreateCashBoxEntry } from '../hooks/useCashBoxHooks';
+
+const addEntrySchema = z.object({
+  entryType: z.enum(['MANUAL_IN', 'MANUAL_OUT']),
+  amount: z
+    .number({ message: 'Amount must be a number' })
+    .min(0.01, 'Amount must be at least 0.01'),
+  entryDate: z.string().min(1, 'Date is required'),
+  note: z.string().optional(),
+});
+
+type AddEntryFormData = z.infer<typeof addEntrySchema>;
 
 interface AddEntryModalProps {
   isOpen: boolean;
@@ -17,104 +37,163 @@ interface AddEntryModalProps {
 }
 
 export function AddEntryModal({ isOpen, onClose, id }: AddEntryModalProps) {
-  const [form] = Form.useForm();
   const { mutate: createEntry, isPending } = useCreateCashBoxEntry();
 
-  const handleSubmit = (values: any) => {
+  const {
+    control,
+    handleSubmit,
+    reset,
+    register,
+    formState: { errors },
+  } = useForm<AddEntryFormData>({
+    resolver: zodResolver(addEntrySchema),
+    defaultValues: {
+      entryType: 'MANUAL_IN',
+      amount: 0,
+      entryDate: dayjs().format('YYYY-MM-DD'),
+      note: '',
+    },
+  });
+
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
+  const onSubmit: SubmitHandler<AddEntryFormData> = (values) => {
     createEntry(
       {
         entryType: values.entryType,
         amount: Number(values.amount),
         note: values.note,
-        entryDate: values.entryDate.format("YYYY-MM-DD"),
+        entryDate: values.entryDate,
       },
       {
         onSuccess: () => {
-          message.success("Entry added successfully");
-          form.resetFields();
+          toast.success('Entry added successfully');
+          reset();
           onClose();
         },
         onError: (err: any) => {
-          message.error(err?.response?.data?.message || "Failed to add entry");
-        }
+          toast.error(err?.response?.data?.message || 'Failed to add entry');
+        },
       }
     );
   };
 
   return (
     <Modal
-      title="Add Cash Box Entry"
-      open={isOpen}
-      onCancel={() => {
-        form.resetFields();
-        onClose();
-      }}
-      onOk={() => form.submit()}
-      confirmLoading={isPending}
-      okText="Save Entry"
-      destroyOnClose
+      isOpen={isOpen}
+      onOpenChange={(open) => { if (!open) handleClose(); }}
+      backdrop="blur"
     >
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-        initialValues={{
-          entryType: "MANUAL_IN",
-          entryDate: dayjs(),
-        }}
-        className="mt-4"
-      >
-        <Form.Item
-          name="entryType"
-          label="Type"
-          rules={[{ required: true, message: "Please select entry type" }]}
-        >
-          <Select placeholder="Select type">
-            <Select.Option value="MANUAL_IN">
-              💰 Deposit (Cash In)
-            </Select.Option>
-            <Select.Option value="MANUAL_OUT">
-              💸 Withdrawal (Cash Out)
-            </Select.Option>
-          </Select>
-        </Form.Item>
+      <ModalContent>
+        {(onModalClose) => (
+          <>
+            <ModalHeader className="flex flex-col gap-1">
+              Add Cash Box Entry
+            </ModalHeader>
 
-        <Form.Item
-          name="amount"
-          label="Amount (৳)"
-          rules={[
-            { required: true, message: "Please enter amount" },
-            { type: "number", min: 0.01, message: "Amount must be at least 0.01" }
-          ]}
-        >
-          <InputNumber
-            className="w-full"
-            step="0.01"
-            min={0.01}
-            precision={2}
-            placeholder="0.00"
-          />
-        </Form.Item>
+            <ModalBody>
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="space-y-4 mt-2"
+                id="add-entry-form"
+              >
+                {/* Entry Type */}
+                <Controller
+                  name="entryType"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      label="Type"
+                      placeholder="Select type"
+                      selectedKeys={field.value ? [field.value] : []}
+                      onSelectionChange={(keys) => {
+                        const val = Array.from(keys)[0] as string;
+                        field.onChange(val);
+                      }}
+                      isInvalid={!!errors.entryType}
+                      errorMessage={errors.entryType?.message}
+                    >
+                      <SelectItem key="MANUAL_IN">
+                        💰 Deposit (Cash In)
+                      </SelectItem>
+                      <SelectItem key="MANUAL_OUT">
+                        💸 Withdrawal (Cash Out)
+                      </SelectItem>
+                    </Select>
+                  )}
+                />
 
-        <Form.Item
-          name="entryDate"
-          label="Date"
-          rules={[{ required: true, message: "Please select date" }]}
-        >
-          <DatePicker className="w-full" format="DD/MM/YYYY" />
-        </Form.Item>
+                {/* Amount */}
+                <Input
+                  {...register('amount', {
+                    valueAsNumber: true,
+                  })}
+                  type="number"
+                  label="Amount (৳)"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0.01"
+                  isInvalid={!!errors.amount}
+                  errorMessage={errors.amount?.message}
+                />
 
-        <Form.Item
-          name="note"
-          label="Note (Optional)"
-        >
-          <Input.TextArea
-            placeholder="e.g. Owner withdrawal, shop expenses..."
-            rows={3}
-          />
-        </Form.Item>
-      </Form>
+                {/* Date */}
+                <Controller
+                  name="entryDate"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      type="date"
+                      label="Date"
+                      isInvalid={!!errors.entryDate}
+                      errorMessage={errors.entryDate?.message}
+                    />
+                  )}
+                />
+
+                {/* Note */}
+                <Controller
+                  name="note"
+                  control={control}
+                  render={({ field }) => (
+                    <Textarea
+                      {...field}
+                      label="Note (Optional)"
+                      placeholder="e.g. Owner withdrawal, shop expenses..."
+                      minRows={3}
+                      isInvalid={!!errors.note}
+                      errorMessage={errors.note?.message}
+                    />
+                  )}
+                />
+              </form>
+            </ModalBody>
+
+            <ModalFooter>
+              <Button
+                variant="light"
+                onPress={handleClose}
+                isDisabled={isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                color="primary"
+                type="submit"
+                form="add-entry-form"
+                isLoading={isPending}
+                isDisabled={isPending}
+              >
+                Save Entry
+              </Button>
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
     </Modal>
   );
 }
-

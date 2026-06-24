@@ -1,32 +1,23 @@
 import React from "react";
-import { Result, Button } from "antd";
+import { Button } from "@heroui/react";
 import { WifiOff } from "lucide-react";
 import Link from "next/link";
 
 export default function OfflinePage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-background dark:bg-background">
-      <Result
-        icon={<WifiOff className="h-24 w-24 text-muted-foreground mx-auto" />}
-        title={
-          <span className="text-foreground dark:text-foreground">
-            You are offline
-          </span>
-        }
-        subTitle={
-          <span className="text-muted-foreground">
-            Please check your internet connection. Some features may be
-            unavailable, but you can still access cached data.
-          </span>
-        }
-        extra={
-          <Link href="/pos">
-            <Button type="primary" size="large">
-              Go to Dashboard
-            </Button>
-          </Link>
-        }
-      />
+    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-background">
+      <div className="text-center max-w-md space-y-4">
+        <WifiOff className="h-24 w-24 text-default-500 mx-auto" />
+        <h1 className="text-3xl font-bold text-foreground">You are offline</h1>
+        <p className="text-default-500">
+          Please check your internet connection. Some features may be unavailable, but you can still access cached data.
+        </p>
+        <Link href="/pos">
+          <Button color="primary" size="lg" fullWidth>
+            Go to Dashboard
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import api from '@/lib/api';
 import { useRouter, useSearchParams } from "next/navigation";
-import { Spin } from "antd";
+import { Spinner } from "@heroui/react";
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -45,7 +45,7 @@ export default function AuthCallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
       <div className="text-center bg-card/90 backdrop-blur-xl p-12 rounded-2xl shadow-2xl">
-        <Spin size="large" />
+        <Spinner size="lg" />
         <p className="mt-6 text-foreground text-lg font-medium">
           Completing sign in...
         </p>

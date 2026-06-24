@@ -2,25 +2,31 @@
 
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
   Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
   Button,
   Modal,
-  Form,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
   Input,
-  InputNumber,
   Select,
-  message,
-  Popconfirm,
-  // Tag,
-} from "antd";
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  MedicineBoxOutlined,
-} from "@ant-design/icons";
+  SelectItem,
+  Card,
+  CardBody,
+} from "@heroui/react";
+import { Plus, Edit, Trash2, Package2 } from "lucide-react";
 import api from "@/lib/api";
+import { toast } from "sonner";
 
 interface CatalogItem {
   variantId: string;
@@ -38,15 +44,30 @@ interface CatalogItem {
   manufacturerName?: string;
 }
 
+const catalogSchema = z.object({
+  productName: z.string().min(1, "Product name is required"),
+  variantName: z.string().min(1, "Variant is required"),
+  sku: z.string().min(1, "SKU is required"),
+  retailPrice: z.number().positive("Price must be greater than 0"),
+  description: z.string().default(""),
+  productType: z.enum(["GENERAL", "MEDICINE"]),
+  genericName: z.string().default(""),
+  manufacturerName: z.string().default(""),
+});
+
+type CatalogFormData = z.infer<typeof catalogSchema>;
+
 export default function CatalogClient() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
-  const [form] = Form.useForm();
-  const queryClient = useQueryClient();
-  const [productType, setProductType] = useState<"GENERAL" | "MEDICINE">(
-    "GENERAL"
-  );
+  const [productType, setProductType] = useState<"GENERAL" | "MEDICINE">("GENERAL");
   const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
+
+  const { control, register, handleSubmit, formState: { errors }, reset, watch } = useForm<CatalogFormData>({
+    resolver: zodResolver(catalogSchema) as any,
+    defaultValues: { productType: "GENERAL" },
+  });
 
   const { data: catalogItems = [], isLoading } = useQuery<CatalogItem[]>({
     queryKey: ["catalog"],
@@ -69,10 +90,10 @@ export default function CatalogClient() {
     mutationFn: (data: Record<string, unknown>) => api.post("/catalog", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["catalog"] });
-      message.success("Product added to catalog");
+      toast.success("Product added to catalog");
       handleCloseModal();
     },
-    onError: () => message.error("Failed to add product"),
+    onError: () => toast.error("Failed to add product"),
   });
 
   const updateMutation = useMutation({
@@ -80,12 +101,11 @@ export default function CatalogClient() {
       api.put(`/catalog/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["catalog"] });
-      message.success("Product updated");
+      toast.success("Product updated");
       handleCloseModal();
     },
-    onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      message.error(err.response?.data?.message || "Failed to update product");
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Failed to update product");
     },
   });
 
@@ -93,11 +113,10 @@ export default function CatalogClient() {
     mutationFn: (id: string) => api.delete(`/catalog/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["catalog"] });
-      message.success("Product removed from catalog");
+      toast.success("Product removed from catalog");
     },
-    onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      message.error(err.response?.data?.message || "Failed to delete product");
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Failed to delete product");
     },
   });
 
@@ -105,9 +124,9 @@ export default function CatalogClient() {
     if (item) {
       setEditingItem(item);
       setProductType((item.productType as "GENERAL" | "MEDICINE") || "GENERAL");
-      form.setFieldsValue({
+      reset({
         productName: item.productName,
-        productType: item.productType || "GENERAL",
+        productType: (item.productType as "GENERAL" | "MEDICINE") || "GENERAL",
         genericName: item.genericName,
         manufacturerName: item.manufacturerName,
         variantName: item.variantName,
@@ -118,7 +137,7 @@ export default function CatalogClient() {
     } else {
       setEditingItem(null);
       setProductType("GENERAL");
-      form.resetFields();
+      reset();
     }
     setIsModalOpen(true);
   };
@@ -126,224 +145,258 @@ export default function CatalogClient() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingItem(null);
-    form.resetFields();
+    reset();
   };
 
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      const data = {
-        productName: values.productName,
-        variantName: values.variantName,
-        sku: values.sku,
-        retailPrice: values.retailPrice,
-        description: values.description,
-        productType: values.productType || "GENERAL",
-        genericName:
-          values.productType === "MEDICINE" ? values.genericName : undefined,
-        manufacturerName: values.manufacturerName,
-      };
+  const onSubmit = async (values: CatalogFormData) => {
+    const data = {
+      productName: values.productName,
+      variantName: values.variantName,
+      sku: values.sku,
+      retailPrice: values.retailPrice,
+      description: values.description,
+      productType: values.productType || "GENERAL",
+      genericName: values.productType === "MEDICINE" ? values.genericName : undefined,
+      manufacturerName: values.manufacturerName,
+    };
 
-      if (editingItem) {
-        updateMutation.mutate({ id: editingItem.variantId, data });
-      } else {
-        createMutation.mutate(data);
-      }
-    } catch {
-      // Form validation failed
+    if (editingItem) {
+      updateMutation.mutate({ id: editingItem.variantId, data });
+    } else {
+      createMutation.mutate(data);
     }
   };
 
-  const columns = [
-    {
-      title: "Product",
-      dataIndex: "productName",
-      key: "productName",
-      render: (text: string, record: CatalogItem) => (
-        <div>
-          <div className="font-medium">{text}</div>
-          {record.productType === "MEDICINE" && record.genericName && (
-            <div className="text-xs text-muted-foreground">
-              <MedicineBoxOutlined className="mr-1" />
-              {record.genericName}
-            </div>
-          )}
-        </div>
-      ),
-    },
-    // {
-    //   title: "Variant",
-    //   dataIndex: "variantName",
-    //   key: "variantName",
-    // },
-    // {
-    //   title: "SKU",
-    //   dataIndex: "sku",
-    //   key: "sku",
-    // },
-    // {
-    //   title: "Type",
-    //   dataIndex: "productType",
-    //   key: "productType",
-    //   render: (type: string) => (
-    //     <Tag color={type === "MEDICINE" ? "blue" : "default"}>
-    //       {type || "General"}
-    //     </Tag>
-    //   ),
-    // },
-    // {
-    //   title: "Manufacturer",
-    //   dataIndex: "manufacturerName",
-    //   key: "manufacturerName",
-    //   render: (text: string) => text || "-",
-    // },
-    // {
-    //   title: "Price",
-    //   dataIndex: "retailPrice",
-    //   key: "retailPrice",
-    //   render: (price: number) => `৳${price.toFixed(2)}`,
-    // },
-    // {
-    //   title: "Stock",
-    //   dataIndex: "currentStock",
-    //   key: "currentStock",
-    //   render: (stock: number) => stock || 0,
-    // },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_: unknown, record: CatalogItem) => (
-        <div className="flex gap-2">
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleOpenModal(record)}
-          />
-          <Popconfirm
-            title="Remove from catalog"
-            description={`Remove "${record.productName} - ${record.variantName}"?`}
-            onConfirm={() => deleteMutation.mutate(record.variantId)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button type="text" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </div>
-      ),
-    },
-  ];
+  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div>
-      <div className="surface-card p-4 md:p-6">
-        <div className="mb-4 flex justify-between items-center">
-          <div className="text-sm text-muted-foreground">
-            {catalogItems.length} products in catalog
-          </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => handleOpenModal()}
-          >
-            Add to Catalog
-          </Button>
-        </div>
-
-        <Input.Search
-          placeholder="Search catalog..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onSearch={setSearch}
-          style={{ marginBottom: 16, width: 300 }}
-          allowClear
-        />
-
-        <div className="overflow-x-auto">
-          <Table
-            dataSource={filteredCatalogItems}
-            columns={columns}
-            rowKey="variantId"
-            loading={isLoading}
-            pagination={{ pageSize: 10 }}
-          />
-        </div>
-      </div>
-
-      <Modal
-        title={editingItem ? "Edit Product" : "Add to Catalog"}
-        open={isModalOpen}
-        onOk={handleSubmit}
-        onCancel={handleCloseModal}
-        confirmLoading={createMutation.isPending || updateMutation.isPending}
-        width={600}
-      >
-        <Form form={form} layout="vertical" className="mt-4">
-          <Form.Item
-            name="productName"
-            label="Product Name"
-            rules={[{ required: true, message: "Required" }]}
-          >
-            <Input placeholder="e.g., Paracetamol, Rice" />
-          </Form.Item>
-
-          <Form.Item
-            name="productType"
-            label="Product Type"
-            initialValue="GENERAL"
-          >
-            <Select
-              onChange={(value) =>
-                setProductType(value as "GENERAL" | "MEDICINE")
-              }
+    <div className="space-y-6">
+      <Card>
+        <CardBody className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-muted-foreground">
+              {catalogItems.length} products in catalog
+            </div>
+            <Button
+              color="primary"
+              startContent={<Plus size={18} />}
+              onClick={() => handleOpenModal()}
             >
-              <Select.Option value="GENERAL">General</Select.Option>
-              <Select.Option value="MEDICINE">Medicine</Select.Option>
-            </Select>
-          </Form.Item>
+              Add to Catalog
+            </Button>
+          </div>
 
-          {productType === "MEDICINE" && (
-            <Form.Item name="genericName" label="Generic Name">
-              <Input placeholder="e.g., Acetaminophen" />
-            </Form.Item>
+          <Input
+            placeholder="Search catalog..."
+            value={search}
+            onValueChange={setSearch}
+            isClearable
+            className="max-w-xs"
+          />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardBody className="p-0">
+          <Table>
+            <TableHeader>
+              <TableColumn key="productName">Product</TableColumn>
+              <TableColumn key="variantName">Variant</TableColumn>
+              <TableColumn key="sku">SKU</TableColumn>
+              <TableColumn key="retailPrice" align="end">
+                Retail Price
+              </TableColumn>
+              <TableColumn key="actions" align="center">
+                Actions
+              </TableColumn>
+            </TableHeader>
+            <TableBody emptyContent="No products" items={filteredCatalogItems} isLoading={isLoading}>
+              {(item: CatalogItem) => (
+                <TableRow key={item.variantId}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{item.productName}</div>
+                      {item.productType === "MEDICINE" && item.genericName && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Package2 size={12} />
+                          {item.genericName}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">{item.variantName}</TableCell>
+                  <TableCell className="text-sm">{item.sku}</TableCell>
+                  <TableCell className="text-right font-semibold">
+                    ৳{item.retailPrice.toFixed(2)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1 justify-center">
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        onClick={() => handleOpenModal(item)}
+                      >
+                        <Edit size={16} />
+                      </Button>
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        color="danger"
+                        variant="light"
+                        onClick={() => deleteMutation.mutate(item.variantId)}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardBody>
+      </Card>
+
+      <Modal isOpen={isModalOpen} onOpenChange={handleCloseModal} backdrop="blur">
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader>{editingItem ? "Edit Product" : "Add to Catalog"}</ModalHeader>
+              <ModalBody className="space-y-4">
+                <Controller
+                  name="productName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      label="Product Name"
+                      placeholder="e.g., Paracetamol, Rice"
+                      isInvalid={!!errors.productName}
+                      errorMessage={errors.productName?.message}
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="productType"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      label="Product Type"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setProductType(e.target.value as "GENERAL" | "MEDICINE");
+                      }}
+                    >
+                      <SelectItem key="GENERAL">
+                        General
+                      </SelectItem>
+                      <SelectItem key="MEDICINE">
+                        Medicine
+                      </SelectItem>
+                    </Select>
+                  )}
+                />
+
+                {productType === "MEDICINE" && (
+                  <Controller
+                    name="genericName"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        label="Generic Name"
+                        placeholder="e.g., Acetaminophen"
+                      />
+                    )}
+                  />
+                )}
+
+                <Controller
+                  name="manufacturerName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      label="Manufacturer"
+                      placeholder="e.g., Square Pharmaceuticals"
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="variantName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      label="Variant"
+                      placeholder="e.g., 500mg Tablet, 1kg Pack"
+                      isInvalid={!!errors.variantName}
+                      errorMessage={errors.variantName?.message}
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="sku"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      label="SKU"
+                      placeholder="Unique product code"
+                      isInvalid={!!errors.sku}
+                      errorMessage={errors.sku?.message}
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="retailPrice"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="number"
+                      label="Retail Price (৳)"
+                      placeholder="0.00"
+                      isInvalid={!!errors.retailPrice}
+                      errorMessage={errors.retailPrice?.message}
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      label="Description"
+                      placeholder="Optional description"
+                    />
+                  )}
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button color="default" onPress={onClose} isDisabled={isSaving}>
+                  Cancel
+                </Button>
+                <Button
+                  color="primary"
+                  onPress={handleSubmit(onSubmit)}
+                  isLoading={isSaving}
+                  isDisabled={isSaving}
+                >
+                  {editingItem ? "Save Changes" : "Add Product"}
+                </Button>
+              </ModalFooter>
+            </>
           )}
-
-          <Form.Item name="manufacturerName" label="Manufacturer">
-            <Input placeholder="e.g., Square Pharmaceuticals" />
-          </Form.Item>
-
-          <Form.Item
-            name="variantName"
-            label="Variant"
-            rules={[{ required: true, message: "Required" }]}
-          >
-            <Input placeholder="e.g., 500mg Tablet, 1kg Pack" />
-          </Form.Item>
-
-          <Form.Item
-            name="sku"
-            label="SKU"
-            rules={[{ required: true, message: "Required" }]}
-          >
-            <Input placeholder="Unique product code" />
-          </Form.Item>
-
-          <Form.Item
-            name="retailPrice"
-            label="Retail Price"
-            rules={[{ required: true, message: "Required" }]}
-          >
-            <InputNumber
-              min={0}
-              step={0.01}
-              style={{ width: "100%" }}
-              prefix="৳"
-            />
-          </Form.Item>
-
-          <Form.Item name="description" label="Description">
-            <Input.TextArea rows={2} placeholder="Optional description" />
-          </Form.Item>
-        </Form>
+        </ModalContent>
       </Modal>
     </div>
   );

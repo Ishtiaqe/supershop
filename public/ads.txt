@@ -1,0 +1,9 @@
+# SuperShop ads.txt - Authorized Digital Sellers
+# Replace the placeholder below with your actual Google AdSense Publisher ID.
+# Format: google.com, pub-XXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+
+google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+
+# If you use other ad networks, add their seller records below.
+# Example:
+# networkdomain.com, seller-id, DIRECT/RESELLER, certification-authority-id

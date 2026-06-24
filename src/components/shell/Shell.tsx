@@ -4,31 +4,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  Layout,
-  Menu,
-  Button,
-  Avatar,
-  Dropdown,
-  Drawer,
-} from "antd";
-import { theme } from "antd";
+import { Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button, Drawer, DrawerContent, DrawerBody } from "@heroui/react";
 import { useTheme } from "@/components/providers";
 import { getFilteredNavigation } from "@/config/navigation";
 import { NetworkStatus } from "./NetworkStatus";
 import { useAuth } from "@/components/auth/AuthProvider";
 
-import MenuOutlined from "@ant-design/icons/MenuOutlined";
-import DesktopOutlined from "@ant-design/icons/DesktopOutlined";
-import SunOutlined from "@ant-design/icons/SunOutlined";
-import MoonOutlined from "@ant-design/icons/MoonOutlined";
-import LogoutOutlined from "@ant-design/icons/LogoutOutlined";
-import UserSwitchOutlined from "@ant-design/icons/UserSwitchOutlined";
+import { Menu, Monitor, Sun, Moon, LogOut, User } from "lucide-react";
 import NotificationSetup from "@/components/notifications/NotificationSetup";
+import AdBanner from "@/components/ads/AdBanner";
+import { AD_SLOTS } from "@/config/ads";
 
-const { Header, Sider, Content } = Layout;
-
-// Map path to readable label
 const PATH_LABELS: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/pos": "Sales Portal",
@@ -44,7 +30,6 @@ const PATH_LABELS: Record<string, string> = {
   "/profile": "Profile",
 };
 
-// Extracted Sidebar component
 const AppSidebar = ({
   collapsed,
   isMobile,
@@ -53,31 +38,26 @@ const AppSidebar = ({
   items,
   selectedKey,
   user,
-  token,
   onLogout,
 }: {
   collapsed: boolean;
   isMobile: boolean;
   setMobileOpen: (open: boolean) => void;
-    setCollapsed: (collapsed: boolean) => void;
+  setCollapsed: (collapsed: boolean) => void;
   items: any[];
   selectedKey: string;
   user: any;
-  token: any;
   onLogout: () => void;
 }) => (
   <div className="flex flex-col h-full">
-    {/* Logo Area */}
-    <div
-      className={`flex items-center justify-start px-3 py-4 gap-2`}
-    >
-      <div
-        className={`flex items-center justify-center font-bold flex-shrink-0 w-9 h-9 text-lg cursor-pointer hover:bg-accent/70 active:bg-accent rounded-lg transition-all duration-200`}
+    <div className="flex items-center justify-start px-3 py-4 gap-2">
+      <button
+        className="flex items-center justify-center font-bold flex-shrink-0 w-9 h-9 text-lg cursor-pointer hover:bg-accent/70 active:bg-accent rounded-lg transition-all duration-200"
         onClick={() => isMobile ? setMobileOpen(false) : setCollapsed?.(!collapsed)}
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
-        <MenuOutlined />
-      </div>
+        <Menu size={18} />
+      </button>
       {!collapsed && (
         <span className="font-bold text-lg text-foreground tracking-tight truncate">
           SuperShop
@@ -85,83 +65,68 @@ const AppSidebar = ({
       )}
     </div>
 
-    {/* Menu */}
-    <div className="flex-1 px-2 overflow-y-auto">
-      <Menu
-        mode="inline"
-        items={items}
-        selectedKeys={[selectedKey]}
-        style={{
-          background: "transparent",
-          border: "none",
-          fontSize: 14,
-        }}
-        className="custom-menu"
-        onClick={() => isMobile && setMobileOpen(false)}
-      />
-    </div>
-
-    {/* Footer / User Profile */}
-    <div className="p-3 border-t border-border/50">
-      <Dropdown
-        trigger={["click"]}
-        menu={{
-          items: [
-            {
-              key: "profile",
-              label: (
-                <Link href="/profile" className="flex items-center gap-2 px-2 py-1.5">
-                  <UserSwitchOutlined /> Profile
-                </Link>
-              ),
-            },
-            {
-              type: "divider",
-            },
-            {
-              key: "logout",
-              danger: true,
-              label: (
-                <a onClick={onLogout} className="flex items-center gap-2 px-2 py-1.5">
-                  <LogoutOutlined /> Sign out
-                </a>
-              ),
-            },
-          ],
-        }}
-      >
-        <div
-          className={`cursor-pointer flex items-center gap-3 ${collapsed ? "p-0 w-10 h-10 justify-center" : "p-2"
-            } rounded-lg hover:bg-accent/80 active:bg-accent transition-all duration-200`}
-          title="User menu"
+    <nav className="flex-1 px-2 overflow-y-auto space-y-1">
+      {items.map((item) => (
+        <Link
+          key={item.key}
+          href={item.key}
+          onClick={() => isMobile && setMobileOpen(false)}
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+            selectedKey === item.key
+              ? "bg-primary text-primary-foreground"
+              : "text-foreground hover:bg-accent/50"
+          }`}
         >
-          <Avatar
-            style={{
-              backgroundColor: token.colorPrimary,
-              verticalAlign: "middle",
-              flexShrink: 0,
-            }}
-            size={36}
+          {item.icon}
+          {!collapsed && <span className="text-sm font-medium truncate">{item.label}</span>}
+        </Link>
+      ))}
+    </nav>
+
+    <div className="p-3 border-t border-border/50">
+      <Dropdown>
+        <DropdownTrigger asChild>
+          <button
+            className={`cursor-pointer flex items-center gap-3 w-full ${
+              collapsed ? "p-0 justify-center h-10" : "p-2"
+            } rounded-lg hover:bg-accent/80 active:bg-accent transition-all duration-200`}
+            title="User menu"
           >
-            {(user?.fullName || "U")[0]}
-          </Avatar>
-          {!collapsed && (
-            <div className="flex flex-col overflow-hidden text-left">
-              <span className="font-semibold text-sm truncate text-foreground">
-                {user?.fullName || "User"}
-              </span>
-              <span className="text-xs text-muted-foreground truncate">
-                {user?.email}
-              </span>
-            </div>
-          )}
-        </div>
+            <Avatar
+              size="sm"
+              className="flex-shrink-0"
+              name={(user?.fullName || "U")[0]}
+            />
+            {!collapsed && (
+              <div className="flex flex-col overflow-hidden text-left flex-1 min-w-0">
+                <span className="font-semibold text-sm truncate text-foreground">
+                  {user?.fullName || "User"}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {user?.email}
+                </span>
+              </div>
+            )}
+          </button>
+        </DropdownTrigger>
+        <DropdownMenu aria-label="User menu">
+          <DropdownItem key="profile" startContent={<User size={16} />} href="/profile">
+            Profile
+          </DropdownItem>
+          <DropdownItem
+            key="logout"
+            color="danger"
+            startContent={<LogOut size={16} />}
+            onPress={onLogout}
+          >
+            Sign out
+          </DropdownItem>
+        </DropdownMenu>
       </Dropdown>
     </div>
   </div>
 );
 
-// Theme toggle button group
 const ThemeToggle = ({
   mode,
   setMode,
@@ -172,9 +137,9 @@ const ThemeToggle = ({
   compact?: boolean;
 }) => {
   const options: { value: "system" | "light" | "dark"; icon: React.ReactNode; label: string }[] = [
-    { value: "system", icon: <DesktopOutlined />, label: "System" },
-    { value: "light", icon: <SunOutlined />, label: "Light" },
-    { value: "dark", icon: <MoonOutlined />, label: "Dark" },
+    { value: "system", icon: <Monitor size={16} />, label: "System" },
+    { value: "light", icon: <Sun size={16} />, label: "Light" },
+    { value: "dark", icon: <Moon size={16} />, label: "Dark" },
   ];
   return (
     <div className="flex items-center rounded-lg border border-border bg-muted p-0.5 gap-0.5">
@@ -183,10 +148,11 @@ const ThemeToggle = ({
           key={opt.value}
           onClick={() => setMode(opt.value)}
           title={opt.label}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-ring ${mode === opt.value
-            ? "bg-background text-foreground"
-            : "text-muted-foreground hover:text-foreground"
-            }`}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-ring ${
+            mode === opt.value
+              ? "bg-background text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
         >
           {opt.icon}
           {!compact && <span className="hidden md:inline">{opt.label}</span>}
@@ -203,9 +169,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname() || "/";
   const router = useRouter();
-  const { token } = theme.useToken();
   const themeContext = useTheme();
-  const [tenantName, setTenantName] = useState<string>("SuperShop");
   const { user, loading, logout } = useAuth();
 
   useEffect(() => {
@@ -214,8 +178,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       setIsMobile(mobile);
       if (!mobile) {
         setMobileOpen(false);
-      } else {
-        setMobileOpen(false);
       }
     }
     checkWidth();
@@ -223,27 +185,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("resize", checkWidth);
   }, []);
 
-  useEffect(() => {
-    const tenantJson = localStorage.getItem("tenant");
-    if (tenantJson) {
-      try {
-        const tenant = JSON.parse(tenantJson);
-        if (tenant?.name) {
-          setTenantName(tenant.name);
-        }
-      } catch (error) {
-        console.error("Failed to parse tenant data:", error);
-      }
-    }
-  }, []);
-
   const navigationItems = getFilteredNavigation(user?.role);
 
   const items = navigationItems.map((item) => ({
     key: item.key,
-    icon: <item.icon style={{ fontSize: 18 }} />,
-    label: <Link href={item.key}>{item.label}</Link>,
-    style: { height: 48, lineHeight: "48px", display: "flex", alignItems: "center" },
+    icon: <item.icon size={18} />,
+    label: item.label,
   }));
 
   useEffect(() => {
@@ -269,7 +216,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Determine active selected key
   const selectedKey = (() => {
     let matched: string | undefined;
     for (const it of items) {
@@ -286,23 +232,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "transparent" }}>
+    <div className="flex h-screen bg-background">
       {!isMobile && (
-        <Sider
-          trigger={null}
-          collapsible
-          collapsed={drawerCollapse}
-          width={240}
-          collapsedWidth={64}
-          className="glass border-r border-border/50"
-          style={{
-            background: "transparent",
-            position: "sticky",
-            top: 0,
-            height: "100vh",
-            zIndex: 50,
-            overflow: "hidden",
-          }}
+        <aside
+          className={`glass border-r border-border/50 sticky top-0 h-screen z-50 overflow-hidden transition-all duration-200 ${
+            drawerCollapse ? "w-16" : "w-60"
+          }`}
         >
           <AppSidebar
             collapsed={drawerCollapse}
@@ -312,70 +247,49 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             items={items}
             selectedKey={selectedKey}
             user={user}
-            token={token}
             onLogout={handleLogout}
           />
-        </Sider>
+        </aside>
       )}
 
-      {isMobile && (
-        <Drawer
-          placement="left"
-          onClose={() => setMobileOpen(false)}
-          open={mobileOpen}
-          width={280}
-          styles={{
-            body: {
-              padding: 0,
-              background: "transparent",
-            },
-          }}
-          closable={false}
-          maskClosable={true}
-        >
-          <AppSidebar
-            collapsed={false}
-            isMobile={isMobile}
-            setMobileOpen={setMobileOpen}
-            setCollapsed={setDrawerCollapsed}
-            items={items}
-            selectedKey={selectedKey}
-            user={user}
-            token={token}
-            onLogout={handleLogout}
-          />
-        </Drawer>
-      )}
+      <Drawer
+        isOpen={mobileOpen}
+        onOpenChange={setMobileOpen}
+        backdrop="blur"
+        size="sm"
+        classNames={{
+          closeButton: "z-50",
+        }}
+      >
+        <DrawerContent>
+          <DrawerBody className="p-0">
+            <AppSidebar
+              collapsed={false}
+              isMobile={isMobile}
+              setMobileOpen={setMobileOpen}
+              setCollapsed={setDrawerCollapsed}
+              items={items}
+              selectedKey={selectedKey}
+              user={user}
+              onLogout={handleLogout}
+            />
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
 
-      <Layout style={{ background: "transparent" }}>
-        <Header
-          className="glass sticky top-0 z-40 flex items-center justify-between border-b border-border/50"
-          style={{
-            height: 64,
-            background: "transparent",
-            paddingInline: 24,
-          }}
-        >
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="glass sticky top-0 z-40 flex items-center justify-between border-b border-border/50 h-16 px-6">
           <div className="flex items-center gap-2">
             <Button
-              type="text"
-              icon={<MenuOutlined />}
-              hidden={!isMobile}
+              isIconOnly
+              variant="light"
               onClick={() =>
                 isMobile ? setMobileOpen(true) : setDrawerCollapsed(!drawerCollapse)
               }
-              className="hover:bg-accent transition-colors"
-              style={{ fontSize: "18px", width: 40, height: 40, borderRadius: 8 }}
-            />
-            {!isMobile && (
-              <Button
-                type="text"
-                icon={<MenuOutlined />}
-                onClick={() => setDrawerCollapsed(!drawerCollapse)}
-                className="hover:bg-accent transition-colors"
-                style={{ fontSize: "18px", width: 40, height: 40, borderRadius: 8 }}
-              />
-            )}
+              className="hover:bg-accent"
+            >
+              <Menu size={18} />
+            </Button>
           </div>
           <div className="font-semibold text-lg text-foreground tracking-tight">
             {PATH_LABELS[pathname] || pathname}
@@ -388,20 +302,21 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               compact={isMobile}
             />
           </div>
-        </Header>
+        </header>
         <NotificationSetup />
-        <Content
+        <main
+          className="flex-1 overflow-y-auto"
           style={{
-            minHeight: "calc(100vh - 64px)",
             padding: isMobile ? "16px" : "24px",
           }}
         >
-          <div key={pathname} className="transition-opacity duration-200">
+          <div key={pathname} className="transition-opacity duration-200 flex flex-col h-full">
             {children}
+            <AdBanner slotId={AD_SLOTS.globalDashboardFooter} minHeight={90} className="mt-6 flex-shrink-0" />
           </div>
-        </Content>
-      </Layout>
-    </Layout>
+        </main>
+      </div>
+    </div>
   );
 }
 

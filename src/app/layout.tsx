@@ -2,8 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { themeColors } from "@/lib/theme";
 import "./globals.css";
-// Ant Design styles
-import "antd/dist/reset.css";
 import { Providers } from "@/components/providers";
 import AppShellGate from "@/components/layout/AppShellGate";
 import Script from "next/script";
@@ -63,6 +61,14 @@ export default function RootLayout({
                   `}
               </Script>
             </>
+          )}
+          {process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID && (
+            <Script
+              async
+              src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID}`}
+              crossOrigin="anonymous"
+              strategy="afterInteractive"
+            />
           )}
           <WebVitalsReporter />
           <AppShellGate>{children}</AppShellGate>

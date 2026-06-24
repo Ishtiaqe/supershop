@@ -37,6 +37,24 @@ export function useBackupExport() {
 }
 
 /**
+ * Hook for permanently deleting all of the current shop's data
+ * (products, variants, inventory, sales, sale items, short list)
+ */
+export function useBackupDelete() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.delete<ApiResponse>('/backup/data')
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['backup-status'] })
+    },
+  })
+}
+
+/**
  * Hook for importing backup data
  */
 export function useBackupImport() {
@@ -96,14 +114,23 @@ export function useBackupManagement() {
   const backupStatus = useBackupStatus()
   const backupExport = useBackupExport()
   const backupImport = useBackupImport()
+  const backupDelete = useBackupDelete()
 
   return {
     backupStatus,
     backupExport,
     backupImport,
+    backupDelete,
     isLoading:
-      backupStatus.isLoading || backupExport.isPending || backupImport.isPending,
-    error: backupStatus.error || backupExport.error || backupImport.error,
+      backupStatus.isLoading ||
+      backupExport.isPending ||
+      backupImport.isPending ||
+      backupDelete.isPending,
+    error:
+      backupStatus.error ||
+      backupExport.error ||
+      backupImport.error ||
+      backupDelete.error,
   }
 }
 

@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Alert, Button, Modal, Space, Typography } from 'antd';
-import { ChromeOutlined, FireOutlined, AppleOutlined } from '@ant-design/icons';
-
-const { Text, Title } = Typography;
+import { Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@heroui/react';
+import { Chrome, Flame, Apple, X } from 'lucide-react';
 
 interface BrowserSupport {
   indexedDB: boolean;
@@ -90,105 +88,143 @@ export function BrowserCompatibilityCheck() {
   // Only show warning/error states
   if (support.type === 'success') return null;
 
+  const getAlertStyles = () => {
+    switch (support.type) {
+      case 'warning':
+        return 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950';
+      case 'error':
+        return 'border-red-500 bg-red-50 dark:bg-red-950';
+      default:
+        return 'border-blue-500 bg-blue-50 dark:bg-blue-950';
+    }
+  };
+
+  const getAlertTextColor = () => {
+    switch (support.type) {
+      case 'warning':
+        return 'text-yellow-800 dark:text-yellow-200';
+      case 'error':
+        return 'text-red-800 dark:text-red-200';
+      default:
+        return 'text-blue-800 dark:text-blue-200';
+    }
+  };
+
+  const getAlertIcon = () => {
+    switch (support.type) {
+      case 'warning':
+        return '⚠️';
+      case 'error':
+        return '❌';
+      default:
+        return 'ℹ️';
+    }
+  };
+
   return (
     <>
-      <Alert
-        message={support.title}
-        description={support.message}
-        type={support.type}
-        showIcon
-        closable
-        action={
-          <Button size="small" onClick={() => setShowModal(true)}>
+      <div
+        className={`fixed top-4 left-4 right-4 mx-auto max-w-[600px] border-l-4 rounded-md p-4 z-[1000] flex items-start justify-between ${getAlertStyles()} ${getAlertTextColor()}`}
+      >
+        <div className="flex items-start gap-3 flex-1">
+          <span className="text-lg flex-shrink-0">{getAlertIcon()}</span>
+          <div className="flex-1">
+            <h3 className="font-semibold text-sm">{support.title}</h3>
+            <p className="text-sm mt-1 opacity-90">{support.message}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+          <Button
+            isIconOnly
+            variant="light"
+            size="sm"
+            className="text-inherit"
+            onClick={() => setShowModal(true)}
+          >
             Details
           </Button>
-        }
-        style={{
-          position: 'fixed',
-          top: 16,
-          left: 16,
-          right: 16,
-          zIndex: 1000,
-          maxWidth: '600px'
-        }}
-      />
-
-      <Modal
-        title="Browser Compatibility Details"
-        open={showModal}
-        onCancel={() => setShowModal(false)}
-        footer={[
-          <Button key="close" onClick={() => setShowModal(false)}>
-            Close
+          <Button
+            isIconOnly
+            variant="light"
+            size="sm"
+            className="text-inherit"
+            onClick={() => {}}
+          >
+            <X size={16} />
           </Button>
-        ]}
-        width={600}
-      >
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div>
-            <Title level={4}>Feature Support</Title>
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text>IndexedDB (Offline Storage)</Text>
-                <Text style={{ color: browserSupport.indexedDB ? 'hsl(var(--success))' : 'hsl(var(--destructive))' }}>
-                  {browserSupport.indexedDB ? '✅ Supported' : '❌ Not Supported'}
-                </Text>
-              </div>
+        </div>
+      </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text>Service Workers (Background Processing)</Text>
-                <Text style={{ color: browserSupport.serviceWorker ? 'hsl(var(--success))' : 'hsl(var(--destructive))' }}>
-                  {browserSupport.serviceWorker ? '✅ Supported' : '❌ Not Supported'}
-                </Text>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text>Background Sync (Auto-sync)</Text>
-                <Text style={{ color: browserSupport.backgroundSync ? 'hsl(var(--success))' : 'hsl(var(--warning))' }}>
-                  {browserSupport.backgroundSync ? '✅ Supported' : '⚠️ Not Supported'}
-                </Text>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text>Cache API (Asset Caching)</Text>
-                <Text style={{ color: browserSupport.cacheAPI ? 'hsl(var(--success))' : 'hsl(var(--destructive))' }}>
-                  {browserSupport.cacheAPI ? '✅ Supported' : '❌ Not Supported'}
-                </Text>
-              </div>
-            </Space>
-          </div>
-
-          <Alert
-            message="Recommended Browsers"
-            description={
-              <Space direction="vertical">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ChromeOutlined style={{ color: 'hsl(var(--primary))' }} />
-                  <Text>Chrome 90+ (Full support)</Text>
+      <Modal isOpen={showModal} onOpenChange={setShowModal} size="lg">
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">Browser Compatibility Details</ModalHeader>
+          <ModalBody className="gap-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Feature Support</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-sm">IndexedDB (Offline Storage)</span>
+                  <span className={`text-sm font-medium ${browserSupport.indexedDB ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {browserSupport.indexedDB ? '✅ Supported' : '❌ Not Supported'}
+                  </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FireOutlined style={{ color: 'hsl(var(--brand-firefox))' }} />
-                  <Text>Firefox 88+ (Full support)</Text>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AppleOutlined style={{ color: 'hsl(var(--foreground))' }} />
-                  <Text>Safari 14+ (Limited support - no background sync)</Text>
-                </div>
-              </Space>
-            }
-            type="info"
-            showIcon
-          />
 
-          {browserSupport.overall === 'unsupported' && (
-            <Alert
-              message="Fallback Mode"
-              description="The app will work in online-only mode with basic functionality. Consider upgrading your browser for the full experience."
-              type="warning"
-              showIcon
-            />
-          )}
-        </Space>
+                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-sm">Service Workers (Background Processing)</span>
+                  <span className={`text-sm font-medium ${browserSupport.serviceWorker ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {browserSupport.serviceWorker ? '✅ Supported' : '❌ Not Supported'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-sm">Background Sync (Auto-sync)</span>
+                  <span className={`text-sm font-medium ${browserSupport.backgroundSync ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                    {browserSupport.backgroundSync ? '✅ Supported' : '⚠️ Not Supported'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm">Cache API (Asset Caching)</span>
+                  <span className={`text-sm font-medium ${browserSupport.cacheAPI ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {browserSupport.cacheAPI ? '✅ Supported' : '❌ Not Supported'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-950 p-4 rounded-r-md">
+              <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-200 mb-3">Recommended Browsers</h4>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <Chrome size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  <span className="text-sm text-blue-800 dark:text-blue-300">Chrome 90+ (Full support)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Flame size={20} className="text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                  <span className="text-sm text-blue-800 dark:text-blue-300">Firefox 88+ (Full support)</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Apple size={20} className="text-gray-700 dark:text-gray-300 flex-shrink-0" />
+                  <span className="text-sm text-blue-800 dark:text-blue-300">Safari 14+ (Limited support - no background sync)</span>
+                </div>
+              </div>
+            </div>
+
+            {browserSupport.overall === 'unsupported' && (
+              <div className="border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950 p-4 rounded-r-md">
+                <h4 className="font-semibold text-sm text-yellow-900 dark:text-yellow-200 mb-2">Fallback Mode</h4>
+                <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                  The app will work in online-only mode with basic functionality. Consider upgrading your browser for the full experience.
+                </p>
+              </div>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button color="primary" onPress={() => setShowModal(false)}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
       </Modal>
     </>
   );
@@ -221,24 +257,31 @@ export function useProgressiveEnhancement() {
 
 // Fallback component for unsupported browsers
 export function OfflineFallback() {
+  const [isVisible, setIsVisible] = useState(true);
   const capabilities = useProgressiveEnhancement();
 
-  if (capabilities.offlineStorage) return null; // Basic offline support available
+  if (capabilities.offlineStorage || !isVisible) return null; // Basic offline support available
 
   return (
-    <Alert
-      message="Limited Browser Support"
-      description="Your browser has limited offline capabilities. The app will work but offline features are not available. For the best experience, please use a modern browser like Chrome or Firefox."
-      type="warning"
-      showIcon
-      closable
-      style={{
-        position: 'fixed',
-        top: 16,
-        left: 16,
-        right: 16,
-        zIndex: 1000
-      }}
-    />
+    <div className="fixed top-4 left-4 right-4 mx-auto z-[1000] max-w-[600px] border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950 rounded-r-md p-4 flex items-start justify-between text-yellow-800 dark:text-yellow-200">
+      <div className="flex items-start gap-3 flex-1">
+        <span className="text-lg flex-shrink-0">⚠️</span>
+        <div className="flex-1">
+          <h3 className="font-semibold text-sm">Limited Browser Support</h3>
+          <p className="text-sm mt-1 opacity-90">
+            Your browser has limited offline capabilities. The app will work but offline features are not available. For the best experience, please use a modern browser like Chrome or Firefox.
+          </p>
+        </div>
+      </div>
+      <Button
+        isIconOnly
+        variant="light"
+        size="sm"
+        className="text-inherit flex-shrink-0 ml-4"
+        onClick={() => setIsVisible(false)}
+      >
+        <X size={16} />
+      </Button>
+    </div>
   );
 }

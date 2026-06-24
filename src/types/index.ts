@@ -177,9 +177,10 @@ export interface AsyncState<T> {
  * Backup/Export related types
  */
 export interface BackupStatus {
-  lastBackupTime?: string
-  backupSize?: number
-  status: 'success' | 'pending' | 'failed'
+  productCount: number
+  variantCount: number
+  inventoryCount: number
+  saleCount: number
 }
 
 export interface ExportProgress {

@@ -1,21 +1,97 @@
-"use client"
+'use client'
 
 import { useEffect, useState, startTransition } from 'react'
-import { Card, Avatar, Button, Form, Input, message, Tabs } from 'antd'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import {
+  Card,
+  CardBody,
+  Avatar,
+  Button,
+  Input,
+  Tabs,
+  Tab,
+  Divider,
+  Spinner,
+} from '@heroui/react'
+import { Eye, EyeOff } from 'lucide-react'
+import { toast } from 'sonner'
 import type { User } from '@/types'
 import api from '@/lib/api'
 
+// Validation schemas
+const profileSchema = z.object({
+  fullName: z.string().min(1, 'Full name is required').max(255),
+  email: z.string().email('Please enter a valid email'),
+})
+
+const passwordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one number'),
+    confirmPassword: z.string().min(1, 'Please confirm your new password'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
+
+type ProfileFormData = z.infer<typeof profileSchema>
+type PasswordFormData = z.infer<typeof passwordSchema>
+
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [passwordVisible, setPasswordVisible] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  })
+  const [isSubmittingProfile, setIsSubmittingProfile] = useState(false)
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false)
+
+  // Profile form
+  const profileForm = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+    },
+  })
+
+  // Password form
+  const passwordForm = useForm<PasswordFormData>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+  })
 
   useEffect(() => {
     const u = localStorage.getItem('user')
-    if (u) setUser(JSON.parse(u))
-  }, [])
+    if (u) {
+      const parsedUser = JSON.parse(u)
+      setUser(parsedUser)
+      profileForm.reset({
+        fullName: parsedUser.fullName || '',
+        email: parsedUser.email || '',
+      })
+    }
+    setLoading(false)
+  }, [profileForm])
 
-  const onProfileFinish = async (values: Partial<User>) => {
+  const onProfileSubmit = async (values: ProfileFormData) => {
     if (!user) return
 
+    setIsSubmittingProfile(true)
     try {
       const response = await api.put('/users/me', {
         fullName: values.fullName,
@@ -24,22 +100,26 @@ export default function ProfilePage() {
 
       const updatedUser = response.data
 
-      // Use startTransition for state updates
       startTransition(() => {
         localStorage.setItem('user', JSON.stringify(updatedUser))
         setUser(updatedUser)
-      });
+      })
 
-      message.success('Profile saved')
+      toast.success('Profile saved successfully')
     } catch (error) {
-      message.error('Failed to update profile')
       console.error('Profile update error:', error)
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to update profile'
+      toast.error(errorMessage)
+    } finally {
+      setIsSubmittingProfile(false)
     }
   }
 
-  const onPasswordFinish = async (values: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+  const onPasswordSubmit = async (values: PasswordFormData) => {
     if (!user) return
 
+    setIsSubmittingPassword(true)
     try {
       await api.post('/users/me/change-password', {
         currentPassword: values.currentPassword,
@@ -47,101 +127,271 @@ export default function ProfilePage() {
       })
 
       // Allow UI to update before showing success message
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0))
 
-      message.success('Password changed successfully')
+      passwordForm.reset()
+      setPasswordVisible({ current: false, new: false, confirm: false })
+      toast.success('Password changed successfully')
     } catch (error) {
-      message.error('Failed to change password')
       console.error('Password change error:', error)
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to change password'
+      toast.error(errorMessage)
+    } finally {
+      setIsSubmittingPassword(false)
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-6">
+        <Spinner color="current" />
+      </div>
+    )
+  }
+
   if (!user) {
-    return <div className="p-6">Not signed in</div>
+    return (
+      <div className="p-6">
+        <Card>
+          <CardBody>
+            <p className="text-foreground">Not signed in</p>
+          </CardBody>
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="p-4 md:p-6">
-      <Card title="Profile" className="w-full max-w-2xl mx-auto">
-        <Tabs defaultActiveKey="profile">
-          <Tabs.TabPane tab="Profile" key="profile">
-            <div className="flex items-center gap-4 mb-4">
-              <Avatar style={{ backgroundColor: 'hsl(var(--primary))' }}>{(user.fullName || user.email || 'U')[0]}</Avatar>
+      <div className="w-full max-w-2xl mx-auto">
+        <Card>
+          <CardBody className="gap-6">
+            {/* Header with avatar */}
+            <div className="flex items-center gap-4">
+              <Avatar
+                isBordered
+                color="primary"
+                size="lg"
+                name={user.fullName || user.email || 'U'}
+              />
               <div>
-                <div className="font-bold text-foreground">{user.fullName || user.email}</div>
-                <div className="text-muted-foreground">{user.email}</div>
+                <p className="font-bold text-foreground text-lg">
+                  {user.fullName || user.email}
+                </p>
+                <p className="text-muted-foreground text-sm">{user.email}</p>
               </div>
             </div>
 
-            <Form
-              layout="vertical"
-              initialValues={{ fullName: user.fullName, email: user.email }}
-              onFinish={onProfileFinish}
-            >
-              <Form.Item label="Full name" name="fullName">
-                <Input />
-              </Form.Item>
+            <Divider />
 
-              <Form.Item label="Email" name="email" rules={[{ type: 'email', message: 'Please enter a valid email' }]}>
-                <Input />
-              </Form.Item>
+            {/* Tabs */}
+            <Tabs aria-label="Profile options" color="primary" variant="light">
+              {/* Profile Tab */}
+              <Tab key="profile" title="Profile">
+                <div className="py-4">
+                  <form
+                    onSubmit={profileForm.handleSubmit(onProfileSubmit)}
+                    className="space-y-4"
+                  >
+                    {/* Full Name Field */}
+                    <Controller
+                      name="fullName"
+                      control={profileForm.control}
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          label="Full Name"
+                          placeholder="Enter your full name"
+                          isInvalid={!!profileForm.formState.errors.fullName}
+                          errorMessage={
+                            profileForm.formState.errors.fullName?.message
+                          }
+                          disabled={isSubmittingProfile}
+                        />
+                      )}
+                    />
 
-              <Form.Item>
-                <Button type="primary" htmlType="submit">Save</Button>
-              </Form.Item>
-            </Form>
-          </Tabs.TabPane>
+                    {/* Email Field */}
+                    <Controller
+                      name="email"
+                      control={profileForm.control}
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          type="email"
+                          label="Email"
+                          placeholder="Enter your email"
+                          isInvalid={!!profileForm.formState.errors.email}
+                          errorMessage={
+                            profileForm.formState.errors.email?.message
+                          }
+                          disabled={isSubmittingProfile}
+                        />
+                      )}
+                    />
 
-          <Tabs.TabPane tab="Change Password" key="password">
-            <Form
-              layout="vertical"
-              onFinish={onPasswordFinish}
-            >
-              <Form.Item
-                label="Current Password"
-                name="currentPassword"
-                rules={[{ required: true, message: 'Please enter your current password' }]}
-              >
-                <Input.Password />
-              </Form.Item>
+                    {/* Save Button */}
+                    <Button
+                      color="primary"
+                      type="submit"
+                      isLoading={isSubmittingProfile}
+                      disabled={isSubmittingProfile}
+                      className="w-full sm:w-auto"
+                    >
+                      {isSubmittingProfile ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </form>
+                </div>
+              </Tab>
 
-              <Form.Item
-                label="New Password"
-                name="newPassword"
-                rules={[
-                  { required: true, message: 'Please enter a new password' },
-                  { min: 8, message: 'Password must be at least 8 characters' }
-                ]}
-              >
-                <Input.Password />
-              </Form.Item>
+              {/* Change Password Tab */}
+              <Tab key="password" title="Change Password">
+                <div className="py-4">
+                  <form
+                    onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+                    className="space-y-4"
+                  >
+                    {/* Current Password Field */}
+                    <Controller
+                      name="currentPassword"
+                      control={passwordForm.control}
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          label="Current Password"
+                          type={passwordVisible.current ? 'text' : 'password'}
+                          placeholder="Enter your current password"
+                          isInvalid={
+                            !!passwordForm.formState.errors.currentPassword
+                          }
+                          errorMessage={
+                            passwordForm.formState.errors.currentPassword
+                              ?.message
+                          }
+                          disabled={isSubmittingPassword}
+                          endContent={
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPasswordVisible((prev) => ({
+                                  ...prev,
+                                  current: !prev.current,
+                                }))
+                              }
+                              disabled={isSubmittingPassword}
+                              className="focus:outline-none"
+                            >
+                              {passwordVisible.current ? (
+                                <Eye className="w-4 h-4 text-default-400" />
+                              ) : (
+                                <EyeOff className="w-4 h-4 text-default-400" />
+                              )}
+                            </button>
+                          }
+                        />
+                      )}
+                    />
 
-              <Form.Item
-                label="Confirm New Password"
-                name="confirmPassword"
-                dependencies={['newPassword']}
-                rules={[
-                  { required: true, message: 'Please confirm your new password' },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('newPassword') === value) {
-                        return Promise.resolve();
-                      }
-                      return Promise.reject(new Error('Passwords do not match'));
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password />
-              </Form.Item>
+                    {/* New Password Field */}
+                    <Controller
+                      name="newPassword"
+                      control={passwordForm.control}
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          label="New Password"
+                          type={passwordVisible.new ? 'text' : 'password'}
+                          placeholder="Enter your new password"
+                          isInvalid={!!passwordForm.formState.errors.newPassword}
+                          errorMessage={
+                            passwordForm.formState.errors.newPassword?.message
+                          }
+                          disabled={isSubmittingPassword}
+                          description="At least 8 characters, with uppercase, lowercase, and numbers"
+                          endContent={
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPasswordVisible((prev) => ({
+                                  ...prev,
+                                  new: !prev.new,
+                                }))
+                              }
+                              disabled={isSubmittingPassword}
+                              className="focus:outline-none"
+                            >
+                              {passwordVisible.new ? (
+                                <Eye className="w-4 h-4 text-default-400" />
+                              ) : (
+                                <EyeOff className="w-4 h-4 text-default-400" />
+                              )}
+                            </button>
+                          }
+                        />
+                      )}
+                    />
 
-              <Form.Item>
-                <Button type="primary" htmlType="submit">Change Password</Button>
-              </Form.Item>
-            </Form>
-          </Tabs.TabPane>
-        </Tabs>
-      </Card>
+                    {/* Confirm Password Field */}
+                    <Controller
+                      name="confirmPassword"
+                      control={passwordForm.control}
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          label="Confirm New Password"
+                          type={passwordVisible.confirm ? 'text' : 'password'}
+                          placeholder="Confirm your new password"
+                          isInvalid={
+                            !!passwordForm.formState.errors.confirmPassword
+                          }
+                          errorMessage={
+                            passwordForm.formState.errors.confirmPassword
+                              ?.message
+                          }
+                          disabled={isSubmittingPassword}
+                          endContent={
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPasswordVisible((prev) => ({
+                                  ...prev,
+                                  confirm: !prev.confirm,
+                                }))
+                              }
+                              disabled={isSubmittingPassword}
+                              className="focus:outline-none"
+                            >
+                              {passwordVisible.confirm ? (
+                                <Eye className="w-4 h-4 text-default-400" />
+                              ) : (
+                                <EyeOff className="w-4 h-4 text-default-400" />
+                              )}
+                            </button>
+                          }
+                        />
+                      )}
+                    />
+
+                    {/* Submit Button */}
+                    <Button
+                      color="primary"
+                      type="submit"
+                      isLoading={isSubmittingPassword}
+                      disabled={isSubmittingPassword}
+                      className="w-full sm:w-auto"
+                    >
+                      {isSubmittingPassword
+                        ? 'Changing Password...'
+                        : 'Change Password'}
+                    </Button>
+                  </form>
+                </div>
+              </Tab>
+            </Tabs>
+          </CardBody>
+        </Card>
+      </div>
     </div>
   )
 }

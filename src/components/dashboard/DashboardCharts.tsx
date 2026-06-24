@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, Select, Spin, Empty } from "antd";
+import { Card, CardBody, Select, SelectItem, Spinner } from "@heroui/react";
 import {
   AreaChart,
   Area,
@@ -15,9 +15,6 @@ import {
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
-// removed framer-motion for initial render performance; keep charts client-only
-
-const { Option } = Select;
 
 interface GraphDataPoint {
   date: string;
@@ -58,7 +55,7 @@ export default function DashboardCharts() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Spin size="large" />
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -66,7 +63,11 @@ export default function DashboardCharts() {
   if (!data || data.length === 0) {
     return (
       <Card className="glass-card">
-        <Empty description="No data available for this period" />
+        <CardBody>
+          <div className="text-center text-muted-foreground py-8">
+            No data available for this period
+          </div>
+        </CardBody>
       </Card>
     );
   }
@@ -76,20 +77,22 @@ export default function DashboardCharts() {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Analytics</h2>
         <Select
-          defaultValue="30d"
-          style={{ width: 160 }}
-          onChange={(value) => setPeriod(value)}
+          selectedKeys={[period]}
+          onSelectionChange={(keys) => setPeriod(Array.from(keys)[0] as string)}
+          className="w-40"
         >
-          <Option value="7d">Last 7 Days</Option>
-          <Option value="30d">Last 30 Days</Option>
-          <Option value="90d">Last 3 Months</Option>
+          <SelectItem key="7d">Last 7 Days</SelectItem>
+          <SelectItem key="30d">Last 30 Days</SelectItem>
+          <SelectItem key="90d">Last 3 Months</SelectItem>
         </Select>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sales Trend Chart */}
         <div className="transition-opacity duration-500">
-          <Card title="Sales Trend" className="glass-card" variant="borderless">
+          <Card className="glass-card">
+            <CardBody>
+              <h3 className="text-lg font-semibold mb-4">Sales Trend</h3>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
@@ -145,17 +148,16 @@ export default function DashboardCharts() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
+              </div>
+            </CardBody>
           </Card>
         </div>
 
         {/* Profit Trend Chart */}
         <div className="transition-opacity duration-500 delay-100">
-          <Card
-            title="Profit Trend"
-            className="glass-card"
-            variant="borderless"
-          >
+          <Card className="glass-card">
+            <CardBody>
+              <h3 className="text-lg font-semibold mb-4">Profit Trend</h3>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
@@ -205,7 +207,8 @@ export default function DashboardCharts() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
+              </div>
+            </CardBody>
           </Card>
         </div>
       </div>

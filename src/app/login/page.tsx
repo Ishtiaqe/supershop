@@ -2,14 +2,31 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Form, Input, Button, Alert } from "antd";
-import UserOutlined from "@ant-design/icons/UserOutlined";
-import LockOutlined from "@ant-design/icons/LockOutlined";
-import ShoppingOutlined from "@ant-design/icons/ShoppingOutlined";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Input, Button } from "@heroui/react";
+import { User, Lock, ShoppingCart } from "lucide-react";
 import { Capacitor, PluginListenerHandle } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import api from "@/lib/api";
 import { useAuth } from "@/components/auth/AuthProvider";
+import AdBanner from "@/components/ads/AdBanner";
+import { AD_SLOTS } from "@/config/ads";
+
+// Validation schema
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email"),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters"),
+});
+
+type LoginFormInputs = z.infer<typeof loginSchema>;
 
 type FirebaseDeps = {
   auth: import("firebase/auth").Auth | null;
@@ -41,6 +58,18 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { login, user } = useAuth();
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormInputs>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   // Redirect if already logged in
   useEffect(() => {
@@ -135,7 +164,7 @@ export default function LoginPage() {
     );
   }
 
-  const submit = async (values: { email: string; password: string }) => {
+  const submit = async (values: LoginFormInputs) => {
     const { auth, signInWithEmailAndPassword } = await loadFirebaseDeps();
 
     if (!auth) {
@@ -306,12 +335,12 @@ export default function LoginPage() {
       </div>
 
       {/* Login Card */}
-      <div className="w-full max-w-md px-6 relative z-10">
+      <div className="w-full max-w-md px-6 relative z-10 flex flex-col">
         <div className="glass-card p-8">
           {/* Logo and Title */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4 shadow-lg">
-              <ShoppingOutlined className="text-2xl text-primary-foreground" />
+              <ShoppingCart className="w-6 h-6 text-primary-foreground" />
             </div>
             <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
               Welcome back
@@ -323,141 +352,149 @@ export default function LoginPage() {
 
           {/* Error Alert */}
           {error && (
-            <div>
-              <Alert
-                type="error"
-                message={error}
-                className="mb-6 rounded-lg"
-                showIcon
-              />
+            <div className="mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
+              <p className="text-red-800 dark:text-red-200 text-sm font-medium">
+                {error}
+              </p>
             </div>
           )}
 
           {/* Form */}
-          <div>
-            <Form onFinish={submit} layout="vertical" size="large">
-              <div>
-                <Form.Item
-                  name="email"
-                  label={
-                    <span className="text-foreground font-medium">Email</span>
-                  }
-                  rules={[
-                    {
-                      required: true,
-                      type: "email",
-                      message: "Please enter a valid email",
-                    },
-                  ]}
-                >
-                  <Input
-                    id="login-email"
-                    aria-label="Email address"
-                    prefix={<UserOutlined className="text-muted-foreground" />}
-                    placeholder="Enter your email"
-                    autoComplete="email"
-                    className="rounded-lg h-12 hover:border-primary-hover focus:border-primary-active transition-all duration-300"
-                  />
-                </Form.Item>
-              </div>
-
-              <div>
-                <Form.Item
-                  name="password"
-                  label={
-                    <span className="text-foreground font-medium">
-                      Password
-                    </span>
-                  }
-                  rules={[
-                    { required: true, message: "Please enter your password" },
-                  ]}
-                >
-                  <Input.Password
-                    id="login-password"
-                    aria-label="Password"
-                    prefix={<LockOutlined className="text-muted-foreground" />}
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                    className="rounded-lg h-12 hover:border-primary-hover focus:border-primary-active transition-all duration-300"
-                  />
-                </Form.Item>
-              </div>
-
-              <div>
-                <Form.Item className="mb-0">
+          <form onSubmit={handleSubmit(submit)} className="space-y-6">
+            {/* Email Field */}
+            <div>
+              <label className="text-foreground font-medium text-sm mb-2 block">
+                Email
+              </label>
+              <Controller
+                name="email"
+                control={control}
+                render={({ field }) => (
                   <div>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      block
-                      loading={loading}
-                      className="h-12 rounded-lg font-semibold text-base shadow-md hover:shadow-lg transition-all duration-300"
-                    >
-                      {loading ? "Signing in..." : "Sign In"}
-                    </Button>
+                    <Input
+                      {...field}
+                      id="login-email"
+                      aria-label="Email address"
+                      placeholder="Enter your email"
+                      type="email"
+                      autoComplete="email"
+                      isClearable
+                      isInvalid={!!errors.email}
+                      errorMessage={errors.email?.message}
+                      startContent={
+                        <User className="w-4 h-4 text-muted-foreground" />
+                      }
+                      classNames={{
+                        input: "rounded-lg",
+                        mainWrapper: "h-12",
+                      }}
+                    />
                   </div>
-                </Form.Item>
-              </div>
+                )}
+              />
+            </div>
 
-              {/* Divider */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-surface/80 text-muted-foreground font-medium">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
+            {/* Password Field */}
+            <div>
+              <label className="text-foreground font-medium text-sm mb-2 block">
+                Password
+              </label>
+              <Controller
+                name="password"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <Input
+                      {...field}
+                      id="login-password"
+                      aria-label="Password"
+                      placeholder="Enter your password"
+                      type="password"
+                      autoComplete="current-password"
+                      isClearable
+                      isInvalid={!!errors.password}
+                      errorMessage={errors.password?.message}
+                      startContent={
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                      }
+                      classNames={{
+                        input: "rounded-lg",
+                        mainWrapper: "h-12",
+                      }}
+                    />
+                  </div>
+                )}
+              />
+            </div>
 
-              {/* Google Sign-In Button */}
-              <div>
-                <div>
-                  <Button
-                    aria-label="Sign in with Google"
-                    block
-                    size="large"
-                    className="h-12 rounded-lg font-semibold border-2 border-border hover:border-primary-hover hover:bg-primary-container transition-all duration-300 flex items-center justify-center gap-3"
-                    onClick={handleGoogleSignIn}
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M19.8055 10.2292C19.8055 9.55056 19.7501 8.86667 19.6306 8.19861H10.2002V12.0492H15.6014C15.3773 13.2911 14.6571 14.3898 13.6025 15.0875V17.5866H16.8251C18.7173 15.8449 19.8055 13.2728 19.8055 10.2292Z"
-                        fill={`hsl(var(--brand-google-blue))`}
-                      />
-                      <path
-                        d="M10.2002 20.0006C12.9516 20.0006 15.2727 19.1151 16.8296 17.5865L13.607 15.0874C12.7096 15.6972 11.5521 16.0428 10.2046 16.0428C7.54618 16.0428 5.28651 14.2828 4.48892 11.9165H1.16797V14.4923C2.75903 17.8695 6.30967 20.0006 10.2002 20.0006Z"
-                        fill={`hsl(var(--brand-google-green))`}
-                      />
-                      <path
-                        d="M4.48449 11.9165C4.04532 10.6746 4.04532 9.33008 4.48449 8.08818V5.51233H1.16797C-0.389324 8.66385 -0.389324 12.3408 1.16797 15.4923L4.48449 11.9165Z"
-                        fill={`hsl(var(--brand-google-yellow))`}
-                      />
-                      <path
-                        d="M10.2002 3.95805C11.6257 3.936 13.0035 4.47247 14.036 5.45722L16.8914 2.60178C15.1888 0.990498 12.9383 0.0808105 10.2002 0.104376C6.30967 0.104376 2.75903 2.23549 1.16797 5.51234L4.48449 8.08819C5.27764 5.71748 7.54174 3.95805 10.2002 3.95805Z"
-                        fill={`hsl(var(--brand-google-red))`}
-                      />
-                    </svg>
-                    <span className="text-foreground">Sign in with Google</span>
-                  </Button>
-                </div>
+            {/* Sign In Button */}
+            <Button
+              type="submit"
+              fullWidth
+              isLoading={loading}
+              disabled={loading}
+              className="h-12 rounded-lg font-semibold text-base bg-primary text-primary-foreground shadow-md hover:shadow-lg transition-all duration-300"
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </Button>
+
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border"></div>
               </div>
-            </Form>
-          </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-surface/80 text-muted-foreground font-medium">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            {/* Google Sign-In Button */}
+            <Button
+              type="button"
+              fullWidth
+              variant="bordered"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="h-12 rounded-lg font-semibold border-2 border-border hover:border-primary-hover hover:bg-primary-container transition-all duration-300"
+              startContent={
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M19.8055 10.2292C19.8055 9.55056 19.7501 8.86667 19.6306 8.19861H10.2002V12.0492H15.6014C15.3773 13.2911 14.6571 14.3898 13.6025 15.0875V17.5866H16.8251C18.7173 15.8449 19.8055 13.2728 19.8055 10.2292Z"
+                    fill={`hsl(var(--brand-google-blue))`}
+                  />
+                  <path
+                    d="M10.2002 20.0006C12.9516 20.0006 15.2727 19.1151 16.8296 17.5865L13.607 15.0874C12.7096 15.6972 11.5521 16.0428 10.2046 16.0428C7.54618 16.0428 5.28651 14.2828 4.48892 11.9165H1.16797V14.4923C2.75903 17.8695 6.30967 20.0006 10.2002 20.0006Z"
+                    fill={`hsl(var(--brand-google-green))`}
+                  />
+                  <path
+                    d="M4.48449 11.9165C4.04532 10.6746 4.04532 9.33008 4.48449 8.08818V5.51233H1.16797C-0.389324 8.66385 -0.389324 12.3408 1.16797 15.4923L4.48449 11.9165Z"
+                    fill={`hsl(var(--brand-google-yellow))`}
+                  />
+                  <path
+                    d="M10.2002 3.95805C11.6257 3.936 13.0035 4.47247 14.036 5.45722L16.8914 2.60178C15.1888 0.990498 12.9383 0.0808105 10.2002 0.104376C6.30967 0.104376 2.75903 2.23549 1.16797 5.51234L4.48449 8.08819C5.27764 5.71748 7.54174 3.95805 10.2002 3.95805Z"
+                    fill={`hsl(var(--brand-google-red))`}
+                  />
+                </svg>
+              }
+            >
+              Sign in with Google
+            </Button>
+          </form>
 
           {/* Footer */}
           <div className="mt-6 text-center text-sm text-muted-foreground">
             <p>Secure login powered by SuperShop</p>
           </div>
         </div>
+        <AdBanner slotId={AD_SLOTS.loginBanner} minHeight={90} className="mt-4" />
       </div>
     </main>
   );

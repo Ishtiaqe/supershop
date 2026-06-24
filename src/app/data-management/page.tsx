@@ -3,51 +3,61 @@
 import React, { useRef, useState } from "react";
 import {
   Card,
+  CardBody,
   Button,
-  Space,
-  message,
-  Spin,
-  Alert,
+  Input,
   Progress,
-  Divider,
-} from "antd";
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Spinner,
+  useDisclosure,
+} from "@heroui/react";
 import {
-  DownloadOutlined,
-  UploadOutlined,
-  CheckCircleOutlined,
-  WarningOutlined,
-} from "@ant-design/icons";
+  Download,
+  Upload,
+  CheckCircle,
+  AlertTriangle,
+  Trash2,
+} from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import Link from "next/link";
 import UserDataExport from "@/components/backup/UserDataExport";
 import { useBackupManagement } from "@/hooks/useBackupApi";
 import { downloadBlob, generateTimestampedFilename } from "@/lib/download-utils";
-import { formatDate, formatBytes } from "@/lib/ui-helpers";
+import { toast } from "sonner";
 
 export default function DataManagementPage() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Use centralized backup management hook
-  const { backupStatus, backupExport, backupImport } = useBackupManagement();
+  const { backupStatus, backupExport, backupImport, backupDelete } =
+    useBackupManagement();
   const statusLoading = backupStatus.isLoading;
   const exporting = backupExport.isPending;
   const importing = backupImport.isPending;
+  const deleting = backupDelete.isPending;
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
   const handleExportBackup = async () => {
     if (!user) {
-      message.error("Please log in to export backup");
+      toast.error("Please log in to export backup");
       return;
     }
 
     try {
       const blob = await backupExport.mutateAsync();
-      const filename = generateTimestampedFilename("supershop-backup", "sql");
+      const filename = generateTimestampedFilename("supershop-backup", "json");
       downloadBlob(blob, filename);
-      message.success("Backup exported successfully!");
+      toast.success("Backup exported successfully!");
     } catch (error) {
       console.error("Export error:", error);
-      message.error("Failed to export backup. Please try again.");
+      toast.error("Failed to export backup. Please try again.");
     }
   };
 
@@ -55,7 +65,7 @@ export default function DataManagementPage() {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     if (!user) {
-      message.error("Please log in to import backup");
+      toast.error("Please log in to import backup");
       return;
     }
 
@@ -65,7 +75,7 @@ export default function DataManagementPage() {
     // Validate file size (max 100MB)
     const MAX_SIZE = 100 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      message.error("File size exceeds 100MB limit");
+      toast.error("File size exceeds 100MB limit");
       return;
     }
 
@@ -81,7 +91,7 @@ export default function DataManagementPage() {
 
       clearInterval(progressInterval);
       setUploadProgress(100);
-      message.success("Backup restored successfully!");
+      toast.success("Backup restored successfully!");
 
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -91,9 +101,26 @@ export default function DataManagementPage() {
       setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
       console.error("Import error:", error);
-      message.error("Failed to import backup. Please try again.");
+      toast.error("Failed to import backup. Please try again.");
     } finally {
       setUploadProgress(0);
+    }
+  };
+
+  const handleDeleteData = async () => {
+    if (!user) {
+      toast.error("Please log in to delete data");
+      return;
+    }
+
+    try {
+      await backupDelete.mutateAsync();
+      toast.success("All shop data has been deleted.");
+      setIsDeleteModalOpen(false);
+      setDeleteConfirmText("");
+    } catch (error) {
+      console.error("Delete data error:", error);
+      toast.error("Failed to delete data. Please try again.");
     }
   };
 
@@ -102,139 +129,225 @@ export default function DataManagementPage() {
       <h1 className="text-3xl font-bold mb-6">Data Management</h1>
 
       {/* Safety Notice */}
-      <Alert
-        message="Data Safety Important"
-        description={
+      <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div className="flex gap-3">
+          <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p>
+            <h3 className="font-semibold text-yellow-900 mb-2">Data Safety Important</h3>
+            <p className="text-yellow-800 mb-2">
               Regular backups protect your data from loss. Always backup before:
             </p>
-            <ul className="list-disc ml-5 mt-2">
+            <ul className="list-disc ml-5 mb-2 text-yellow-800">
               <li>Major system updates or migrations</li>
               <li>Database schema changes</li>
               <li>Bulk data operations</li>
               <li>System maintenance</li>
             </ul>
-            <p className="mt-2">
+            <p className="text-yellow-800">
               See our{" "}
               <Link
                 href="/docs/data-safety"
-                className="text-blue-500 underline"
+                className="text-yellow-700 underline hover:text-yellow-800"
               >
                 Data Safety Guidelines
               </Link>{" "}
               for more information.
             </p>
           </div>
-        }
-        type="warning"
-        icon={<WarningOutlined />}
-        showIcon
-        className="mb-6"
-      />
+        </div>
+      </div>
 
       {/* Backup Status Card */}
       {statusLoading ? (
-        <Spin className="block text-center mb-6" />
+        <div className="flex justify-center mb-6">
+          <Spinner />
+        </div>
       ) : backupStatus.data ? (
         <Card className="mb-6">
-          <Space direction="vertical" size="large" style={{ width: "100%" }}>
+          <CardBody className="gap-4">
             <div>
-              <h3 className="text-lg font-semibold mb-2">
-                <CheckCircleOutlined className="text-green-500 mr-2" />
-                Backup Status
-              </h3>
-              <p>
-                <strong>Last Backup:</strong>{" "}
-                {backupStatus.data.lastBackupTime
-                  ? formatDate(backupStatus.data.lastBackupTime, "short")
-                  : "Never"}
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <h3 className="text-lg font-semibold">Current Data</h3>
+              </div>
+              <p className="text-gray-600 mb-3">
+                A backup of your shop would currently include:
               </p>
-              {backupStatus.data.backupSize && (
-                <p>
-                  <strong>Size:</strong> {formatBytes(backupStatus.data.backupSize)}
-                </p>
-              )}
+              <ul className="list-disc ml-5 space-y-1">
+                <li className="text-gray-700">{backupStatus.data.productCount} products</li>
+                <li className="text-gray-700">{backupStatus.data.variantCount} product variants</li>
+                <li className="text-gray-700">{backupStatus.data.inventoryCount} inventory items</li>
+                <li className="text-gray-700">{backupStatus.data.saleCount} sales</li>
+              </ul>
             </div>
-          </Space>
+          </CardBody>
         </Card>
       ) : null}
 
-      <Divider />
+      <hr className="my-6" />
 
       {/* Export Section */}
       <Card className="mb-6">
-        <h2 className="text-xl font-bold mb-4">Export Full Backup</h2>
-        <p className="text-gray-600 mb-4">
-          Download a complete backup of all your data in SQL format. This
-          includes all tables, configurations, and transaction history.
-        </p>
-        <Button
-          type="primary"
-          size="large"
-          icon={<DownloadOutlined />}
-          onClick={handleExportBackup}
-          loading={exporting}
-          disabled={exporting}
-        >
-          {exporting ? "Exporting Backup..." : "Download Full Backup"}
-        </Button>
+        <CardBody className="gap-4">
+          <h2 className="text-xl font-bold">Export Full Backup</h2>
+          <p className="text-gray-600">
+            Download a backup of your shop&apos;s data as a JSON file. This
+            includes your products, variants, inventory, sales, and short list.
+          </p>
+          <div>
+            <Button
+              color="primary"
+              size="lg"
+              startContent={<Download className="w-5 h-5" />}
+              onPress={handleExportBackup}
+              isLoading={exporting}
+              isDisabled={exporting}
+            >
+              {exporting ? "Exporting Backup..." : "Download Full Backup"}
+            </Button>
+          </div>
+        </CardBody>
       </Card>
 
       {/* Import Section */}
       <Card className="mb-6">
-        <h2 className="text-xl font-bold mb-4">Restore From Backup</h2>
-        <p className="text-gray-600 mb-4">
-          <strong>⚠️ Warning:</strong> Restoring will replace all current data
-          with the backup data. Make sure you have exported a backup before
-          proceeding!
-        </p>
-
-        {importing && uploadProgress > 0 && (
-          <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-2">Upload Progress</p>
-            <Progress percent={Math.round(uploadProgress)} status="active" />
+        <CardBody className="gap-4">
+          <h2 className="text-xl font-bold">Restore From Backup</h2>
+          <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+            <p className="text-sm text-yellow-900">
+              <strong>⚠️ Warning:</strong> Restoring will replace your shop&apos;s
+              products, variants, inventory, sales, and short list with the data
+              from the backup file. Make sure you have exported a current backup
+              before proceeding! Only a JSON backup file exported from your own
+              shop can be restored here.
+            </p>
           </div>
-        )}
 
-        <Space>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImportBackup}
-            accept=".sql,.sql.gz"
-            style={{ display: "none" }}
-            disabled={importing}
-          />
-          <Button
-            type="default"
-            size="large"
-            icon={<UploadOutlined />}
-            onClick={() => fileInputRef.current?.click()}
-            loading={importing}
-            disabled={importing}
-          >
-            {importing
-              ? `Restoring... ${Math.round(uploadProgress)}%`
-              : "Upload & Restore Backup"}
-          </Button>
-        </Space>
+          {importing && uploadProgress > 0 && (
+            <div className="w-full">
+              <p className="text-sm text-gray-600 mb-2">Upload Progress</p>
+              <Progress
+                value={Math.round(uploadProgress)}
+                className="w-full"
+              />
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImportBackup}
+              accept=".json,application/json"
+              className="hidden"
+              disabled={importing}
+            />
+            <Button
+              variant="bordered"
+              size="lg"
+              startContent={<Upload className="w-5 h-5" />}
+              onPress={() => fileInputRef.current?.click()}
+              isLoading={importing}
+              isDisabled={importing}
+            >
+              {importing
+                ? `Restoring... ${Math.round(uploadProgress)}%`
+                : "Upload & Restore Backup"}
+            </Button>
+          </div>
+        </CardBody>
       </Card>
+
+      {/* Delete Data Section */}
+      <Card className="mb-6">
+        <CardBody className="gap-4">
+          <h2 className="text-xl font-bold">Delete All Data</h2>
+          <div className="bg-red-50 border border-red-200 rounded p-3">
+            <p className="text-sm text-red-900">
+              <strong>⚠️ Danger:</strong> This permanently deletes all of your
+              shop&apos;s products, variants, inventory, sales, and short list.
+              This cannot be undone. Export a backup first if you want to be able
+              to restore this data later.
+            </p>
+          </div>
+          <div>
+            <Button
+              color="danger"
+              size="lg"
+              startContent={<Trash2 className="w-5 h-5" />}
+              onPress={() => setIsDeleteModalOpen(true)}
+            >
+              Delete All Data
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={setIsDeleteModalOpen}
+        backdrop="blur"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Delete all shop data?
+              </ModalHeader>
+              <ModalBody>
+                <p className="mb-3">
+                  This will permanently delete all products, variants, inventory,
+                  sales, and short list entries for your shop. This action cannot be
+                  undone.
+                </p>
+                <p className="mb-3">
+                  Type <strong>DELETE</strong> to confirm.
+                </p>
+                <Input
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  isDisabled={deleting}
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  color="default"
+                  onPress={onClose}
+                  isDisabled={deleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  color="danger"
+                  onPress={handleDeleteData}
+                  isDisabled={deleteConfirmText !== "DELETE" || deleting}
+                  isLoading={deleting}
+                >
+                  Delete Everything
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
 
       {/* User Data Export (SUPER_ADMIN only) */}
       {user?.role === "SUPER_ADMIN" && <UserDataExport />}
 
       {/* Info Section */}
       <Card className="mt-6 bg-blue-50">
-        <h3 className="text-lg font-bold mb-3">Backup Best Practices</h3>
-        <ul className="space-y-2 text-sm">
-          <li>✓ Export backups regularly (at least weekly for production)</li>
-          <li>✓ Store backups in a secure, separate location</li>
-          <li>✓ Test restore procedures periodically</li>
-          <li>✓ Always backup before system updates or migrations</li>
-          <li>✓ Keep at least 3 versions of backups</li>
-          <li>✓ Document your backup schedule and retention policy</li>
-        </ul>
+        <CardBody className="gap-3">
+          <h3 className="text-lg font-bold">Backup Best Practices</h3>
+          <ul className="space-y-2 text-sm">
+            <li className="text-gray-700">✓ Export backups regularly (at least weekly for production)</li>
+            <li className="text-gray-700">✓ Store backups in a secure, separate location</li>
+            <li className="text-gray-700">✓ Test restore procedures periodically</li>
+            <li className="text-gray-700">✓ Always backup before system updates or migrations</li>
+            <li className="text-gray-700">✓ Keep at least 3 versions of backups</li>
+            <li className="text-gray-700">✓ Document your backup schedule and retention policy</li>
+          </ul>
+        </CardBody>
       </Card>
     </div>
   );

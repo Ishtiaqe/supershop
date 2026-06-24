@@ -1,9 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Table, Tag, Button as AntButton, Popconfirm, DatePicker } from "antd";
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Button,
+  Chip,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@heroui/react";
+import { Input } from "@heroui/react";
+import { Trash2 } from "lucide-react";
 import dayjs from "dayjs";
-import type { ColumnsType } from "antd/es/table";
+import { toast } from "sonner";
 import {
   useCashBoxSummary,
   useCashBoxEntries,
@@ -12,16 +26,14 @@ import {
 } from "./hooks/useCashBoxHooks";
 import { AddEntryModal } from "./components/AddEntryModal";
 
-const { RangePicker } = DatePicker;
-
 const ENTRY_TYPE_CONFIG: Record<
   CashBoxEntry["entryType"],
-  { label: string; color: string; sign: "+" | "-" }
+  { label: string; color: "success" | "primary" | "danger" | "warning"; sign: "+" | "-" }
 > = {
-  SALE_IN: { label: "Sale (Cash)", color: "green", sign: "+" },
-  MANUAL_IN: { label: "Deposit", color: "blue", sign: "+" },
-  EXPENSE_OUT: { label: "Expense", color: "red", sign: "-" },
-  MANUAL_OUT: { label: "Withdrawal", color: "volcano", sign: "-" },
+  SALE_IN: { label: "Sale (Cash)", color: "success", sign: "+" },
+  MANUAL_IN: { label: "Deposit", color: "primary", sign: "+" },
+  EXPENSE_OUT: { label: "Expense", color: "danger", sign: "-" },
+  MANUAL_OUT: { label: "Withdrawal", color: "warning", sign: "-" },
 };
 
 function formatBDT(amount: number) {
@@ -56,84 +68,44 @@ export default function CashBoxPage() {
   const { mutate: deleteEntry } = useDeleteCashBoxEntry();
 
   const balanceColor =
-    (summary?.currentBalance ?? 0) >= 0 ? "text-success" : "text-destructive";
+    (summary?.currentBalance ?? 0) >= 0
+      ? "text-success"
+      : "text-destructive";
 
-  const columns: ColumnsType<CashBoxEntry> = [
-    {
-      title: "Date & Time",
-      dataIndex: "entryDate",
-      key: "entryDate",
-      render: (v: string) => dayjs(v).format("DD MMM YYYY, hh:mm A"),
-      sorter: (a, b) =>
-        new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime(),
-    },
-    {
-      title: "Type",
-      dataIndex: "entryType",
-      key: "entryType",
-      width: 130,
-      render: (type: CashBoxEntry["entryType"]) => {
-        const cfg = ENTRY_TYPE_CONFIG[type];
-        return <Tag color={cfg.color}>{cfg.label}</Tag>;
+  const handleDateChange = (type: "start" | "end", value: string) => {
+    if (type === "start") {
+      setDateRange([value, endDate]);
+    } else {
+      setDateRange([startDate, value]);
+    }
+    setPage(1);
+  };
+
+  const handleDeleteEntry = (id: string) => {
+    deleteEntry(id, {
+      onSuccess: () => {
+        toast.success("Entry deleted");
       },
-    },
-    {
-      title: "Amount",
-      dataIndex: "amount",
-      key: "amount",
-      width: 130,
-      align: "right",
-      render: (amount: number, record) => {
-        const cfg = ENTRY_TYPE_CONFIG[record.entryType];
-        const color =
-          cfg.sign === "+"
-            ? "text-success font-semibold"
-            : "text-destructive font-semibold";
-        return (
-          <span className={color}>
-            {cfg.sign}
-            {formatBDT(amount)}
-          </span>
-        );
+      onError: () => {
+        toast.error("Failed to delete entry");
       },
-    },
-    {
-      title: "Note",
-      dataIndex: "note",
-      key: "note",
-      render: (note: string) =>
-        note || <span className="text-muted-foreground">—</span>,
-    },
-    {
-      title: "By",
-      key: "createdBy",
-      width: 130,
-      render: (_: any, record) => record.createdBy?.fullName ?? "—",
-    },
-    {
-      title: "Action",
-      key: "action",
-      width: 90,
-      render: (_: any, record) => {
-        const isManual =
-          record.entryType === "MANUAL_IN" ||
-          record.entryType === "MANUAL_OUT";
-        if (!isManual) return null;
-        return (
-          <Popconfirm
-            title="Delete this entry?"
-            onConfirm={() => deleteEntry(record.id)}
-            okText="Delete"
-            okButtonProps={{ danger: true }}
-          >
-            <AntButton type="text" danger size="small">
-              Delete
-            </AntButton>
-          </Popconfirm>
-        );
-      },
-    },
-  ];
+    });
+  };
+
+  const entries = entriesData?.data ?? [];
+  const periodIn = entries
+    .filter(
+      (e) => e.entryType === "SALE_IN" || e.entryType === "MANUAL_IN"
+    )
+    .reduce((s, e) => s + e.amount, 0);
+  const periodOut = entries
+    .filter(
+      (e) =>
+        e.entryType === "EXPENSE_OUT" ||
+        e.entryType === "MANUAL_OUT"
+    )
+    .reduce((s, e) => s + e.amount, 0);
+  const net = periodIn - periodOut;
 
   return (
     <div className="p-6 space-y-6">
@@ -143,7 +115,12 @@ export default function CashBoxPage() {
           <h1 className="page-header">Cash Box</h1>
           <p className="page-subheader">Track cash movements and balance</p>
         </div>
-        <AntButton type="primary" onClick={() => setIsAddModalOpen(true)}>+ Add Entry</AntButton>
+        <Button
+          color="primary"
+          onClick={() => setIsAddModalOpen(true)}
+        >
+          + Add Entry
+        </Button>
       </div>
 
       {/* Summary Cards */}
@@ -176,21 +153,29 @@ export default function CashBoxPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-sm font-medium text-muted-foreground">Date Range:</span>
-        <RangePicker
-          value={[dayjs(startDate), dayjs(endDate)]}
-          onChange={(dates) => {
-            if (dates && dates[0] && dates[1]) {
-              setDateRange([
-                dates[0].format("DD/MM/YYYY"),
-                dates[1].format("DD/MM/YYYY"),
-              ]);
-              setPage(1);
-            }
-          }}
-        />
-        <AntButton
-          size="small"
+        <span className="text-sm font-medium text-muted-foreground">
+          Date Range:
+        </span>
+        <div className="flex items-center gap-2">
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => handleDateChange("start", e.target.value)}
+            className="w-48"
+            size="sm"
+          />
+          <span className="text-muted-foreground">to</span>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => handleDateChange("end", e.target.value)}
+            className="w-48"
+            size="sm"
+          />
+        </div>
+        <Button
+          size="sm"
+          variant="bordered"
           onClick={() => {
             const today = new Date().toISOString().split("T")[0];
             setDateRange([today, today]);
@@ -198,9 +183,10 @@ export default function CashBoxPage() {
           }}
         >
           Today
-        </AntButton>
-        <AntButton
-          size="small"
+        </Button>
+        <Button
+          size="sm"
+          variant="bordered"
           onClick={() => {
             const now = new Date();
             const first = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -214,68 +200,183 @@ export default function CashBoxPage() {
           }}
         >
           This Month
-        </AntButton>
+        </Button>
       </div>
 
       {/* Table */}
-      <div className="surface-card overflow-hidden">
+      <div className="surface-card overflow-hidden rounded-lg">
         <Table
-          columns={columns}
-          dataSource={entriesData?.data ?? []}
-          rowKey="id"
-          loading={entriesLoading}
-          pagination={{
-            current: entriesData?.page ?? page,
-            pageSize: entriesData?.limit ?? pageSize,
-            total: entriesData?.total ?? 0,
-            onChange: (p, ps) => {
-              setPage(p);
-              setPageSize(ps);
-            },
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "25", "50", "100"],
+          aria-label="Cash box entries"
+          classNames={{
+            wrapper: "shadow-none border-0",
+            table: "min-h-[400px]",
           }}
-          size="middle"
-          locale={{ emptyText: "No cash movements in this period" }}
-          summary={() => {
-            const entries = entriesData?.data ?? [];
-            const periodIn = entries
-              .filter(
-                (e) => e.entryType === "SALE_IN" || e.entryType === "MANUAL_IN"
-              )
-              .reduce((s, e) => s + e.amount, 0);
-            const periodOut = entries
-              .filter(
-                (e) =>
-                  e.entryType === "EXPENSE_OUT" ||
-                  e.entryType === "MANUAL_OUT"
-              )
-              .reduce((s, e) => s + e.amount, 0);
-            const net = periodIn - periodOut;
-            return (
-              <Table.Summary fixed>
-                <Table.Summary.Row>
-                  <Table.Summary.Cell index={0} colSpan={2}>
-                    <span className="font-semibold">Period Net</span>
-                  </Table.Summary.Cell>
-                  <Table.Summary.Cell index={1} align="right">
-                    <span
-                      className={
-                        net >= 0
-                          ? "text-success font-bold"
-                          : "text-destructive font-bold"
-                      }
+        >
+          <TableHeader>
+            <TableColumn key="entryDate">Date & Time</TableColumn>
+            <TableColumn key="entryType" width="140">
+              Type
+            </TableColumn>
+            <TableColumn key="amount" align="end" width="150">
+              Amount
+            </TableColumn>
+            <TableColumn key="note">Note</TableColumn>
+            <TableColumn key="createdBy" width="140">
+              By
+            </TableColumn>
+            <TableColumn key="action" width="80" align="center">
+              Action
+            </TableColumn>
+          </TableHeader>
+          <TableBody
+            emptyContent={"No cash movements in this period"}
+            items={entries}
+            isLoading={entriesLoading}
+            loadingContent={"Loading entries..."}
+          >
+            {(item) => {
+              const cfg = ENTRY_TYPE_CONFIG[item.entryType];
+              const amountColor = cfg.sign === "+" ? "text-success" : "text-destructive";
+              const isManual =
+                item.entryType === "MANUAL_IN" ||
+                item.entryType === "MANUAL_OUT";
+
+              return (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    {dayjs(item.entryDate).format("DD MMM YYYY, hh:mm A")}
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      color={cfg.color}
+                      variant="flat"
+                      size="sm"
+                      className="font-medium"
                     >
-                      {net >= 0 ? "+" : ""}
-                      {formatBDT(net)}
+                      {cfg.label}
+                    </Chip>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`${amountColor} font-semibold`}>
+                      {cfg.sign}
+                      {formatBDT(item.amount)}
                     </span>
-                  </Table.Summary.Cell>
-                  <Table.Summary.Cell index={2} colSpan={3} />
-                </Table.Summary.Row>
-              </Table.Summary>
-            );
-          }}
-        />
+                  </TableCell>
+                  <TableCell>
+                    {item.note ? (
+                      <span>{item.note}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {item.createdBy?.fullName ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    {isManual ? (
+                      <Popover placement="left">
+                        <PopoverTrigger>
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            className="text-danger"
+                          >
+                            <Trash2 size={18} />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-72">
+                          <div className="px-1 py-2 space-y-3">
+                            <p className="font-semibold">Delete this entry?</p>
+                            <p className="text-sm text-muted-foreground">
+                              This action cannot be undone.
+                            </p>
+                            <div className="flex gap-2 justify-end">
+                              <PopoverTrigger>
+                                <Button size="sm" variant="bordered">
+                                  Cancel
+                                </Button>
+                              </PopoverTrigger>
+                              <Button
+                                size="sm"
+                                color="danger"
+                                onClick={() => {
+                                  handleDeleteEntry(item.id);
+                                }}
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              );
+            }}
+          </TableBody>
+        </Table>
+
+        {/* Custom Summary Section */}
+        <div className="border-t border-divider bg-default-50 px-6 py-4 flex items-center justify-between">
+          <div>
+            <span className="font-semibold text-foreground">Period Net</span>
+          </div>
+          <div>
+            <span
+              className={`text-lg font-bold ${
+                net >= 0 ? "text-success" : "text-destructive"
+              }`}
+            >
+              {net >= 0 ? "+" : ""}
+              {formatBDT(net)}
+            </span>
+          </div>
+        </div>
+
+        {/* Pagination */}
+        <div className="border-t border-divider px-6 py-4 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {entries.length === 0 ? 0 : (page - 1) * pageSize + 1} to{" "}
+            {Math.min(page * pageSize, entriesData?.total ?? 0)} of{" "}
+            {entriesData?.total ?? 0} entries
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="px-2 py-1 rounded border border-divider text-sm bg-background"
+            >
+              <option value={10}>10 per page</option>
+              <option value={25}>25 per page</option>
+              <option value={50}>50 per page</option>
+              <option value={100}>100 per page</option>
+            </select>
+            <Button
+              size="sm"
+              variant="bordered"
+              isDisabled={page === 1}
+              onClick={() => setPage(page - 1)}
+            >
+              Prev
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {page} of {Math.ceil((entriesData?.total ?? 0) / pageSize)}
+            </span>
+            <Button
+              size="sm"
+              variant="bordered"
+              isDisabled={page >= Math.ceil((entriesData?.total ?? 0) / pageSize)}
+              onClick={() => setPage(page + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       </div>
 
       <AddEntryModal

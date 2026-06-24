@@ -5,19 +5,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { InventoryItem } from "@/types";
 import {
-  Select,
-  InputNumber,
+  Autocomplete,
+  AutocompleteItem,
   Button,
   Table,
-  Row,
-  Col,
-  Typography,
-  message,
-  Alert,
+  TableHeader,
+  TableBody,
+  TableColumn,
+  TableRow,
+  TableCell,
   Input,
   Switch,
   Tooltip,
-} from "antd";
+} from "@heroui/react";
+import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 type CartItem = {
@@ -52,32 +53,27 @@ function fetchInventory(q?: string, signal?: AbortSignal) {
       if (cached) {
         const parsed = JSON.parse(cached);
         const now = Date.now();
-        // parsed.__ttl stores the TTL in ms
         if (parsed.__ts && parsed.__ttl && now - parsed.__ts < parsed.__ttl) {
           return Promise.resolve(parsed.data);
         }
-        // If expired, fall through and fetch from server
       }
     }
 
     return api
       .get("/inventory", { params: q ? { q } : {}, signal })
       .then((r) => {
-      if (typeof window !== "undefined" && q && q.length > 0) {
-        // store TTL of 2 minutes in sessionStorage
-        const key = `pos-inventory:${q}`;
-        const payload = { __ts: Date.now(), __ttl: 120000, data: r.data };
-        try {
-          sessionStorage.setItem(key, JSON.stringify(payload));
-        } catch {
-          /* ignore session storage errors */
+        if (typeof window !== "undefined" && q && q.length > 0) {
+          const key = `pos-inventory:${q}`;
+          const payload = { __ts: Date.now(), __ttl: 120000, data: r.data };
+          try {
+            sessionStorage.setItem(key, JSON.stringify(payload));
+          } catch {
+            /* ignore session storage errors */
+          }
         }
-      }
-
         return r.data;
       });
   } catch {
-    // Fallback to direct request
     return api
       .get("/inventory", { params: q ? { q } : {}, signal })
       .then((r) => r.data);
@@ -88,22 +84,18 @@ function POSClient() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const selectRef = useRef<React.ComponentRef<typeof Select>>(null);
+  const autocompleteRef = useRef<HTMLInputElement>(null);
 
-  // Customer state moved from POSPageWrapper
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const customerNameRef = useRef("");
   const customerPhoneRef = useRef("");
   const { user, loading } = useAuth();
 
-  // Keyboard shortcut: focus the Select field when pressing '/'
-  // Double Shift: focus the "Complete Sale" button
   const completeSaleBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Slash to focus search
       if (
         event.key === "/" &&
         !event.ctrlKey &&
@@ -112,13 +104,12 @@ function POSClient() {
       ) {
         event.preventDefault();
         try {
-          selectRef.current?.focus();
+          autocompleteRef.current?.focus();
         } catch {
           // ignore
         }
       }
 
-      // Ctrl + / to focus Complete Sale
       if (event.key === "/" && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();
         completeSaleBtnRef.current?.focus();
@@ -129,7 +120,6 @@ function POSClient() {
     return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, []);
 
-  // debounce input so we don't call the API on every keystroke
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 400);
     return () => clearTimeout(t);
@@ -147,7 +137,6 @@ function POSClient() {
     gcTime: 5 * 60 * 1000,
   });
 
-  // Aggregate items by variant/product
   const aggregatedItems = useMemo(() => {
     const map = new Map<
       string,
@@ -156,12 +145,11 @@ function POSClient() {
         name: string;
         sku: string;
         totalQty: number;
-        retailPrice: number; // Using the price of the first batch (usually oldest or latest depending on sort)
+        retailPrice: number;
         batches: InventoryItem[];
       }
     >();
 
-    // Sort raw items by expiry date (FIFO)
     const sortedRaw = [...(rawItems as InventoryItem[])].sort((a, b) => {
       if (!a.expiryDate) return 1;
       if (!b.expiryDate) return -1;
@@ -173,7 +161,6 @@ function POSClient() {
     sortedRaw.forEach((item) => {
       const variantId = item.variantId;
       const itemName = item.itemName;
-      // Key: prefer variantId, fallback to itemName for ad-hoc
       const key = variantId || itemName || "unknown";
 
       if (!map.has(key)) {
@@ -207,7 +194,6 @@ function POSClient() {
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [qty, setQty] = useState<number>(1);
-  // customerName, customerPhone, and setters are now provided by parent (page)
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCreditSale, setIsCreditSale] = useState(false);
   const [cashReceived, setCashReceived] = useState<number>(0);
@@ -233,7 +219,6 @@ function POSClient() {
       });
       queryClient.removeQueries({ queryKey: ["inventory"], type: "inactive" });
 
-      // clear local sessionStorage cache for POS so search reflects new quantities
       try {
         const keysToDelete: string[] = [];
         for (let i = 0; i < sessionStorage.length; i++) {
@@ -244,7 +229,7 @@ function POSClient() {
       } catch {
         // ignore sessionStorage errors
       }
-      message.success("Sale completed successfully!");
+      toast.success("Sale completed successfully!");
       setCart([]);
       setCustomerName("");
       setCustomerPhone("");
@@ -255,7 +240,7 @@ function POSClient() {
     },
     onError(err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      message.error(error.response?.data?.message || "Sale failed");
+      toast.error(error.response?.data?.message || "Sale failed");
     },
   });
 
@@ -264,7 +249,6 @@ function POSClient() {
     const item = aggregatedItems.find((i) => i.key === selectedKey);
     if (!item) return;
 
-    // Calculate average purchase price
     const totalPurchase = item.batches.reduce(
       (sum, b) => sum + b.purchasePrice * b.quantity,
       0
@@ -277,7 +261,6 @@ function POSClient() {
         ? ((item.retailPrice - minPrice) / item.retailPrice) * 100
         : 0;
 
-    // Check if already in cart
     const existingIdx = cart.findIndex((c) => c.key === selectedKey);
     if (existingIdx >= 0) {
       const newCart = [...cart];
@@ -292,7 +275,7 @@ function POSClient() {
           unitPrice: item.retailPrice,
           purchasePrice: avgPurchase,
           quantity: qty,
-          discount: 0, // percentage
+          discount: 0,
           maxDiscount: maxDiscountPercent,
           batches: item.batches,
         },
@@ -301,11 +284,10 @@ function POSClient() {
 
     setSelectedKey(null);
     setQty(1);
-    setSearch(""); // Clear search
+    setSearch("");
 
-    // Focus back to the item select
     setTimeout(() => {
-      selectRef.current?.focus();
+      autocompleteRef.current?.focus();
     }, 0);
   }
 
@@ -316,11 +298,11 @@ function POSClient() {
   function checkout() {
     if (isCreditSale) {
       if (!customerName.trim()) {
-        message.error("Customer name is required for credit sales");
+        toast.error("Customer name is required for credit sales");
         return;
       }
       if (!customerPhone.trim()) {
-        message.error("Customer phone number is required for credit sales");
+        toast.error("Customer phone number is required for credit sales");
         return;
       }
     }
@@ -330,7 +312,7 @@ function POSClient() {
       return item.discount > maxAllowed;
     });
     if (violations.length > 0) {
-      message.error(`${violations.length} item(s) have discounts exceeding the minimum 4% profit. Please reduce them.`);
+      toast.error(`${violations.length} item(s) have discounts exceeding the minimum 4% profit. Please reduce them.`);
       return;
     }
 
@@ -341,11 +323,9 @@ function POSClient() {
       discount: number;
     }> = [];
 
-    // Allocate stock from batches (FIFO)
     for (const cartItem of cart) {
       let remainingQty = cartItem.quantity;
 
-      // Batches are already sorted by expiry (FIFO) in aggregation
       for (const batch of cartItem.batches) {
         if (remainingQty <= 0) break;
 
@@ -354,15 +334,15 @@ function POSClient() {
           payloadItems.push({
             inventoryId: batch.id,
             quantity: take,
-            unitPrice: batch.retailPrice, // Use batch specific price
-            discount: cartItem.discount, // Apply per item discount
+            unitPrice: batch.retailPrice,
+            discount: cartItem.discount,
           });
           remainingQty -= take;
         }
       }
 
       if (remainingQty > 0) {
-        message.error(
+        toast.error(
           `Insufficient stock for ${cartItem.name}. Short by ${remainingQty}.`
         );
         return;
@@ -389,271 +369,283 @@ function POSClient() {
   );
 
   const displayCart = useMemo(() => [...cart].reverse(), [cart]);
-  const selectOptions = useMemo(
-    () =>
-      aggregatedItems.map((it) => ({
-        label: (
-          <div className="flex justify-between items-center w-full">
-            <div className="flex flex-col">
-              <span className="font-medium text-theme-foreground">{it.name}</span>
-              <span className="text-xs text-theme-muted">SKU: {it.sku}</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="font-bold text-theme-primary">৳{it.retailPrice}</span>
-              <span
-                className={`text-xs ${
-                  it.totalQty > 0
-                    ? "text-theme-success"
-                    : "text-theme-destructive"
-                }`}
-              >
-                {it.totalQty > 0 ? `${it.totalQty} in stock` : "Out of stock"}
-              </span>
-            </div>
-          </div>
-        ),
-        value: it.key,
-        displayLabel: it.name,
-        disabled: it.totalQty <= 0,
-      })),
-    [aggregatedItems]
-  );
 
   return (
     <div className="space-y-4">
-      <Row gutter={16} align="stretch">
-        <Col xs={24} md={16} lg={16}>
-          {/* Left: Select, Quantity, Add to Cart */}
-          <div className="surface-card p-4 md:p-6 h-full">
-            <Row gutter={16}>
-              <Col span={24}>
-                {itemsError && (
-                  <div style={{ marginBottom: 8 }}>
-                    <Alert
-                      type="error"
-                      showIcon
-                      message={
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        (itemsErrorObj as any)?.response?.status === 401
-                          ? "Not signed in — please login to access inventory"
-                          : "Failed to load inventory"
-                      }
-                    />
-                  </div>
-                )}
-                <Typography.Text>Select Item</Typography.Text>
-                <Select
-                  className="pos-select"
-                  classNames={{ popup: { root: "pos-select-dropdown" } }}
-                  ref={selectRef}
-                  showSearch
-                  filterOption={false}
-                  allowClear
-                  placeholder="Type to search inventory or SKU..."
-                  style={{ width: "100%" }}
-                  value={selectedKey ?? undefined}
-                  onSearch={(val) => setSearch(val)}
-                  onChange={(val) => setSelectedKey(val)}
-                  notFoundContent={itemsLoading ? "Searching..." : "No results"}
-                  options={selectOptions}
-                  optionLabelProp="displayLabel"
-                />
-              </Col>
-              <Col span={8} className="mt-2">
-                <Typography.Text>Quantity</Typography.Text>
-                <InputNumber
-                  variant="outlined"
-                  className="w-full"
-                  min={1}
-                  value={qty}
-                  onChange={(value) => setQty(Number(value))}
-                  onPressEnter={addToCart}
-                  changeOnWheel
-                />
-              </Col>
-              <Col span={24} style={{ marginTop: 12 }}>
-                <Button
-                  type="primary"
-                  onClick={addToCart}
-                  disabled={!selectedKey}
-                >
-                  Add to cart
-                </Button>
-              </Col>
-            </Row>
-          </div>
-        </Col>
+      {/* Top Row: Item search + customer info */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Left: Select Item + Quantity */}
+        <div className="md:col-span-2 surface-card p-4 md:p-6">
+          {itemsError && (
+            <div className="mb-3 p-3 rounded-lg bg-danger-50 text-danger text-sm">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {(itemsErrorObj as any)?.response?.status === 401
+                ? "Not signed in — please login to access inventory"
+                : "Failed to load inventory"}
+            </div>
+          )}
 
-        <Col xs={24} md={8} lg={8}>
-          <div className="surface-card p-4 md:p-6 h-full">
-            <Typography.Text>Customer Name (Optional)</Typography.Text>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Select Item</label>
+              <Autocomplete
+                ref={autocompleteRef}
+                inputValue={search}
+                onInputChange={(val) => setSearch(val)}
+                selectedKey={selectedKey}
+                onSelectionChange={(key) => setSelectedKey(key as string | null)}
+                placeholder="Type to search inventory or SKU..."
+                isLoading={itemsLoading}
+                variant="bordered"
+                className="w-full"
+                listboxProps={{
+                  emptyContent: itemsLoading ? "Searching..." : "No results",
+                }}
+                aria-label="Select inventory item"
+              >
+                {aggregatedItems.map((it) => (
+                  <AutocompleteItem
+                    key={it.key}
+                    isDisabled={it.totalQty <= 0}
+                    textValue={it.name}
+                  >
+                    <div className="flex justify-between items-center w-full gap-2">
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-medium truncate">{it.name}</span>
+                        <span className="text-xs text-default-400">SKU: {it.sku}</span>
+                      </div>
+                      <div className="flex flex-col items-end shrink-0">
+                        <span className="font-bold text-primary text-sm">
+                          ৳{it.retailPrice}
+                        </span>
+                        <span
+                          className={`text-xs ${
+                            it.totalQty > 0
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
+                        >
+                          {it.totalQty > 0
+                            ? `${it.totalQty} in stock`
+                            : "Out of stock"}
+                        </span>
+                      </div>
+                    </div>
+                  </AutocompleteItem>
+                ))}
+              </Autocomplete>
+            </div>
+
+            <div className="flex items-end gap-3">
+              <div className="space-y-1 w-32">
+                <label className="text-sm font-medium">Quantity</label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  value={qty.toString()}
+                  onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") addToCart();
+                  }}
+                  variant="bordered"
+                />
+              </div>
+              <Button
+                color="primary"
+                onPress={addToCart}
+                isDisabled={!selectedKey}
+              >
+                Add to cart
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Customer info */}
+        <div className="surface-card p-4 md:p-6 space-y-3">
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Customer Name (Optional)</label>
             <Input
               placeholder="Enter customer name"
               value={customerName}
-              onChange={(e) => {
-                const value = e.target.value;
+              onValueChange={(value) => {
                 customerNameRef.current = value;
                 setCustomerName(value);
               }}
+              variant="bordered"
             />
-
-            <div style={{ marginTop: 12 }}>
-              <Typography.Text>Customer Phone (Optional)</Typography.Text>
-              <Input
-                placeholder="Enter phone number"
-                value={customerPhone}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  customerPhoneRef.current = value;
-                  setCustomerPhone(value);
-                }}
-              />
-            </div>
           </div>
-        </Col>
-      </Row>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Customer Phone (Optional)</label>
+            <Input
+              placeholder="Enter phone number"
+              value={customerPhone}
+              onValueChange={(value) => {
+                customerPhoneRef.current = value;
+                setCustomerPhone(value);
+              }}
+              variant="bordered"
+            />
+          </div>
+        </div>
+      </div>
 
-      {/* Add to cart button is included in the left column above */}
-
+      {/* Cart Table */}
       <div className="surface-card p-4 md:p-6">
         <div className="overflow-x-auto">
-          <Table<CartItem>
-            dataSource={displayCart}
-            rowKey="key"
-            pagination={false}
+          <Table
+            aria-label="Cart items"
+            classNames={{ wrapper: "shadow-none" }}
+            removeWrapper={false}
           >
-            <Table.Column title="Item" dataIndex="name" key="name" />
-            <Table.Column
-              title="Quantity"
-              dataIndex="quantity"
-              key="quantity"
-              render={(qty: number, record: CartItem) => (
-                <InputNumber
-                  min={1}
-                  value={qty}
-                  onChange={(value) => {
-                    const newQty = Number(value) || 1;
-                    setCart((prev) =>
-                      prev.map((item) =>
-                        item.key === record.key
-                          ? { ...item, quantity: newQty }
-                          : item
-                      )
-                    );
-                  }}
-                  style={{ width: 80 }}
-                />
-              )}
-            />
-            <Table.Column
-              title="Unit Price"
-              dataIndex="unitPrice"
-              key="unitPrice"
-              render={(v: number) => `৳${v.toFixed(2)}`}
-            />
-            <Table.Column
-              title="Discount (%)"
-              dataIndex="discount"
-              key="discount"
-              render={(discount: number, record: CartItem) => {
-                const maxAllowed = getMaxAllowedDiscount(
-                  record.unitPrice,
-                  record.purchasePrice,
-                  record.maxDiscount,
-                );
-                const isViolating = discount > maxAllowed;
-                return (
-                  <Tooltip
-                    title={isViolating ? 'Exceeds minimum 4% profit — discount will be capped' : undefined}
-                    color="red"
-                  >
-                    <InputNumber
-                      min={0}
-                      max={maxAllowed}
-                      value={discount}
-                      status={isViolating ? 'error' : undefined}
-                      onChange={(value) => {
-                        const newDiscount = Math.min(Number(value) ?? 0, maxAllowed);
+            <TableHeader>
+              <TableColumn key="name">Item</TableColumn>
+              <TableColumn key="quantity" align="center" width={120}>Quantity</TableColumn>
+              <TableColumn key="unitPrice" align="end">Unit Price</TableColumn>
+              <TableColumn key="discount" align="center" width={140}>Discount (%)</TableColumn>
+              <TableColumn key="subtotal" align="end">Sub Total</TableColumn>
+              <TableColumn key="action" align="center" width={90}>Action</TableColumn>
+            </TableHeader>
+            <TableBody
+              items={displayCart}
+              emptyContent={
+                <div className="py-8 text-center text-default-400">
+                  Cart is empty — add items above
+                </div>
+              }
+            >
+              {(record: CartItem) => (
+                <TableRow key={record.key}>
+                  <TableCell>{record.name}</TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      value={record.quantity.toString()}
+                      onChange={(e) => {
+                        const newQty = Math.max(1, parseInt(e.target.value) || 1);
                         setCart((prev) =>
                           prev.map((item) =>
-                            item.key === record.key ? { ...item, discount: newDiscount } : item,
-                          ),
+                            item.key === record.key
+                              ? { ...item, quantity: newQty }
+                              : item
+                          )
                         );
                       }}
-                      style={{ width: 80 }}
-                      suffix="%"
+                      variant="bordered"
+                      size="sm"
+                      className="w-20"
                     />
-                  </Tooltip>
-                );
-              }}
-            />
-            <Table.Column
-              title="Sub Total"
-              dataIndex="total"
-              key="total"
-              render={(
-                v: number,
-                record: {
-                  quantity: number;
-                  unitPrice: number;
-                  discount: number;
-                }
-              ) => {
-                const effectivePrice =
-                  record.unitPrice * (1 - record.discount / 100);
-                return `৳${(record.quantity * effectivePrice).toFixed(2)}`;
-              }}
-            />
-            <Table.Column
-              title="Action"
-              key="action"
-              render={(_, record: CartItem) => (
-                <Button
-                  danger
-                  size="small"
-                  onClick={() => removeFromCart(record.key)}
-                >
-                  Remove
-                </Button>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    ৳{record.unitPrice.toFixed(2)}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const maxAllowed = getMaxAllowedDiscount(
+                        record.unitPrice,
+                        record.purchasePrice,
+                        record.maxDiscount,
+                      );
+                      const isViolating = record.discount > maxAllowed;
+                      return (
+                        <Tooltip
+                          content="Exceeds minimum 4% profit — discount will be capped"
+                          isDisabled={!isViolating}
+                          color="danger"
+                        >
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            min="0"
+                            max={maxAllowed}
+                            value={record.discount.toString()}
+                            onChange={(e) => {
+                              const newDiscount = Math.min(
+                                parseFloat(e.target.value) || 0,
+                                maxAllowed
+                              );
+                              setCart((prev) =>
+                                prev.map((item) =>
+                                  item.key === record.key
+                                    ? { ...item, discount: newDiscount }
+                                    : item
+                                )
+                              );
+                            }}
+                            variant="bordered"
+                            size="sm"
+                            className="w-20"
+                            isInvalid={isViolating}
+                            endContent={<span className="text-default-400 text-xs">%</span>}
+                          />
+                        </Tooltip>
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    ৳{(record.quantity * record.unitPrice * (1 - record.discount / 100)).toFixed(2)}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      color="danger"
+                      variant="flat"
+                      onPress={() => removeFromCart(record.key)}
+                    >
+                      Remove
+                    </Button>
+                  </TableCell>
+                </TableRow>
               )}
-            />
+            </TableBody>
           </Table>
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4">
-        <div className="flex-1">
-          <div style={{ fontWeight: 700, fontSize: "1.2em" }} className="mb-3">
+      {/* Checkout Section */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mt-4">
+        <div className="flex-1 space-y-3">
+          <div className="text-xl font-bold">
             Total: ৳{total.toFixed(2)}
           </div>
 
           {/* Credit Sale toggle */}
           <div className="flex items-center gap-3">
             <Switch
-              checked={isCreditSale}
-              onChange={(checked) => {
+              isSelected={isCreditSale}
+              onValueChange={(checked) => {
                 setIsCreditSale(checked);
                 if (!checked) setCashReceived(0);
               }}
-              size="small"
+              size="sm"
             />
             <span className="text-sm font-medium">Credit Sale (Due)</span>
           </div>
 
           {isCreditSale && (
-            <div className="mt-3 space-y-1">
-              <label className="text-xs text-muted-foreground">
+            <div className="space-y-1 max-w-xs">
+              <label className="text-xs text-default-500">
                 Cash Received (৳)
               </label>
-              <InputNumber
-                min={0}
+              <Input
+                type="number"
+                inputMode="numeric"
+                min="0"
                 max={total}
-                value={cashReceived}
-                onChange={(val) => setCashReceived(val ?? 0)}
-                className="w-full"
+                value={cashReceived.toString()}
+                onChange={(e) =>
+                  setCashReceived(
+                    Math.min(total, Math.max(0, parseFloat(e.target.value) || 0))
+                  )
+                }
+                variant="bordered"
                 placeholder="0"
+                startContent={<span className="text-default-400">৳</span>}
               />
-              <div className="text-sm font-medium text-destructive">
+              <div className="text-sm font-medium text-danger">
                 Due Amount: ৳{Math.max(0, total - cashReceived).toFixed(2)}
               </div>
             </div>
@@ -662,15 +654,13 @@ function POSClient() {
 
         <Button
           ref={completeSaleBtnRef}
-          type="primary"
-          size="large"
-          onClick={checkout}
-          className="sm:self-end complete-sale-btn"
-          color="lime"
+          color="success"
           variant="solid"
-          disabled={cart.length === 0 || saleMutation.isPending}
-          loading={saleMutation.isPending}
-          style={{ minWidth: "200px" }}
+          size="lg"
+          onPress={checkout}
+          className="sm:self-start complete-sale-btn min-w-[200px] text-white font-semibold"
+          isDisabled={cart.length === 0 || saleMutation.isPending}
+          isLoading={saleMutation.isPending}
         >
           {saleMutation.isPending ? "Processing Sale..." : "Complete Sale"}
         </Button>

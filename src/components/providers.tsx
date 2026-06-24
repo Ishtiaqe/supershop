@@ -2,15 +2,15 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { ConfigProvider, theme as antdTheme, App } from "antd";
+import { HeroUIProvider } from "@heroui/react";
 import React from "react";
 import dynamic from "next/dynamic";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+import { Toaster } from "sonner";
 import { OfflineProvider } from "./providers/offline-provider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ItemDetailProvider } from "@/components/providers/ItemDetailContext";
-import { getThemeColors } from "@/lib/theme";
 
 const ReactQueryDevtools = dynamic(
   () =>
@@ -103,77 +103,38 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [mode, systemDark]);
 
   const isDark = mode === "dark" || (mode === "system" && systemDark);
-  const colors = getThemeColors(isDark ? "dark" : "light");
-
-  const themeConfig = {
-    algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-    token: {
-      colorPrimary: colors.primary.hex,
-      colorInfo: colors.primary.hex,
-      colorSuccess: colors.success.hex,
-      colorWarning: colors.warning.hex,
-      colorError: colors.destructive.hex,
-      colorBgBase: colors.background.hex,
-      colorBgContainer: colors.card.hex,
-      colorBgElevated: colors.card.hex,
-      colorTextBase: colors.foreground.hex,
-      colorTextSecondary: colors.mutedForeground.hex,
-      colorBorder: colors.border.hex,
-      colorBgLayout: colors.background.hex,
-      borderRadius: 8,
-      fontFamily: "inherit",
-    },
-    components: {
-      Menu: {
-        itemHeight: 48,
-        itemFontSize: 15,
-      },
-      Button: {
-        borderRadius: 6,
-        fontWeight: 500,
-      },
-      Card: {
-        borderRadiusLG: 12,
-      },
-      Table: {
-        borderRadius: 12,
-      },
-    },
-  };
 
   return (
     <ThemeContext.Provider value={{ mode, setMode }}>
-      <ConfigProvider theme={themeConfig}>
-        <App>
-          <OfflineProvider>
-            <AuthProvider>
-              {persister ? (
-                <PersistQueryClientProvider
-                  client={queryClient}
-                  persistOptions={{ persister }}
-                >
-                  <ItemDetailProvider>
-                    {children}
-                  </ItemDetailProvider>
-                  {process.env.NODE_ENV === "development" && (
-                    <ReactQueryDevtools initialIsOpen={false} />
-                  )}
-                </PersistQueryClientProvider>
-              ) : (
-                // Fallback for SSR or if persistence fails
-                <QueryClientProvider client={queryClient}>
-                  <ItemDetailProvider>
-                    {children}
-                  </ItemDetailProvider>
-                  {process.env.NODE_ENV === "development" && (
-                    <ReactQueryDevtools initialIsOpen={false} />
-                  )}
-                </QueryClientProvider>
-              )}
-            </AuthProvider>
-          </OfflineProvider>
-        </App>
-      </ConfigProvider>
+      <HeroUIProvider>
+        <OfflineProvider>
+          <AuthProvider>
+            {persister ? (
+              <PersistQueryClientProvider
+                client={queryClient}
+                persistOptions={{ persister }}
+              >
+                <ItemDetailProvider>
+                  {children}
+                </ItemDetailProvider>
+                {process.env.NODE_ENV === "development" && (
+                  <ReactQueryDevtools initialIsOpen={false} />
+                )}
+              </PersistQueryClientProvider>
+            ) : (
+              <QueryClientProvider client={queryClient}>
+                <ItemDetailProvider>
+                  {children}
+                </ItemDetailProvider>
+                {process.env.NODE_ENV === "development" && (
+                  <ReactQueryDevtools initialIsOpen={false} />
+                )}
+              </QueryClientProvider>
+            )}
+          </AuthProvider>
+        </OfflineProvider>
+        <Toaster position="top-right" theme={isDark ? "dark" : "light"} />
+      </HeroUIProvider>
     </ThemeContext.Provider>
   );
 }

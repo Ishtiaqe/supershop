@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, Switch, List, message } from "antd";
-import { BellOutlined } from "@ant-design/icons";
+import { Card, CardBody, Switch } from "@heroui/react";
+import { Bell } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/lib/api";
 
 export default function NotificationCenter() {
@@ -31,52 +32,44 @@ export default function NotificationCenter() {
           ),
         });
         await api.post("/notifications/subscribe", subscription);
-        message.success("Notifications enabled");
+        toast.success("Notifications enabled");
         setEnabled(true);
       } else {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
         if (subscription) {
           await subscription.unsubscribe();
-          // Optionally call backend to remove subscription from DB
-          message.success("Notifications disabled");
+          toast.success("Notifications disabled");
           setEnabled(false);
         }
       }
     } catch (error) {
       console.error(error);
-      message.error("Failed to update notification settings");
+      toast.error("Failed to update notification settings");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Card
-      title={
-        <span>
-          <BellOutlined className="mr-2" /> Notification Settings
-        </span>
-      }
-      className="shadow-sm"
-    >
-      <List>
-        <List.Item
-          actions={[
-            <Switch
-              key="notification-switch"
-              checked={enabled}
-              onChange={handleToggle}
-              loading={loading}
-            />,
-          ]}
-        >
-          <List.Item.Meta
-            title="Push Notifications"
-            description="Receive alerts for low stock and expiring items on this device."
+    <Card>
+      <CardBody className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Bell size={20} />
+          <h3 className="font-semibold text-lg">Notification Settings</h3>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg border border-default-200">
+          <div>
+            <p className="font-medium">Push Notifications</p>
+            <p className="text-sm text-default-500">Receive alerts for low stock and expiring items on this device.</p>
+          </div>
+          <Switch
+            isSelected={enabled}
+            onChange={handleToggle}
+            isDisabled={loading}
           />
-        </List.Item>
-      </List>
+        </div>
+      </CardBody>
     </Card>
   );
 }

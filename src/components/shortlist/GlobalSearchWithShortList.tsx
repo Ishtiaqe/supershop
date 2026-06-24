@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Input, List, Card, Button, Typography, message, Empty } from 'antd';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { Input, Button, Card } from '@heroui/react';
+import { Plus, Loader } from 'lucide-react';
+import { toast } from 'sonner';
 import api from '../../lib/api';
 import useShortlistMutation from '../../hooks/useShortlist';
 import debounce from 'lodash/debounce';
-
-const { Text } = Typography;
 
 interface SearchItem {
   id: string;
@@ -40,7 +39,7 @@ export default function GlobalSearchWithShortList() {
           setIsOpen(true);
         } catch (error) {
           console.error('Search failed:', error);
-          message.error('Search failed');
+          toast.error('Search failed');
         } finally {
           setLoading(false);
         }
@@ -61,7 +60,7 @@ export default function GlobalSearchWithShortList() {
 
   const addMutation = useShortlistMutation({
     onSuccess: () => {
-      message.success('Added to shortlist');
+      toast.success('Added to shortlist');
       setSearchTerm('');
       setResults([]);
       setIsOpen(false);
@@ -82,59 +81,82 @@ export default function GlobalSearchWithShortList() {
 
   return (
     <div ref={searchRef} className="relative w-full">
-      <Input.Search
+      <Input
+        isClearable
         placeholder="Search items to add to short list..."
         value={searchTerm}
-        onChange={(e) => handleInputChange(e.target.value)}
+        onValueChange={handleInputChange}
         onFocus={() => results.length > 0 && setIsOpen(true)}
-        allowClear
-        loading={loading}
-        enterButton
+        onClear={() => {
+          setSearchTerm('');
+          setResults([]);
+          setIsOpen(false);
+        }}
+        endContent={
+          loading ? (
+            <Loader className="w-4 h-4 animate-spin text-default-400" />
+          ) : null
+        }
+        classNames={{
+          input: 'text-sm',
+          inputWrapper: 'h-10',
+        }}
       />
 
       {isOpen && (searchTerm.length >= 2 || results.length > 0) && (
         <Card
-          className="absolute top-full left-0 right-0 mt-2 z-50 shadow-xl"
-          styles={{ body: { padding: 0 } }}
+          className="absolute top-full left-0 right-0 mt-2 z-50 shadow-lg"
+          classNames={{
+            base: 'border border-default-200',
+          }}
         >
-          <List
-            loading={loading}
-            dataSource={results}
-            locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No items found" /> }}
-            renderItem={(item) => (
-              <List.Item
-                className="px-4 py-3 hover:bg-theme-muted transition-colors cursor-pointer"
-                onClick={() => addMutation.mutate({ inventoryId: item.id, action: 'add' })}
-                actions={[
-                  <Button
-                    key="add"
-                    type="primary"
-                    size="small"
-                    icon={<PlusOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addMutation.mutate({ inventoryId: item.id, action: 'add' });
-                    }}
+          <div className="max-h-96 overflow-y-auto">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader className="w-5 h-5 animate-spin text-default-400" />
+              </div>
+            ) : results.length === 0 ? (
+              <div className="px-4 py-8 text-center">
+                <p className="text-sm text-default-400">No items found</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-default-100">
+                {results.map((item) => (
+                  <li
+                    key={item.id}
+                    className="px-4 py-3 hover:bg-default-100 transition-colors cursor-pointer flex items-center justify-between gap-3"
+                    onClick={() =>
+                      addMutation.mutate({ inventoryId: item.id, action: 'add' })
+                    }
                   >
-                    Add
-                  </Button>
-                ]}
-              >
-                <List.Item.Meta
-                  title={<Text strong>{item.itemName}</Text>}
-                  description={
-                    <Text type="secondary">
-                      SKU: {item.variant?.sku || 'N/A'} • Qty: {item.quantity}
-                    </Text>
-                  }
-                />
-
-              </List.Item>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-default-900">
+                        {item.itemName}
+                      </p>
+                      <p className="text-xs text-default-500">
+                        SKU: {item.variant?.sku || 'N/A'} • Qty: {item.quantity}
+                      </p>
+                    </div>
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      color="primary"
+                      variant="flat"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addMutation.mutate({ inventoryId: item.id, action: 'add' });
+                      }}
+                      disabled={addMutation.isPending}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
             )}
-          />
+          </div>
         </Card>
       )}
     </div>
   );
 }
-
