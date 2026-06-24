@@ -54,7 +54,6 @@ export default function ShortListPage() {
   const [sortBy, setSortBy] = useState<"quantity" | "addedAt" | "name">(
     "quantity",
   );
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [filterSlow, setFilterSlow] = useState<boolean | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -96,13 +95,12 @@ export default function ShortListPage() {
 
   // Fetch short list items
   const { data, isLoading, error } = useQuery({
-    queryKey: ["shortlist", sortBy, sortOrder, filterSlow],
+    queryKey: ["shortlist", sortBy, filterSlow],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filterSlow !== null)
         params.append("filterSlow", filterSlow.toString());
       params.append("sortBy", sortBy);
-      params.append("sortOrder", sortOrder);
 
       const response = await api.get(`/shortlist?${params.toString()}`);
       return response.data;
