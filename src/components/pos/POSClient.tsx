@@ -8,6 +8,8 @@ import {
   Autocomplete,
   AutocompleteItem,
   Button,
+  Card,
+  CardBody,
   Table,
   TableHeader,
   TableBody,
@@ -375,17 +377,17 @@ function POSClient() {
       {/* Top Row: Item search + customer info */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Left: Select Item + Quantity */}
-        <div className="md:col-span-2 surface-card p-4 md:p-6">
-          {itemsError && (
-            <div className="mb-3 p-3 rounded-lg bg-danger-50 text-danger text-sm">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {(itemsErrorObj as any)?.response?.status === 401
-                ? "Not signed in — please login to access inventory"
-                : "Failed to load inventory"}
-            </div>
-          )}
+        <Card className="md:col-span-2">
+          <CardBody className="space-y-3">
+            {itemsError && (
+              <div className="p-3 rounded-lg bg-danger-50 text-danger text-sm">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {(itemsErrorObj as any)?.response?.status === 401
+                  ? "Not signed in — please login to access inventory"
+                  : "Failed to load inventory"}
+              </div>
+            )}
 
-          <div className="space-y-3">
             <div className="space-y-1">
               <label className="text-sm font-medium">Select Item</label>
               <Autocomplete
@@ -418,16 +420,8 @@ function POSClient() {
                         <span className="font-bold text-primary text-sm">
                           ৳{it.retailPrice}
                         </span>
-                        <span
-                          className={`text-xs ${
-                            it.totalQty > 0
-                              ? "text-success"
-                              : "text-danger"
-                          }`}
-                        >
-                          {it.totalQty > 0
-                            ? `${it.totalQty} in stock`
-                            : "Out of stock"}
+                        <span className={`text-xs ${it.totalQty > 0 ? "text-success" : "text-danger"}`}>
+                          {it.totalQty > 0 ? `${it.totalQty} in stock` : "Out of stock"}
                         </span>
                       </div>
                     </div>
@@ -445,59 +439,54 @@ function POSClient() {
                   min="1"
                   value={qty.toString()}
                   onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") addToCart();
-                  }}
+                  onKeyDown={(e) => { if (e.key === "Enter") addToCart(); }}
                   variant="bordered"
                 />
               </div>
-              <Button
-                color="primary"
-                onPress={addToCart}
-                isDisabled={!selectedKey}
-              >
+              <Button color="primary" onPress={addToCart} isDisabled={!selectedKey}>
                 Add to cart
               </Button>
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
 
         {/* Right: Customer info */}
-        <div className="surface-card p-4 md:p-6 space-y-3">
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Customer Name (Optional)</label>
-            <Input
-              placeholder="Enter customer name"
-              value={customerName}
-              onValueChange={(value) => {
-                customerNameRef.current = value;
-                setCustomerName(value);
-              }}
-              variant="bordered"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Customer Phone (Optional)</label>
-            <Input
-              placeholder="Enter phone number"
-              value={customerPhone}
-              onValueChange={(value) => {
-                customerPhoneRef.current = value;
-                setCustomerPhone(value);
-              }}
-              variant="bordered"
-            />
-          </div>
-        </div>
+        <Card>
+          <CardBody className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Customer Name (Optional)</label>
+              <Input
+                placeholder="Enter customer name"
+                value={customerName}
+                onValueChange={(value) => {
+                  customerNameRef.current = value;
+                  setCustomerName(value);
+                }}
+                variant="bordered"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Customer Phone (Optional)</label>
+              <Input
+                placeholder="Enter phone number"
+                value={customerPhone}
+                onValueChange={(value) => {
+                  customerPhoneRef.current = value;
+                  setCustomerPhone(value);
+                }}
+                variant="bordered"
+              />
+            </div>
+          </CardBody>
+        </Card>
       </div>
 
       {/* Cart Table */}
-      <div className="surface-card p-4 md:p-6">
-        <div className="overflow-x-auto">
+      <Card>
+        <CardBody className="p-0 overflow-x-auto">
           <Table
             aria-label="Cart items"
-            classNames={{ wrapper: "shadow-none" }}
-            removeWrapper={false}
+            removeWrapper
           >
             <TableHeader>
               <TableColumn key="name">Item</TableColumn>
@@ -528,9 +517,7 @@ function POSClient() {
                         const newQty = Math.max(1, parseInt(e.target.value) || 1);
                         setCart((prev) =>
                           prev.map((item) =>
-                            item.key === record.key
-                              ? { ...item, quantity: newQty }
-                              : item
+                            item.key === record.key ? { ...item, quantity: newQty } : item
                           )
                         );
                       }}
@@ -544,11 +531,7 @@ function POSClient() {
                   </TableCell>
                   <TableCell>
                     {(() => {
-                      const maxAllowed = getMaxAllowedDiscount(
-                        record.unitPrice,
-                        record.purchasePrice,
-                        record.maxDiscount,
-                      );
+                      const maxAllowed = getMaxAllowedDiscount(record.unitPrice, record.purchasePrice, record.maxDiscount);
                       const isViolating = record.discount > maxAllowed;
                       return (
                         <Tooltip
@@ -563,15 +546,10 @@ function POSClient() {
                             max={maxAllowed}
                             value={record.discount.toString()}
                             onChange={(e) => {
-                              const newDiscount = Math.min(
-                                parseFloat(e.target.value) || 0,
-                                maxAllowed
-                              );
+                              const newDiscount = Math.min(parseFloat(e.target.value) || 0, maxAllowed);
                               setCart((prev) =>
                                 prev.map((item) =>
-                                  item.key === record.key
-                                    ? { ...item, discount: newDiscount }
-                                    : item
+                                  item.key === record.key ? { ...item, discount: newDiscount } : item
                                 )
                               );
                             }}
@@ -589,12 +567,7 @@ function POSClient() {
                     ৳{(record.quantity * record.unitPrice * (1 - record.discount / 100)).toFixed(2)}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      size="sm"
-                      color="danger"
-                      variant="flat"
-                      onPress={() => removeFromCart(record.key)}
-                    >
+                    <Button size="sm" color="danger" variant="flat" onPress={() => removeFromCart(record.key)}>
                       Remove
                     </Button>
                   </TableCell>
@@ -602,69 +575,66 @@ function POSClient() {
               )}
             </TableBody>
           </Table>
-        </div>
-      </div>
+        </CardBody>
+      </Card>
 
       {/* Checkout Section */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mt-4">
-        <div className="flex-1 space-y-3">
-          <div className="text-xl font-bold">
-            Total: ৳{total.toFixed(2)}
-          </div>
-
-          {/* Credit Sale toggle */}
-          <div className="flex items-center gap-3">
-            <Switch
-              isSelected={isCreditSale}
-              onValueChange={(checked) => {
-                setIsCreditSale(checked);
-                if (!checked) setCashReceived(0);
-              }}
-              size="sm"
-            />
-            <span className="text-sm font-medium">Credit Sale (Due)</span>
-          </div>
-
-          {isCreditSale && (
-            <div className="space-y-1 max-w-xs">
-              <label className="text-xs text-default-500">
-                Cash Received (৳)
-              </label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                min="0"
-                max={total}
-                value={cashReceived.toString()}
-                onChange={(e) =>
-                  setCashReceived(
-                    Math.min(total, Math.max(0, parseFloat(e.target.value) || 0))
-                  )
-                }
-                variant="bordered"
-                placeholder="0"
-                startContent={<span className="text-default-400">৳</span>}
-              />
-              <div className="text-sm font-medium text-danger">
-                Due Amount: ৳{Math.max(0, total - cashReceived).toFixed(2)}
-              </div>
+      <Card>
+        <CardBody className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex-1 space-y-3">
+            <div className="text-xl font-bold">
+              Total: ৳{total.toFixed(2)}
             </div>
-          )}
-        </div>
 
-        <Button
-          ref={completeSaleBtnRef}
-          color="success"
-          variant="solid"
-          size="lg"
-          onPress={checkout}
-          className="sm:self-start complete-sale-btn min-w-[200px] text-white font-semibold"
-          isDisabled={cart.length === 0 || saleMutation.isPending}
-          isLoading={saleMutation.isPending}
-        >
-          {saleMutation.isPending ? "Processing Sale..." : "Complete Sale"}
-        </Button>
-      </div>
+            <div className="flex items-center gap-3">
+              <Switch
+                isSelected={isCreditSale}
+                onValueChange={(checked) => {
+                  setIsCreditSale(checked);
+                  if (!checked) setCashReceived(0);
+                }}
+                size="sm"
+              />
+              <span className="text-sm font-medium">Credit Sale (Due)</span>
+            </div>
+
+            {isCreditSale && (
+              <div className="space-y-1 max-w-xs">
+                <label className="text-xs text-default-500">Cash Received (৳)</label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  max={total}
+                  value={cashReceived.toString()}
+                  onChange={(e) =>
+                    setCashReceived(Math.min(total, Math.max(0, parseFloat(e.target.value) || 0)))
+                  }
+                  variant="bordered"
+                  placeholder="0"
+                  startContent={<span className="text-default-400">৳</span>}
+                />
+                <div className="text-sm font-medium text-danger">
+                  Due Amount: ৳{Math.max(0, total - cashReceived).toFixed(2)}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Button
+            ref={completeSaleBtnRef}
+            color="success"
+            variant="solid"
+            size="lg"
+            onPress={checkout}
+            className="sm:self-start min-w-[200px] text-white font-semibold"
+            isDisabled={cart.length === 0 || saleMutation.isPending}
+            isLoading={saleMutation.isPending}
+          >
+            {saleMutation.isPending ? "Processing Sale..." : "Complete Sale"}
+          </Button>
+        </CardBody>
+      </Card>
     </div>
   );
 }

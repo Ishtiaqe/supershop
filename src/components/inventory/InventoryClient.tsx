@@ -108,7 +108,7 @@ export default function InventoryClient() {
 
   // Add form
   const addForm = useForm<AddInventoryFormData>({
-    resolver: zodResolver(addInventorySchema),
+    resolver: zodResolver(addInventorySchema) as any,
     defaultValues: {
       itemName: "",
       quantity: 1,
@@ -124,7 +124,7 @@ export default function InventoryClient() {
 
   // Edit form
   const editForm = useForm<EditInventoryFormData>({
-    resolver: zodResolver(editInventorySchema),
+    resolver: zodResolver(editInventorySchema) as any,
     defaultValues: {
       itemName: "",
       quantity: 1,
@@ -244,7 +244,7 @@ export default function InventoryClient() {
     };
 
     try {
-      await addMutation.mutateAsync(payload);
+      await addMutation.mutateAsync(payload as any);
       addForm.reset();
       setSelectedFromCatalog(null);
       setCatalogOptions([]);
@@ -503,7 +503,6 @@ export default function InventoryClient() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Quantity</label>
                   <Input
-                    {...field}
                     type="number"
                     placeholder="0"
                     inputMode="numeric"
@@ -511,6 +510,7 @@ export default function InventoryClient() {
                     isInvalid={!!error}
                     errorMessage={error?.message}
                     min="1"
+                    value={String(field.value ?? "")}
                     onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                   />
                 </div>
@@ -524,7 +524,6 @@ export default function InventoryClient() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Purchase/unit</label>
                   <Input
-                    {...field}
                     type="number"
                     placeholder="0"
                     inputMode="numeric"
@@ -533,6 +532,7 @@ export default function InventoryClient() {
                     errorMessage={error?.message}
                     startContent={<span className="text-gray-500">৳</span>}
                     min="0"
+                    value={String(field.value ?? "")}
                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </div>
@@ -546,7 +546,6 @@ export default function InventoryClient() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">MRP/unit</label>
                   <Input
-                    {...field}
                     type="number"
                     placeholder="0"
                     inputMode="numeric"
@@ -555,6 +554,7 @@ export default function InventoryClient() {
                     errorMessage={error?.message}
                     startContent={<span className="text-gray-500">৳</span>}
                     min="0"
+                    value={String(field.value ?? "")}
                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   />
                 </div>
@@ -792,7 +792,6 @@ export default function InventoryClient() {
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Quantity</label>
                         <Input
-                          {...field}
                           type="number"
                           placeholder="0"
                           inputMode="numeric"
@@ -800,6 +799,7 @@ export default function InventoryClient() {
                           isInvalid={!!error}
                           errorMessage={error?.message}
                           min="1"
+                          value={String(field.value ?? "")}
                           onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                         />
                       </div>
@@ -815,7 +815,6 @@ export default function InventoryClient() {
                           Purchase/unit
                         </label>
                         <Input
-                          {...field}
                           type="number"
                           placeholder="0"
                           inputMode="numeric"
@@ -824,6 +823,7 @@ export default function InventoryClient() {
                           errorMessage={error?.message}
                           startContent={<span className="text-gray-500">৳</span>}
                           min="0"
+                          value={String(field.value ?? "")}
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                       </div>
@@ -837,7 +837,6 @@ export default function InventoryClient() {
                       <div className="space-y-2">
                         <label className="text-sm font-medium">MRP/unit</label>
                         <Input
-                          {...field}
                           type="number"
                           placeholder="0"
                           inputMode="numeric"
@@ -846,6 +845,7 @@ export default function InventoryClient() {
                           errorMessage={error?.message}
                           startContent={<span className="text-gray-500">৳</span>}
                           min="0"
+                          value={String(field.value ?? "")}
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                       </div>
@@ -868,7 +868,7 @@ export default function InventoryClient() {
                 <Button
                   color="primary"
                   isLoading={updateMutation.isPending}
-                  onPress={editForm.handleSubmit(submitEdit)}
+                  onClick={editForm.handleSubmit(submitEdit)}
                 >
                   Update Item
                 </Button>

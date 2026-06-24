@@ -224,7 +224,7 @@ export function OfflineNotification() {
             },
           },
         });
-        setNotificationId(id);
+        setNotificationId(String(id));
         setLastOfflineNotification(now);
       }
     } else {

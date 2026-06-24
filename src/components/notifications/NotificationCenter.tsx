@@ -65,7 +65,7 @@ export default function NotificationCenter() {
           </div>
           <Switch
             isSelected={enabled}
-            onChange={handleToggle}
+            onValueChange={handleToggle}
             isDisabled={loading}
           />
         </div>

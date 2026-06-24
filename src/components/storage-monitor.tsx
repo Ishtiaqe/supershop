@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@heroui/modal';
-import { Progress } from '@heroui/progress';
-import { Button } from '@heroui/button';
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Progress, Button } from '@heroui/react';
 import { useOffline } from '@/hooks/useOffline';
 import { Trash2, Database } from 'lucide-react';
 

@@ -363,7 +363,7 @@ export default function CatalogClient() {
                       placeholder="0.00"
                       isInvalid={!!errors.retailPrice}
                       errorMessage={errors.retailPrice?.message}
-                      {...field}
+                      value={String(field.value ?? "")}
                       onChange={(e) => field.onChange(parseFloat(e.target.value))}
                     />
                   )}
@@ -387,7 +387,7 @@ export default function CatalogClient() {
                 </Button>
                 <Button
                   color="primary"
-                  onPress={handleSubmit(onSubmit)}
+                  onClick={handleSubmit(onSubmit)}
                   isLoading={isSaving}
                   isDisabled={isSaving}
                 >

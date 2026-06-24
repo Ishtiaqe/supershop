@@ -107,5 +107,85 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), heroui()],
+  plugins: [
+    require("tailwindcss-animate"),
+    heroui({
+      layout: {
+        radius: {
+          small: "8px",
+          medium: "10px",
+          large: "14px",
+        },
+        borderWidth: {
+          small: "1px",
+          medium: "1px",
+          large: "1.5px",
+        },
+      },
+      themes: {
+        light: {
+          colors: {
+            background: "#f5f7fa",
+            foreground: "#1a1f2e",
+            primary: {
+              DEFAULT: "#1a8fe8",
+              foreground: "#ffffff",
+            },
+            success: {
+              DEFAULT: "#1a9e5c",
+              foreground: "#ffffff",
+            },
+            danger: {
+              DEFAULT: "#d93025",
+              foreground: "#ffffff",
+            },
+            warning: {
+              DEFAULT: "#f59e0b",
+              foreground: "#1a0f00",
+            },
+            default: {
+              DEFAULT: "#e8edf2",
+              foreground: "#1a1f2e",
+            },
+            content1: "#ffffff",
+            content2: "#f8fafc",
+            content3: "#f1f5f9",
+            content4: "#e2e8f0",
+            divider: "#e2e8f0",
+          },
+        },
+        dark: {
+          colors: {
+            background: "#0f1117",
+            foreground: "#e8edf6",
+            primary: {
+              DEFAULT: "#4da6f5",
+              foreground: "#0a1628",
+            },
+            success: {
+              DEFAULT: "#3dd68c",
+              foreground: "#00200e",
+            },
+            danger: {
+              DEFAULT: "#f07070",
+              foreground: "#ffffff",
+            },
+            warning: {
+              DEFAULT: "#fbbf24",
+              foreground: "#1a0f00",
+            },
+            default: {
+              DEFAULT: "#1e2433",
+              foreground: "#e8edf6",
+            },
+            content1: "#161b27",
+            content2: "#1a2030",
+            content3: "#1e2538",
+            content4: "#232a40",
+            divider: "#2a3347",
+          },
+        },
+      },
+    }),
+  ],
 }

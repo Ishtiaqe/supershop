@@ -66,3 +66,65 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* ───── Apple-style: fully opaque, rounded dropdowns/popovers ───── */
+
+/* HeroUI listbox (Autocomplete, Select dropdowns) */
+[data-slot="listbox-wrapper"],
+[data-slot="popover-content"],
+[data-slot="base"][role="listbox"],
+ul[data-slot="list"],
+.heroui-listbox-wrapper,
+[data-slot="listboxwrapper"] {
+  background: var(--heroui-content1) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 10px 32px -8px rgb(0 0 0 / 0.14), 0 0 0 1px rgb(0 0 0 / 0.05) !important;
+  border-radius: 14px !important;
+  overflow: hidden;
+}
+
+/* HeroUI dropdown menus */
+[data-slot="base"][role="menu"],
+[role="listbox"],
+[role="menu"] {
+  background: var(--heroui-content1) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* HeroUI popover base */
+[data-slot="arrow"],
+[data-slot="popover"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Ensure modal backdrop is always clean */
+[data-slot="modal-content"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--heroui-content1) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 60px -12px rgb(0 0 0 / 0.22), 0 0 0 1px rgb(0 0 0 / 0.06) !important;
+}
+
+/* HeroUI Card — Apple card feel */
+[data-slot="base"].heroui-card,
+.heroui-card > [data-slot="base"] {
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.06), 0 4px 16px -4px rgb(0 0 0 / 0.1) !important;
+  border: 1px solid rgb(0 0 0 / 0.06) !important;
+}
+
+/* Clean focus rings — Apple-style blue */
+[data-slot="input-wrapper"]:focus-within,
+[data-slot="trigger"]:focus-visible {
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.2) !important;
+}
+
+/* Remove any glassmorphism from HeroUI's select trigger */
+[data-slot="trigger"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
