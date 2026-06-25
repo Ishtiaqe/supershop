@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Card, Select, Spin, Empty } from "antd";
 import {
   AreaChart,
@@ -30,9 +29,12 @@ async function fetchGraphData(period: string): Promise<GraphDataPoint[]> {
   return response.data;
 }
 
-export default function DashboardCharts() {
-  const [period, setPeriod] = useState("30d");
+interface DashboardChartsProps {
+  period: string;
+  onPeriodChange: (period: string) => void;
+}
 
+export default function DashboardCharts({ period, onPeriodChange }: DashboardChartsProps) {
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard-graphs", period],
     queryFn: () => fetchGraphData(period),
@@ -55,36 +57,46 @@ export default function DashboardCharts() {
     return `${day}/${month}/${year}`;
   };
 
+  const periodSelect = (
+    <div className="flex justify-between items-center">
+      <h2 className="text-xl font-semibold">Analytics</h2>
+      <Select
+        value={period}
+        style={{ width: 160 }}
+        onChange={(value) => onPeriodChange(value)}
+      >
+        <Option value="7d">Last 7 Days</Option>
+        <Option value="30d">Last 30 Days</Option>
+        <Option value="90d">Last 3 Months</Option>
+      </Select>
+    </div>
+  );
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Spin size="large" />
+      <div className="space-y-6">
+        {periodSelect}
+        <div className="flex justify-center items-center h-64">
+          <Spin size="large" />
+        </div>
       </div>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <Card className="glass-card">
-        <Empty description="No data available for this period" />
-      </Card>
+      <div className="space-y-6">
+        {periodSelect}
+        <Card className="glass-card">
+          <Empty description="No data available for this period" />
+        </Card>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Analytics</h2>
-        <Select
-          defaultValue="30d"
-          style={{ width: 160 }}
-          onChange={(value) => setPeriod(value)}
-        >
-          <Option value="7d">Last 7 Days</Option>
-          <Option value="30d">Last 30 Days</Option>
-          <Option value="90d">Last 3 Months</Option>
-        </Select>
-      </div>
+      {periodSelect}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sales Trend Chart */}

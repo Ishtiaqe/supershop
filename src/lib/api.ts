@@ -86,7 +86,20 @@ async function performRefresh() {
 
 // Response interceptor to handle token refresh and fallback
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Any successful /auth/refresh (e.g. AuthProvider's direct call on bootstrap)
+    // returns a fresh accessToken in the body — persist it so the next request
+    // and the next app restart have a valid token. Without this, a direct
+    // refresh succeeds but localStorage stays empty → /users/me 401s → logout.
+    if (
+      response.config?.url?.includes('/auth/refresh') &&
+      response.data?.accessToken &&
+      typeof window !== 'undefined'
+    ) {
+      localStorage.setItem('accessToken', response.data.accessToken)
+    }
+    return response
+  },
   async (error) => {
     
     const originalRequest = error.config

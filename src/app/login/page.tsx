@@ -123,8 +123,9 @@ export default function LoginPage() {
     }
   }, [router, login]);
 
-  // Prevent form flicker if user is logged in
-  if (user) {
+  // Already-logged-in redirect screen — only when NOT mid sign-in, so the
+  // submit button's own spinner is the single loader during login.
+  if (user && !loading) {
     return (
       <main className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
@@ -297,20 +298,13 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Subtle brand-colored accents, consistent with the app's background treatment */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -left-32 w-[28rem] h-[28rem] bg-primary/15 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 w-[32rem] h-[32rem] bg-secondary/12 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-tertiary/8 rounded-full blur-3xl" />
-      </div>
-
+    <main className="min-h-screen flex items-center justify-center bg-background">
       {/* Login Card */}
-      <div className="w-full max-w-md px-6 relative z-10">
-        <div className="glass-card p-8">
+      <div className="w-full max-w-md px-6">
+        <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
           {/* Logo and Title */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4 shadow-lg">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
               <ShoppingOutlined className="text-2xl text-primary-foreground" />
             </div>
             <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
@@ -356,7 +350,7 @@ export default function LoginPage() {
                     prefix={<UserOutlined className="text-muted-foreground" />}
                     placeholder="Enter your email"
                     autoComplete="email"
-                    className="rounded-lg h-12 hover:border-primary-hover focus:border-primary-active transition-all duration-300"
+                    className="rounded-lg h-12"
                   />
                 </Form.Item>
               </div>
@@ -379,7 +373,7 @@ export default function LoginPage() {
                     prefix={<LockOutlined className="text-muted-foreground" />}
                     placeholder="Enter your password"
                     autoComplete="current-password"
-                    className="rounded-lg h-12 hover:border-primary-hover focus:border-primary-active transition-all duration-300"
+                    className="rounded-lg h-12"
                   />
                 </Form.Item>
               </div>
@@ -392,7 +386,7 @@ export default function LoginPage() {
                       htmlType="submit"
                       block
                       loading={loading}
-                      className="h-12 rounded-lg font-semibold text-base shadow-md hover:shadow-lg transition-all duration-300"
+                      className="h-12 rounded-lg font-semibold text-base"
                     >
                       {loading ? "Signing in..." : "Sign In"}
                     </Button>
@@ -406,7 +400,7 @@ export default function LoginPage() {
                   <div className="w-full border-t border-border"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-surface/80 text-muted-foreground font-medium">
+                  <span className="px-4 bg-card text-muted-foreground font-medium">
                     Or continue with
                   </span>
                 </div>
@@ -419,7 +413,8 @@ export default function LoginPage() {
                     aria-label="Sign in with Google"
                     block
                     size="large"
-                    className="h-12 rounded-lg font-semibold border-2 border-border hover:border-primary-hover hover:bg-primary-container transition-all duration-300 flex items-center justify-center gap-3"
+                    className="h-12 rounded-lg font-semibold border-2 border-border flex items-center justify-center gap-3"
+                    disabled={loading}
                     onClick={handleGoogleSignIn}
                   >
                     <svg

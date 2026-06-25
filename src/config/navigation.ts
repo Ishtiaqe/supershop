@@ -10,6 +10,7 @@ import DatabaseOutlined from "@ant-design/icons/DatabaseOutlined";
 import UserOutlined from "@ant-design/icons/UserOutlined";
 import DollarOutlined from "@ant-design/icons/DollarOutlined";
 import WalletOutlined from "@ant-design/icons/WalletOutlined";
+import CreditCardOutlined from "@ant-design/icons/CreditCardOutlined";
 
 export interface NavigationItem {
   key: string;
@@ -60,6 +61,12 @@ export const navigationConfig: NavigationItem[] = [
     key: "/shortlist",
     icon: CheckSquareOutlined as any,
     label: "Short List",
+    roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
+  },
+  {
+    key: "/credits",
+    icon: CreditCardOutlined as any,
+    label: "Credits",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {

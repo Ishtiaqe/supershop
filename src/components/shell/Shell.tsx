@@ -357,21 +357,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           }}
         >
           <div className="flex items-center gap-2">
-            <Button
-              type="text"
-              icon={<MenuOutlined />}
-              hidden={!isMobile}
-              onClick={() =>
-                isMobile ? setMobileOpen(true) : setDrawerCollapsed(!drawerCollapse)
-              }
-              className="hover:bg-accent transition-colors"
-              style={{ fontSize: "18px", width: 40, height: 40, borderRadius: 8 }}
-            />
-            {!isMobile && (
+            {isMobile && (
               <Button
                 type="text"
                 icon={<MenuOutlined />}
-                onClick={() => setDrawerCollapsed(!drawerCollapse)}
+                onClick={() => setMobileOpen(true)}
                 className="hover:bg-accent transition-colors"
                 style={{ fontSize: "18px", width: 40, height: 40, borderRadius: 8 }}
               />

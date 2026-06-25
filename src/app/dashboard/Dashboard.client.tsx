@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Skeleton } from "antd";
 
@@ -20,17 +21,13 @@ const DashboardCharts = dynamic(
 );
 
 export default function DashboardClient() {
+  // Single period control shared by summary cards and charts
+  const [period, setPeriod] = useState("30d");
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-header">Dashboard</h1>
-        <p className="page-subheader">
-          An overview of your shop&apos;s performance
-        </p>
-      </div>
-      {/* Client-side summary/fallback (hydrates server skeleton) */}
-      <DashboardSummaryClient />
-      <DashboardCharts />
+      <DashboardSummaryClient period={period} />
+      <DashboardCharts period={period} onPeriodChange={setPeriod} />
     </div>
   );
 }

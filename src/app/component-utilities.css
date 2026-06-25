@@ -35,10 +35,6 @@
   background: hsl(var(--card));
   border-color: hsl(var(--border));
   box-shadow: var(--elevation-2);
-  transition: box-shadow 200ms ease;
-}
-.glass-card:hover {
-  box-shadow: var(--elevation-3);
 }
 
 .glass-panel {
@@ -62,10 +58,6 @@
   background: hsl(var(--card));
   border-color: hsl(var(--border));
   box-shadow: var(--elevation-2);
-  transition: box-shadow 200ms ease;
-}
-.stat-card:hover {
-  box-shadow: var(--elevation-3);
 }
 /* Color-variant classes kept as no-ops so existing markup doesn't break */
 .stat-card-success,

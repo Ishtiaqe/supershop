@@ -5,6 +5,7 @@ import "./globals.css";
 // Ant Design styles
 import "antd/dist/reset.css";
 import { Providers } from "@/components/providers";
+import AntdRegistry from "@/components/providers/AntdRegistry";
 import AppShellGate from "@/components/layout/AppShellGate";
 import Script from "next/script";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
+        <AntdRegistry>
         <Providers>
           {process.env.NEXT_PUBLIC_GA_TRACKING_ID && (
             <>
@@ -68,6 +70,7 @@ export default function RootLayout({
           <AppShellGate>{children}</AppShellGate>
           <DeferredTelemetry />
         </Providers>
+        </AntdRegistry>
       </body>
     </html>
   );
