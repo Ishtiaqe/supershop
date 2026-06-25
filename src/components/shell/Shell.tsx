@@ -2,8 +2,7 @@
 // Force rebuild timestamp: 1764941600
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Layout,
   Menu,
@@ -28,7 +27,6 @@ import NotificationSetup from "@/components/notifications/NotificationSetup";
 
 const { Header, Sider, Content } = Layout;
 
-// Map path to readable label
 const PATH_LABELS: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/pos": "Sales Portal",
@@ -44,7 +42,6 @@ const PATH_LABELS: Record<string, string> = {
   "/profile": "Profile",
 };
 
-// Extracted Sidebar component
 const AppSidebar = ({
   collapsed,
   isMobile,
@@ -59,7 +56,7 @@ const AppSidebar = ({
   collapsed: boolean;
   isMobile: boolean;
   setMobileOpen: (open: boolean) => void;
-    setCollapsed: (collapsed: boolean) => void;
+  setCollapsed: (collapsed: boolean) => void;
   items: any[];
   selectedKey: string;
   user: any;
@@ -67,12 +64,9 @@ const AppSidebar = ({
   onLogout: () => void;
 }) => (
   <div className="flex flex-col h-full">
-    {/* Logo Area */}
-    <div
-      className={`flex items-center justify-start px-3 py-4 gap-2`}
-    >
+    <div className="flex items-center justify-start px-3 py-4 gap-2">
       <div
-        className={`flex items-center justify-center font-bold flex-shrink-0 w-9 h-9 text-lg cursor-pointer hover:bg-accent/70 active:bg-accent rounded-lg transition-all duration-200`}
+        className="flex items-center justify-center font-bold flex-shrink-0 w-9 h-9 text-lg cursor-pointer hover:bg-accent/70 active:bg-accent rounded-lg transition-all duration-200"
         onClick={() => isMobile ? setMobileOpen(false) : setCollapsed?.(!collapsed)}
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
@@ -85,23 +79,17 @@ const AppSidebar = ({
       )}
     </div>
 
-    {/* Menu */}
     <div className="flex-1 px-2 overflow-y-auto">
       <Menu
         mode="inline"
         items={items}
         selectedKeys={[selectedKey]}
-        style={{
-          background: "transparent",
-          border: "none",
-          fontSize: 14,
-        }}
+        style={{ background: "transparent", border: "none", fontSize: 14 }}
         className="custom-menu"
         onClick={() => isMobile && setMobileOpen(false)}
       />
     </div>
 
-    {/* Footer / User Profile */}
     <div className="p-3 border-t border-border/50">
       <Dropdown
         trigger={["click"]}
@@ -110,14 +98,12 @@ const AppSidebar = ({
             {
               key: "profile",
               label: (
-                <Link href="/profile" className="flex items-center gap-2 px-2 py-1.5">
+                <Link to="/profile" className="flex items-center gap-2 px-2 py-1.5">
                   <UserSwitchOutlined /> Profile
                 </Link>
               ),
             },
-            {
-              type: "divider",
-            },
+            { type: "divider" },
             {
               key: "logout",
               danger: true,
@@ -131,8 +117,9 @@ const AppSidebar = ({
         }}
       >
         <div
-          className={`cursor-pointer flex items-center gap-3 ${collapsed ? "p-0 w-10 h-10 justify-center" : "p-2"
-            } rounded-lg hover:bg-accent/80 active:bg-accent transition-all duration-200`}
+          className={`cursor-pointer flex items-center gap-3 ${
+            collapsed ? "p-0 w-10 h-10 justify-center" : "p-2"
+          } rounded-lg hover:bg-accent/80 active:bg-accent transition-all duration-200`}
           title="User menu"
         >
           <Avatar
@@ -161,7 +148,6 @@ const AppSidebar = ({
   </div>
 );
 
-// Theme toggle button group
 const ThemeToggle = ({
   mode,
   setMode,
@@ -183,10 +169,11 @@ const ThemeToggle = ({
           key={opt.value}
           onClick={() => setMode(opt.value)}
           title={opt.label}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-ring ${mode === opt.value
-            ? "bg-background text-foreground"
-            : "text-muted-foreground hover:text-foreground"
-            }`}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-ring ${
+            mode === opt.value
+              ? "bg-background text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
         >
           {opt.icon}
           {!compact && <span className="hidden md:inline">{opt.label}</span>}
@@ -201,8 +188,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const pathname = usePathname() || "/";
-  const router = useRouter();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { token } = theme.useToken();
   const themeContext = useTheme();
   const [tenantName, setTenantName] = useState<string>("SuperShop");
@@ -212,11 +199,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     function checkWidth() {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (!mobile) {
-        setMobileOpen(false);
-      } else {
-        setMobileOpen(false);
-      }
+      if (!mobile) setMobileOpen(false);
     }
     checkWidth();
     window.addEventListener("resize", checkWidth);
@@ -228,35 +211,26 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     if (tenantJson) {
       try {
         const tenant = JSON.parse(tenantJson);
-        if (tenant?.name) {
-          setTenantName(tenant.name);
-        }
-      } catch (error) {
-        console.error("Failed to parse tenant data:", error);
-      }
+        if (tenant?.name) setTenantName(tenant.name);
+      } catch {}
     }
   }, []);
+
+  // Auth guard — Shell only renders for protected routes
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
+    }
+  }, [loading, user, navigate]);
 
   const navigationItems = getFilteredNavigation(user?.role);
 
   const items = navigationItems.map((item) => ({
     key: item.key,
     icon: <item.icon style={{ fontSize: 18 }} />,
-    label: <Link href={item.key}>{item.label}</Link>,
+    label: <Link to={item.key}>{item.label}</Link>,
     style: { height: 48, lineHeight: "48px", display: "flex", alignItems: "center" },
   }));
-
-  useEffect(() => {
-    if (pathname !== "/login" && pathname !== "/register") {
-      if (!loading && !user) {
-        router.push("/login");
-      }
-    }
-  }, [pathname, loading, user, router]);
-
-  if (pathname === "/login" || pathname === "/register") {
-    return <>{children}</>;
-  }
 
   if (loading && !user) {
     return (
@@ -269,7 +243,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Determine active selected key
   const selectedKey = (() => {
     let matched: string | undefined;
     for (const it of items) {
@@ -284,6 +257,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const handleLogout = async () => {
     await logout();
   };
+
+  void tenantName; // used in future tenant display
 
   return (
     <Layout style={{ minHeight: "100vh", background: "transparent" }}>
@@ -324,12 +299,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           onClose={() => setMobileOpen(false)}
           open={mobileOpen}
           width={280}
-          styles={{
-            body: {
-              padding: 0,
-              background: "transparent",
-            },
-          }}
+          styles={{ body: { padding: 0, background: "transparent" } }}
           closable={false}
           maskClosable={true}
         >
@@ -350,11 +320,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <Layout style={{ background: "transparent" }}>
         <Header
           className="glass sticky top-0 z-40 flex items-center justify-between border-b border-border/50"
-          style={{
-            height: 64,
-            background: "transparent",
-            paddingInline: 24,
-          }}
+          style={{ height: 64, background: "transparent", paddingInline: 24 }}
         >
           <div className="flex items-center gap-2">
             {isMobile && (
@@ -394,4 +360,3 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     </Layout>
   );
 }
-

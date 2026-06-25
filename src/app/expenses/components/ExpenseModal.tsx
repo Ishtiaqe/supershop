@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { 
   Modal, 
-  Form, 
   Input, 
   Button, 
   Select, 
@@ -18,48 +17,80 @@ import {
   useExpenses,
   useDeleteExpense 
 } from "../hooks/useExpensesHooks";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+
+const expenseSchema = z.object({
+  amount: z.coerce.number().min(0.01, "Amount must be at least 0.01"),
+  categoryId: z.string({
+    required_error: "Please select a category",
+  }),
+  expenseDate: z.any().refine((val) => val && dayjs(val).isValid(), "Date is required"),
+  description: z.string().optional(),
+});
+
+type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 interface ExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
   expenseId: string | null;
-  id?: string;
 }
 
-export function ExpenseModal({ isOpen, onClose, expenseId, id }: ExpenseModalProps) {
-  const [form] = Form.useForm();
+export function ExpenseModal({ isOpen, onClose, expenseId }: ExpenseModalProps) {
   const isEditing = !!expenseId;
   const { data: categories } = useCategories();
   
   const { data: expensesData } = useExpenses({ page: 1, limit: 100 });
-  const expenseToEdit = expensesData?.data?.find((e: any) => e.id === expenseId);
+  const expenseToEdit = expensesData?.data?.find((e: { id: string }) => e.id === expenseId);
 
   const { mutate: createExpense, isPending: isCreating } = useCreateExpense();
   const { mutate: updateExpense, isPending: isUpdating } = useUpdateExpense();
   const { mutate: deleteExpense, isPending: isDeleting } = useDeleteExpense();
 
+  const form = useForm<ExpenseFormData>({
+    resolver: zodResolver(expenseSchema),
+    defaultValues: {
+      amount: undefined,
+      categoryId: undefined,
+      expenseDate: dayjs(),
+      description: "",
+    },
+  });
+
   useEffect(() => {
     if (isOpen) {
       if (isEditing && expenseToEdit) {
-        form.setFieldsValue({
+        form.reset({
           amount: expenseToEdit.amount,
           categoryId: expenseToEdit.categoryId,
           expenseDate: dayjs(expenseToEdit.expenseDate),
           description: expenseToEdit.description || "",
         });
       } else {
-        form.resetFields();
-        form.setFieldsValue({
+        form.reset({
+          amount: undefined,
+          categoryId: undefined,
           expenseDate: dayjs(),
+          description: "",
         });
       }
     }
   }, [isOpen, isEditing, expenseToEdit, form]);
 
-  const onFinish = (values: any) => {
+  const onFinish = (values: ExpenseFormData) => {
     const payload = {
       ...values,
-      expenseDate: values.expenseDate.format("YYYY-MM-DD"),
+      expenseDate: dayjs(values.expenseDate).format("YYYY-MM-DD"),
     };
 
     if (isEditing) {
@@ -124,7 +155,7 @@ export function ExpenseModal({ isOpen, onClose, expenseId, id }: ExpenseModalPro
             </Button>
             <Button 
               type="primary" 
-              onClick={() => form.submit()} 
+              onClick={form.handleSubmit(onFinish)} 
               loading={isSaving}
               disabled={isSaving}
             >
@@ -134,60 +165,93 @@ export function ExpenseModal({ isOpen, onClose, expenseId, id }: ExpenseModalPro
         </div>
       ]}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={onFinish}
-        initialValues={{
-          amount: 0,
-          expenseDate: dayjs(),
-        }}
-        className="pt-4"
-      >
-        <Form.Item
-          name="amount"
-          label="Amount (৳)"
-          rules={[{ required: true, message: "Amount must be greater than 0" }]}
-        >
-          <InputNumber 
-            className="w-full" 
-            min={0.01} 
-            step={0.01} 
-            placeholder="0.00"
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onFinish)} className="space-y-4 pt-4">
+          <FormField
+            control={form.control}
+            name="amount"
+            render={({ field, fieldState: { error } }) => (
+              <FormItem>
+                <FormLabel>Amount (৳)</FormLabel>
+                <FormControl>
+                  <InputNumber 
+                    value={field.value}
+                    className="w-full" 
+                    min={0.01} 
+                    step={0.01} 
+                    placeholder="0.00"
+                    status={error ? "error" : undefined}
+                    onChange={(val) => field.onChange(val)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </Form.Item>
 
-        <Form.Item
-          name="categoryId"
-          label="Category"
-          rules={[{ required: true, message: "Please select a category" }]}
-        >
-          <Select placeholder="Select an expense category">
-            {categories?.map((cat) => (
-              <Select.Option key={cat.id} value={cat.id}>
-                {cat.name}
-              </Select.Option>
-            ))}
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          name="expenseDate"
-          label="Date"
-          rules={[{ required: true, message: "Date is required" }]}
-        >
-          <DatePicker className="w-full" format="DD/MM/YYYY" />
-        </Form.Item>
-
-        <Form.Item
-          name="description"
-          label="Description (Optional)"
-        >
-          <Input.TextArea 
-            placeholder="Notes or details about this expense..." 
-            autoSize={{ minRows: 3, maxRows: 6 }}
+          <FormField
+            control={form.control}
+            name="categoryId"
+            render={({ field, fieldState: { error } }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <FormControl>
+                  <Select 
+                    value={field.value}
+                    placeholder="Select an expense category"
+                    status={error ? "error" : undefined}
+                    onChange={(val) => field.onChange(val)}
+                    options={categories?.map((cat) => ({
+                      value: cat.id,
+                      label: cat.name,
+                    })) || []}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </Form.Item>
+
+          <FormField
+            control={form.control}
+            name="expenseDate"
+            render={({ field, fieldState: { error } }) => (
+              <FormItem>
+                <FormLabel>Date</FormLabel>
+                <FormControl>
+                  <DatePicker 
+                    value={field.value}
+                    className="w-full" 
+                    format="DD/MM/YYYY"
+                    status={error ? "error" : undefined}
+                    onChange={(val) => field.onChange(val)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field, fieldState: { error } }) => (
+              <FormItem>
+                <FormLabel>Description (Optional)</FormLabel>
+                <FormControl>
+                  <Input.TextArea 
+                    value={field.value}
+                    placeholder="Notes or details about this expense..." 
+                    autoSize={{ minRows: 3, maxRows: 6 }}
+                    status={error ? "error" : undefined}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </form>
       </Form>
     </Modal>
   );

@@ -1,7 +1,7 @@
 import React from "react";
 import { Result, Button } from "antd";
 import { WifiOff } from "lucide-react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 
 export default function OfflinePage() {
   return (
@@ -20,7 +20,7 @@ export default function OfflinePage() {
           </span>
         }
         extra={
-          <Link href="/pos">
+          <Link to="/pos">
             <Button type="primary" size="large">
               Go to Dashboard
             </Button>

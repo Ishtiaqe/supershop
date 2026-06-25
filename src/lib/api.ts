@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios'
 
-const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL
-const BACKUP_API_URL = process.env.NEXT_PUBLIC_API_URL_BACKUP
+const PRIMARY_API_URL = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL
+const BACKUP_API_URL = import.meta.env.VITE_API_URL_BACKUP || import.meta.env.NEXT_PUBLIC_API_URL_BACKUP
 
 // Create axios instance with retry logic
 const api = axios.create({

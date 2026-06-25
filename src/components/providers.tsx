@@ -1,30 +1,27 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { QueryClient } from "@tanstack/react-query";
+import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { ConfigProvider, theme as antdTheme, App } from "antd";
 import React from "react";
-import dynamic from "next/dynamic";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { get, set, del } from "idb-keyval";
 import { OfflineProvider } from "./providers/offline-provider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ItemDetailProvider } from "@/components/providers/ItemDetailContext";
 import { getThemeColors } from "@/lib/theme";
 
-const ReactQueryDevtools = dynamic(
-  () =>
-    import("@tanstack/react-query-devtools").then(
-      (mod) => mod.ReactQueryDevtools,
-    ),
-  { ssr: false },
+const ReactQueryDevtools = lazy(() =>
+  import("@tanstack/react-query-devtools").then((m) => ({
+    default: m.ReactQueryDevtools,
+  }))
 );
 
 type ThemeMode = "light" | "dark" | "system";
 
 const ThemeContext = React.createContext({
   mode: "system" as ThemeMode,
-  // noop
   setMode: (() => {}) as (m: ThemeMode) => void,
 });
 
@@ -46,29 +43,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
       })
   );
 
-  const [persister, setPersister] = useState<
-    ReturnType<typeof createSyncStoragePersister> | undefined
-  >(undefined);
+  // ponytail: async IDB persister — no localStorage main-thread blocking
+  const persister = useMemo(
+    () =>
+      createAsyncStoragePersister({
+        storage: { getItem: get, setItem: set, removeItem: del },
+      }),
+    []
+  );
 
   const [mode, setMode] = useState<ThemeMode>("system");
-
-  // Track system dark preference reactively
   const [systemDark, setSystemDark] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    setPersister(
-      createSyncStoragePersister({
-        storage: window.localStorage,
-      })
-    );
-
     const storedTheme = localStorage.getItem("theme") as ThemeMode | null;
     if (storedTheme === "light" || storedTheme === "dark" || storedTheme === "system") {
       setMode(storedTheme);
     }
-
     setSystemDark(window.matchMedia("(prefers-color-scheme: dark)").matches);
   }, []);
 
@@ -80,16 +71,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [mode]);
 
-  // Listen for OS theme changes in real time
   useEffect(() => {
-    if (typeof window === "undefined") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Apply theme class to document whenever mode or systemDark changes
   useEffect(() => {
     const root = document.documentElement;
     const prefersDark = mode === "dark" || (mode === "system" && systemDark);
@@ -124,20 +112,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       fontFamily: "inherit",
     },
     components: {
-      Menu: {
-        itemHeight: 48,
-        itemFontSize: 15,
-      },
-      Button: {
-        borderRadius: 6,
-        fontWeight: 500,
-      },
-      Card: {
-        borderRadiusLG: 12,
-      },
-      Table: {
-        borderRadius: 12,
-      },
+      Menu: { itemHeight: 48, itemFontSize: 15 },
+      Button: { borderRadius: 6, fontWeight: 500 },
+      Card: { borderRadiusLG: 12 },
+      Table: { borderRadius: 12 },
     },
   };
 
@@ -147,29 +125,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <App>
           <OfflineProvider>
             <AuthProvider>
-              {persister ? (
-                <PersistQueryClientProvider
-                  client={queryClient}
-                  persistOptions={{ persister }}
-                >
-                  <ItemDetailProvider>
-                    {children}
-                  </ItemDetailProvider>
-                  {process.env.NODE_ENV === "development" && (
+              <PersistQueryClientProvider
+                client={queryClient}
+                persistOptions={{ persister }}
+              >
+                <ItemDetailProvider>
+                  {children}
+                </ItemDetailProvider>
+                {import.meta.env.DEV && (
+                  <Suspense fallback={null}>
                     <ReactQueryDevtools initialIsOpen={false} />
-                  )}
-                </PersistQueryClientProvider>
-              ) : (
-                // Fallback for SSR or if persistence fails
-                <QueryClientProvider client={queryClient}>
-                  <ItemDetailProvider>
-                    {children}
-                  </ItemDetailProvider>
-                  {process.env.NODE_ENV === "development" && (
-                    <ReactQueryDevtools initialIsOpen={false} />
-                  )}
-                </QueryClientProvider>
-              )}
+                  </Suspense>
+                )}
+              </PersistQueryClientProvider>
             </AuthProvider>
           </OfflineProvider>
         </App>
@@ -177,4 +145,3 @@ export function Providers({ children }: { children: React.ReactNode }) {
     </ThemeContext.Provider>
   );
 }
-

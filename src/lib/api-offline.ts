@@ -298,7 +298,7 @@ class OfflineApiClient {
 }
 
 // Create instance with same config as main API
-const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
-const BACKUP_API_URL = process.env.NEXT_PUBLIC_API_URL_BACKUP || PRIMARY_API_URL;
+const PRIMARY_API_URL = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+const BACKUP_API_URL = import.meta.env.VITE_API_URL_BACKUP || import.meta.env.NEXT_PUBLIC_API_URL_BACKUP || PRIMARY_API_URL;
 
 export const offlineApi = new OfflineApiClient(PRIMARY_API_URL, BACKUP_API_URL);

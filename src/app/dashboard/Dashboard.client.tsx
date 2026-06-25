@@ -1,33 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import dynamic from "next/dynamic";
+import { lazy, Suspense, useState } from "react";
 import { Skeleton } from "antd";
 
-const DashboardSummaryClient = dynamic(
-  () => import("@/components/dashboard/DashboardSummary.client"),
-  {
-    loading: () => <Skeleton active paragraph={{ rows: 4 }} />,
-    ssr: false,
-  }
+const DashboardSummaryClient = lazy(
+  () => import("@/components/dashboard/DashboardSummary.client")
 );
 
-const DashboardCharts = dynamic(
-  () => import("@/components/dashboard/DashboardCharts"),
-  {
-    loading: () => <Skeleton active paragraph={{ rows: 10 }} />,
-    ssr: false,
-  }
+const DashboardCharts = lazy(
+  () => import("@/components/dashboard/DashboardCharts")
 );
 
 export default function DashboardClient() {
-  // Single period control shared by summary cards and charts
   const [period, setPeriod] = useState("30d");
 
   return (
     <div className="space-y-6">
-      <DashboardSummaryClient period={period} />
-      <DashboardCharts period={period} onPeriodChange={setPeriod} />
+      <Suspense fallback={<Skeleton active paragraph={{ rows: 4 }} />}>
+        <DashboardSummaryClient period={period} />
+      </Suspense>
+      <Suspense fallback={<Skeleton active paragraph={{ rows: 10 }} />}>
+        <DashboardCharts period={period} onPeriodChange={setPeriod} />
+      </Suspense>
     </div>
   );
 }
