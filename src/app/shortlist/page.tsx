@@ -4,21 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { debounce } from "lodash";
-import {
-  Select,
-  SelectItem,
-  Button,
-  Input,
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@heroui/react";
+import { Select, Button, Input, Table, Popconfirm, Card } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { useItemDetail } from "@/components/providers/ItemDetailContext";
 import { Loader2, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -54,13 +41,12 @@ export default function ShortListPage() {
   const [sortBy, setSortBy] = useState<"quantity" | "addedAt" | "name">(
     "quantity",
   );
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [filterSlow, setFilterSlow] = useState<boolean | null>(null);
+  const [sortOrder] = useState<"asc" | "desc">("asc");
+  const [filterSlow] = useState<boolean | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [shortlistSearchTerm, setShortlistSearchTerm] = useState("");
   const [debouncedShortlistSearch, setDebouncedShortlistSearch] = useState("");
-  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
 
   // Debounce inventory search (stable ref + cleanup)
   const debouncedInventorySearch = useRef(
@@ -105,15 +91,6 @@ export default function ShortListPage() {
       params.append("sortOrder", sortOrder);
 
       const response = await api.get(`/shortlist?${params.toString()}`);
-      return response.data;
-    },
-  });
-
-  // Get statistics
-  const { data: stats } = useQuery({
-    queryKey: ["shortlist-stats"],
-    queryFn: async () => {
-      const response = await api.get("/shortlist/stats");
       return response.data;
     },
   });
@@ -187,17 +164,17 @@ export default function ShortListPage() {
   const downloadAsImage = async () => {
     if (!shortlistTableRef.current) return;
     try {
-      const html2canvas = (await import('html2canvas')).default;
+      const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(shortlistTableRef.current, { scale: 2 });
-      const link = document.createElement('a');
-      const today = new Date().toISOString().split('T')[0];
+      const link = document.createElement("a");
+      const today = new Date().toISOString().split("T")[0];
       link.download = `shortlist-${today}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = canvas.toDataURL("image/png");
       link.click();
-      toast.success('Shortlist image downloaded successfully');
+      toast.success("Shortlist image downloaded successfully");
     } catch (err) {
-      console.error('Failed to download shortlist as image:', err);
-      toast.error('Failed to download shortlist as image. Please try again.');
+      console.error("Failed to download shortlist as image:", err);
+      toast.error("Failed to download shortlist as image. Please try again.");
     }
   };
 
@@ -252,143 +229,177 @@ export default function ShortListPage() {
 
   const shortlistItems = filteredShortlistItems(data?.data);
 
+  const columns: ColumnsType<ShortListItem> = [
+    {
+      title: "Item Name",
+      key: "itemName",
+      render: (_, item) => {
+        const variantId = item.inventory?.variant?.id;
+        return variantId ? (
+          <button
+            onClick={() => openItem(variantId, { showBatches: false })}
+            className="text-primary hover:underline text-left font-medium"
+          >
+            {item.inventory.itemName}
+          </button>
+        ) : (
+          <span className="font-medium">{item.inventory.itemName}</span>
+        );
+      },
+    },
+    {
+      title: "Current Qty",
+      key: "quantity",
+      render: (_, item) => item.inventory.quantity,
+    },
+    {
+      title: "Last Restock Qty",
+      key: "lastRestockQty",
+      render: (_, item) => item.inventory.lastRestockQty || "N/A",
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, item) => (
+        <Popconfirm
+          title="Remove from shortlist"
+          description="Are you sure you want to remove this item from the shortlist?"
+          okText="Yes, Remove"
+          cancelText="No"
+          okButtonProps={{ danger: true }}
+          onConfirm={() => removeMutation.mutate(item.inventoryId)}
+        >
+          <Button
+            danger
+            type="text"
+            size="small"
+            icon={<Trash2 className="w-4 h-4" />}
+          />
+        </Popconfirm>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="page-header">Short List</h1>
-        <p className="page-subheader">
-          Items that need restocking
-        </p>
+        <p className="page-subheader">Items that need restocking</p>
       </div>
 
       {/* Controls */}
-      <div className="surface-card p-6">
+      <Card>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {/* Add to Shortlist Search */}
           <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-muted-foreground mb-2">
+            <label className="block text-xs font-medium mb-2">
               Add Item to Shortlist
             </label>
             <div className="space-y-2">
               <Input
+                allowClear
                 placeholder="Search inventory items..."
                 value={searchTerm}
-                onValueChange={setSearchTerm}
-                isClearable
-                className="w-full"
+                onChange={(e) => setSearchTerm(e.target.value)}
                 disabled={isSearching}
-                description={
-                  debouncedSearchTerm.length < 2
-                    ? "Type at least 2 characters"
-                    : undefined
-                }
-                startContent={
-                  isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : null
+                prefix={
+                  isSearching ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : undefined
                 }
               />
-              {debouncedSearchTerm.length >= 2 && inventorySearchResults.length > 0 && (
-                <div className="border rounded-lg overflow-hidden bg-white z-10">
-                  {inventorySearchResults.map((item: any) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="w-full px-4 py-2 text-left hover:bg-gray-100 border-b last:border-b-0 flex justify-between items-center"
-                      onClick={() => {
-                        addToShortlistMutation.mutate(item.id);
-                        setSearchTerm("");
-                      }}
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium text-sm">
-                          {item.itemName}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="font-bold text-primary text-sm">
-                          ৳{item.retailPrice ?? "-"}
-                        </span>
-                        <span
-                          className={`text-xs ${
-                            item.quantity > 0
-                              ? "text-success"
-                              : "text-destructive"
-                          }`}
-                        >
-                          {item.quantity > 0
-                            ? `${item.quantity} in stock`
-                            : "Out of stock"}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
+              {debouncedSearchTerm.length < 2 && (
+                <div className="text-xs text-muted-foreground">
+                  Type at least 2 characters
                 </div>
               )}
+              {debouncedSearchTerm.length >= 2 &&
+                inventorySearchResults.length > 0 && (
+                  <div className="border rounded-lg overflow-hidden bg-white z-10">
+                    {inventorySearchResults.map((item: any) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 border-b last:border-b-0 flex justify-between items-center"
+                        onClick={() => {
+                          addToShortlistMutation.mutate(item.id);
+                          setSearchTerm("");
+                        }}
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">
+                            {item.itemName}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="font-bold text-sm">
+                            ৳{item.retailPrice ?? "-"}
+                          </span>
+                          <span className="text-xs">
+                            {item.quantity > 0
+                              ? `${item.quantity} in stock`
+                              : "Out of stock"}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
             </div>
           </div>
 
           {/* Sort By */}
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-2">
-              Sort By
-            </label>
+            <label className="block text-xs font-medium mb-2">Sort By</label>
             <Select
-              selectedKeys={[sortBy]}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="w-full"
-            >
-              <SelectItem key="quantity">
-                Lowest Stock First
-              </SelectItem>
-              <SelectItem key="addedAt">
-                Recently Added
-              </SelectItem>
-              <SelectItem key="name">
-                Item Name
-              </SelectItem>
-            </Select>
+              value={sortBy}
+              onChange={(val) => setSortBy(val)}
+              style={{ width: "100%" }}
+              options={[
+                { value: "quantity", label: "Lowest Stock First" },
+                { value: "addedAt", label: "Recently Added" },
+                { value: "name", label: "Item Name" },
+              ]}
+            />
           </div>
         </div>
 
         {/* Export Buttons */}
         <div className="flex flex-wrap gap-2 mb-2">
           <Button
-            onPress={() => exportPdf("shortlist")}
-            color="primary"
-            startContent={<Download className="w-4 h-4" />}
+            type="primary"
+            onClick={() => exportPdf("shortlist")}
+            icon={<Download className="w-4 h-4" />}
           >
             Download Shortlist
           </Button>
           <Button
-            onPress={() => exportPdf("inventory")}
-            variant="bordered"
-            startContent={<Download className="w-4 h-4" />}
+            onClick={() => exportPdf("inventory")}
+            icon={<Download className="w-4 h-4" />}
           >
             Download Inventory
           </Button>
           <Button
-            onPress={() => exportPdf("analytics")}
-            variant="bordered"
-            startContent={<Download className="w-4 h-4" />}
+            onClick={() => exportPdf("analytics")}
+            icon={<Download className="w-4 h-4" />}
           >
             Download Analytics
           </Button>
           <Button
-            onPress={() => exportBackup()}
-            variant="bordered"
-            startContent={<Download className="w-4 h-4" />}
+            onClick={() => exportBackup()}
+            icon={<Download className="w-4 h-4" />}
           >
             Download Backup
           </Button>
           <Button
-            onPress={downloadAsImage}
-            variant="bordered"
-            startContent={<Download className="w-4 h-4" />}
+            onClick={downloadAsImage}
+            icon={<Download className="w-4 h-4" />}
           >
             Download as Image
           </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Shortlist Items Table */}
       {error ? (
@@ -396,135 +407,32 @@ export default function ShortListPage() {
           Error loading short list
         </div>
       ) : (
-        <div ref={shortlistTableRef} className="surface-card overflow-hidden rounded-lg">
-          <div className="p-4 border-b border-border">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">
-                Shortlist Items ({shortlistItems.length})
-              </h3>
-            </div>
-            <div>
-              <Input
-                isClearable
-                onClear={() => setShortlistSearchTerm("")}
-                value={shortlistSearchTerm}
-                onValueChange={setShortlistSearchTerm}
-                placeholder="Search shortlist by item name, SKU, or product..."
-                className="w-full"
-              />
-            </div>
+        <Card ref={shortlistTableRef}>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-4">
+              Shortlist Items ({shortlistItems.length})
+            </h3>
+            <Input
+              allowClear
+              value={shortlistSearchTerm}
+              onChange={(e) => setShortlistSearchTerm(e.target.value)}
+              placeholder="Search shortlist by item name, SKU, or product..."
+            />
           </div>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : shortlistItems.length === 0 ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              {shortlistSearchTerm
+          <Table<ShortListItem>
+            columns={columns}
+            dataSource={shortlistItems}
+            rowKey={(item) => item.id}
+            loading={isLoading}
+            pagination={false}
+            locale={{
+              emptyText: shortlistSearchTerm
                 ? `No items found matching "${shortlistSearchTerm}"`
-                : "No items in short list"}
-            </div>
-          ) : (
-            <Table
-              aria-label="Shortlist items table"
-              className="w-full"
-              removeWrapper
-            >
-              <TableHeader>
-                <TableColumn>Item Name</TableColumn>
-                <TableColumn>Current Qty</TableColumn>
-                <TableColumn>Last Restock Qty</TableColumn>
-                <TableColumn>Actions</TableColumn>
-              </TableHeader>
-              <TableBody items={shortlistItems}>
-                {(item: ShortListItem) => {
-                  const variantId = item.inventory?.variant?.id;
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        {variantId ? (
-                          <button
-                            onClick={() =>
-                              openItem(variantId, { showBatches: false })
-                            }
-                            className="text-primary hover:underline text-left font-medium"
-                          >
-                            {item.inventory.itemName}
-                          </button>
-                        ) : (
-                          <span className="font-medium">
-                            {item.inventory.itemName}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium text-foreground">
-                          {item.inventory.quantity}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-muted-foreground">
-                          {item.inventory.lastRestockQty || "N/A"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Popover
-                          placement="left"
-                          isOpen={openPopoverId === item.id}
-                          onOpenChange={(open) =>
-                            setOpenPopoverId(open ? item.id : null)
-                          }
-                        >
-                          <PopoverTrigger asChild>
-                            <Button
-                              isIconOnly
-                              color="danger"
-                              variant="light"
-                              isLoading={removeMutation.isPending}
-                              size="sm"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-72">
-                            <div className="px-1 py-2 space-y-3">
-                              <div className="text-sm font-semibold">
-                                Remove from shortlist
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                Are you sure you want to remove this item from
-                                the shortlist?
-                              </div>
-                              <div className="flex gap-2 justify-end">
-                                <Button
-                                  size="sm"
-                                  variant="light"
-                                  onPress={() => setOpenPopoverId(null)}
-                                >
-                                  No
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  color="danger"
-                                  onPress={() => {
-                                    removeMutation.mutate(item.inventoryId);
-                                  }}
-                                >
-                                  Yes, Remove
-                                </Button>
-                              </div>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      </TableCell>
-                    </TableRow>
-                  );
-                }}
-              </TableBody>
-            </Table>
-          )}
-        </div>
+                : "No items in short list",
+            }}
+          />
+        </Card>
       )}
     </div>
   );

@@ -20,48 +20,31 @@
   animation: gradient-shift 15s ease infinite;
 }
 
-/* ───── Glassmorphism & Layering ─────
- * Layering model: the page background sits at the bottom. Sections/sidebars
- * (.glass) float just above it. Cards (.glass-card, .surface-card, .stat-card)
- * float above sections. Nested content inside a card (.glass-panel) floats
- * above the card. Overlays (modals/dropdowns) float above everything.
- * Each step up uses a more opaque surface, stronger blur, and a brighter
- * top-edge highlight to read as "closer to the user".
+/* ───── Plain opaque cards (glass removed) ─────
+ * Solid surfaces with simple elevation. No translucency, no blur, no tint.
  */
 .glass {
   @apply border-b;
-  background: var(--glass-surface-1);
-  backdrop-filter: blur(var(--blur-md));
-  -webkit-backdrop-filter: blur(var(--blur-md));
-  border-color: var(--glass-border);
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
   box-shadow: var(--elevation-1);
 }
 
 .glass-card {
   @apply relative rounded-2xl border;
-  background: linear-gradient(
-    135deg,
-    var(--glass-surface-2),
-    hsl(var(--primary) / 0.14)
-  );
-  backdrop-filter: blur(var(--blur-lg));
-  -webkit-backdrop-filter: blur(var(--blur-lg));
-  border-color: hsl(var(--primary) / 0.22);
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
   box-shadow: var(--elevation-2);
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  transition: box-shadow 200ms ease;
 }
 .glass-card:hover {
-  transform: translateY(-2px);
   box-shadow: var(--elevation-3);
 }
 
-/* Nested "layer" — sits visually on top of a card/section, slightly more opaque */
 .glass-panel {
   @apply relative rounded-xl border;
-  background: var(--glass-surface-3);
-  backdrop-filter: blur(var(--blur-sm));
-  -webkit-backdrop-filter: blur(var(--blur-sm));
-  border-color: var(--glass-border);
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
   box-shadow: var(--elevation-1);
 }
 
@@ -73,40 +56,25 @@
   @apply text-base text-foreground/80 mt-1;
 }
 
-/* ───── Theme-aware stat cards ───── */
+/* ───── Stat cards (plain, solid, no color tint) ───── */
 .stat-card {
   @apply relative rounded-2xl p-6 border;
-  backdrop-filter: blur(var(--blur-md));
-  -webkit-backdrop-filter: blur(var(--blur-md));
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
   box-shadow: var(--elevation-2);
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  transition: box-shadow 200ms ease;
 }
 .stat-card:hover {
-  transform: translateY(-3px);
   box-shadow: var(--elevation-3);
 }
-.stat-card-success {
-  background: linear-gradient(145deg, hsl(var(--success) / 0.18), hsl(var(--success) / 0.06));
-  border-color: hsl(var(--success) / 0.34);
-}
-.stat-card-danger {
-  background: linear-gradient(145deg, hsl(var(--destructive) / 0.18), hsl(var(--destructive) / 0.06));
-  border-color: hsl(var(--destructive) / 0.34);
-}
-.stat-card-primary {
-  background: linear-gradient(145deg, hsl(var(--primary) / 0.18), hsl(var(--primary) / 0.06));
-  border-color: hsl(var(--primary) / 0.34);
-}
-.stat-card-info {
-  background: linear-gradient(145deg, hsl(var(--info) / 0.18), hsl(var(--info) / 0.06));
-  border-color: hsl(var(--info) / 0.34);
-}
-.stat-card-warning {
-  background: linear-gradient(145deg, hsl(var(--warning) / 0.2), hsl(var(--warning) / 0.06));
-  border-color: hsl(var(--warning) / 0.34);
-}
+/* Color-variant classes kept as no-ops so existing markup doesn't break */
+.stat-card-success,
+.stat-card-danger,
+.stat-card-primary,
+.stat-card-info,
+.stat-card-warning,
 .stat-card-muted {
-  background: linear-gradient(145deg, hsl(var(--muted) / 0.95), hsl(var(--muted) / 0.7));
+  background: hsl(var(--card));
   border-color: hsl(var(--border));
 }
 .stat-label {
@@ -116,38 +84,12 @@
   @apply text-3xl font-bold;
 }
 
-/* Shared tinted section cards for non-stat containers */
+/* Shared section cards for non-stat containers */
 .surface-card {
   @apply relative rounded-2xl border;
-  background: linear-gradient(
-    140deg,
-    var(--glass-surface-2),
-    hsl(var(--primary) / 0.07)
-  );
-  backdrop-filter: blur(var(--blur-lg));
-  -webkit-backdrop-filter: blur(var(--blur-lg));
-  border-color: var(--glass-border);
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
   box-shadow: var(--elevation-2);
-}
-
-/* Ant Design visual refresh */
-.ant-card,
-.ant-table-wrapper,
-.ant-modal-content,
-.ant-drawer-content,
-.ant-popover-inner,
-.ant-select-dropdown,
-.ant-picker-dropdown .ant-picker-panel-container {
-  backdrop-filter: blur(var(--blur-lg));
-  -webkit-backdrop-filter: blur(var(--blur-lg));
-  background: linear-gradient(
-    145deg,
-    var(--glass-surface-3),
-    hsl(var(--primary) / 0.08)
-  ) !important;
-  border: 1px solid var(--glass-border) !important;
-  border-radius: 1rem !important;
-  box-shadow: var(--elevation-3) !important;
 }
 
 
@@ -193,30 +135,6 @@
   padding-top: 0.82rem;
   padding-bottom: 0.82rem;
   font-size: var(--font-size-md);
-}
-
-/* ───── Row Banding (All Tables) ───── */
-.ant-table-tbody > tr:nth-child(odd) > td {
-  background-color: hsl(var(--primary) / 0.055) !important;
-}
-.ant-table-tbody > tr:nth-child(even) > td {
-  background-color: hsl(var(--secondary) / 0.05) !important;
-}
-.ant-table-tbody > tr:hover > td {
-  background-color: hsl(var(--tertiary) / 0.12) !important;
-}
-
-table[data-slot="table"] > tbody > tr:nth-child(odd),
-.surface-card table > tbody > tr:nth-child(odd),
-.glass-card table > tbody > tr:nth-child(odd),
-table > tbody > tr.banded-odd {
-  background-color: hsl(var(--primary) / 0.06);
-}
-table[data-slot="table"] > tbody > tr:nth-child(even),
-.surface-card table > tbody > tr:nth-child(even),
-.glass-card table > tbody > tr:nth-child(even),
-table > tbody > tr.banded-even {
-  background-color: hsl(var(--secondary) / 0.055);
 }
 
 /* ───── Sidebar Banding ───── */

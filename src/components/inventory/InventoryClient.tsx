@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -12,23 +12,16 @@ import { offlineApi } from "@/lib/api-offline";
 import { useOffline } from "@/hooks/useOffline";
 import {
   Table,
-  TableHeader,
-  TableBody,
-  TableColumn,
-  TableRow,
-  TableCell,
   Button,
   Input,
+  InputNumber,
   Select,
-  SelectItem,
   Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Spinner,
-  Chip,
-} from "@heroui/react";
+  Tag,
+  Card,
+} from "antd";
+import type { InputRef } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { debounce } from "lodash";
 import dayjs from "dayjs";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -101,14 +94,22 @@ async function searchCatalog(
   return response.data as CatalogItem[];
 }
 
+// Small field-error helper for the react-hook-form + antd combo
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <div style={{ color: "#cf1322", fontSize: 12 }}>{message}</div>;
+}
+
 export default function InventoryClient() {
   const { isOnline } = useOffline();
   const queryClient = useQueryClient();
-  const itemNameRef = useRef<HTMLInputElement>(null);
+  const itemNameRef = useRef<InputRef>(null);
 
   // Add form
+  // ponytail: cast resolver — z.coerce.number() yields `unknown` input type that
+  // doesn't line up with the inferred number output; cast keeps one form generic.
   const addForm = useForm<AddInventoryFormData>({
-    resolver: zodResolver(addInventorySchema),
+    resolver: zodResolver(addInventorySchema) as Resolver<AddInventoryFormData>,
     defaultValues: {
       itemName: "",
       quantity: 1,
@@ -124,7 +125,7 @@ export default function InventoryClient() {
 
   // Edit form
   const editForm = useForm<EditInventoryFormData>({
-    resolver: zodResolver(editInventorySchema),
+    resolver: zodResolver(editInventorySchema) as Resolver<EditInventoryFormData>,
     defaultValues: {
       itemName: "",
       quantity: 1,
@@ -244,7 +245,8 @@ export default function InventoryClient() {
     };
 
     try {
-      await addMutation.mutateAsync(payload);
+      // payload carries ISO date strings for the wire; InventoryItem types them as Date
+      await addMutation.mutateAsync(payload as unknown as Partial<InventoryItem>);
       addForm.reset();
       setSelectedFromCatalog(null);
       setCatalogOptions([]);
@@ -406,6 +408,8 @@ export default function InventoryClient() {
     });
   }, [items]);
 
+  type InventoryRow = (typeof dataSource)[number];
+
   const filteredDataSource = useMemo(() => {
     if (!search) return dataSource;
     return dataSource.filter((item) => {
@@ -420,6 +424,53 @@ export default function InventoryClient() {
     });
   }, [dataSource, search]);
 
+  const openRow = (item: InventoryRow) => {
+    const variantId = item.variant?.id ?? item.subItems?.[0]?.variantId;
+    if (variantId) openItem(variantId, { showBatches: true });
+  };
+
+  const columns: ColumnsType<InventoryRow> = [
+    {
+      title: "Item Name",
+      key: "itemName",
+      render: (_, item) =>
+        item.variant
+          ? `${item.variant.product.name}${
+              item.variant.variantName === "Standard"
+                ? ""
+                : ` - ${item.variant.variantName}`
+            }`
+          : item.itemName || "Unnamed item",
+    },
+    {
+      title: "Total Stock",
+      key: "totalQuantity",
+      align: "right",
+      render: (_, item) => (
+        <Tag color={item.totalQuantity < 5 ? "red" : "green"}>
+          {item.totalQuantity}
+        </Tag>
+      ),
+    },
+    {
+      title: "Purchase Price",
+      key: "purchasePrice",
+      align: "right",
+      render: (_, item) => `৳${item.latestPurchasePrice}`,
+    },
+    {
+      title: "MRP/Unit",
+      key: "retailPrice",
+      align: "right",
+      render: (_, item) => `৳${item.latestRetailPrice}`,
+    },
+    {
+      title: "Batch Info",
+      key: "batchInfo",
+      render: (_, item) => item.batchInfo,
+    },
+  ];
+
   if (!user || (user.role !== "OWNER" && user.role !== "EMPLOYEE")) {
     return <div className="p-6">Access denied — Owners and employees only</div>;
   }
@@ -433,7 +484,7 @@ export default function InventoryClient() {
   return (
     <div className="space-y-4">
       {/* Add Form Card */}
-      <div className="surface-card p-4 md:p-6 rounded-lg">
+      <Card>
         <h2 className="text-lg font-semibold mb-4">Add Inventory Item</h2>
         <form onSubmit={addForm.handleSubmit(submitAdd)} className="space-y-4">
           {/* Item Name (AutoComplete) */}
@@ -447,23 +498,17 @@ export default function InventoryClient() {
               render={({ field, fieldState: { error } }) => (
                 <div>
                   <Input
-                    {...field}
+                    value={field.value}
                     ref={itemNameRef}
-                    type="text"
+                    allowClear
+                    status={error ? "error" : undefined}
                     placeholder="Type to search catalog or enter new product name"
-                    variant="bordered"
-                    isInvalid={!!error}
-                    errorMessage={error?.message}
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      handleCatalogSearch(value);
-                    }}
-                    isClearable
-                    onClear={() => {
-                      field.onChange("");
-                      setCatalogOptions([]);
+                    onChange={(e) => {
+                      field.onChange(e.target.value);
+                      handleCatalogSearch(e.target.value);
                     }}
                   />
+                  <FieldError message={error?.message} />
                   {catalogOptions.length > 0 && (
                     <div className="mt-2 border rounded-lg overflow-hidden bg-white">
                       {catalogOptions.map((item) => (
@@ -502,17 +547,15 @@ export default function InventoryClient() {
               render={({ field, fieldState: { error } }) => (
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Quantity</label>
-                  <Input
-                    {...field}
-                    type="number"
+                  <InputNumber
+                    value={field.value}
                     placeholder="0"
-                    inputMode="numeric"
-                    variant="bordered"
-                    isInvalid={!!error}
-                    errorMessage={error?.message}
-                    min="1"
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                    status={error ? "error" : undefined}
+                    min={1}
+                    style={{ width: "100%" }}
+                    onChange={(val) => field.onChange(val ?? 0)}
                   />
+                  <FieldError message={error?.message} />
                 </div>
               )}
             />
@@ -523,18 +566,16 @@ export default function InventoryClient() {
               render={({ field, fieldState: { error } }) => (
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Purchase/unit</label>
-                  <Input
-                    {...field}
-                    type="number"
+                  <InputNumber
+                    value={field.value}
                     placeholder="0"
-                    inputMode="numeric"
-                    variant="bordered"
-                    isInvalid={!!error}
-                    errorMessage={error?.message}
-                    startContent={<span className="text-gray-500">৳</span>}
-                    min="0"
-                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    status={error ? "error" : undefined}
+                    prefix="৳"
+                    min={0}
+                    style={{ width: "100%" }}
+                    onChange={(val) => field.onChange(val ?? 0)}
                   />
+                  <FieldError message={error?.message} />
                 </div>
               )}
             />
@@ -545,18 +586,16 @@ export default function InventoryClient() {
               render={({ field, fieldState: { error } }) => (
                 <div className="space-y-2">
                   <label className="text-sm font-medium">MRP/unit</label>
-                  <Input
-                    {...field}
-                    type="number"
+                  <InputNumber
+                    value={field.value}
                     placeholder="0"
-                    inputMode="numeric"
-                    variant="bordered"
-                    isInvalid={!!error}
-                    errorMessage={error?.message}
-                    startContent={<span className="text-gray-500">৳</span>}
-                    min="0"
-                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    status={error ? "error" : undefined}
+                    prefix="৳"
+                    min={0}
+                    style={{ width: "100%" }}
+                    onChange={(val) => field.onChange(val ?? 0)}
                   />
+                  <FieldError message={error?.message} />
                 </div>
               )}
             />
@@ -564,13 +603,12 @@ export default function InventoryClient() {
             {computedMaxDiscount > 0 && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Max Discount %</label>
-                <Input
-                  type="number"
+                <InputNumber
                   placeholder="0"
-                  variant="bordered"
                   disabled
-                  value={computedMaxDiscount.toString()}
-                  startContent={<span className="text-gray-500">%</span>}
+                  value={computedMaxDiscount}
+                  prefix="%"
+                  style={{ width: "100%" }}
                 />
               </div>
             )}
@@ -584,298 +622,182 @@ export default function InventoryClient() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Fund Source</label>
                 <Select
-                  {...field}
+                  value={field.value}
                   placeholder="Select fund source"
-                  variant="bordered"
-                  isInvalid={!!error}
-                  errorMessage={error?.message}
-                  selectedKeys={field.value ? [field.value] : []}
-                  onSelectionChange={(keys) => {
-                    const selected = Array.from(keys)[0];
-                    if (selected) field.onChange(selected);
-                  }}
-                >
-                  <SelectItem key="CASH_BOX">
-                    Cash Box
-                  </SelectItem>
-                  <SelectItem key="NEW_INVESTMENT">
-                    New Investment
-                  </SelectItem>
-                  <SelectItem key="LOAN">
-                    Loan
-                  </SelectItem>
-                </Select>
+                  status={error ? "error" : undefined}
+                  style={{ width: "100%" }}
+                  onChange={(val) => field.onChange(val)}
+                  options={[
+                    { value: "CASH_BOX", label: "Cash Box" },
+                    { value: "NEW_INVESTMENT", label: "New Investment" },
+                    { value: "LOAN", label: "Loan" },
+                  ]}
+                />
+                <FieldError message={error?.message} />
               </div>
             )}
           />
 
           <Button
-            type="submit"
-            color="primary"
-            size="lg"
-            isLoading={addMutation.isPending}
+            type="primary"
+            htmlType="submit"
+            size="large"
+            loading={addMutation.isPending}
             className="w-full md:w-auto"
           >
             Add Item
           </Button>
         </form>
-      </div>
+      </Card>
 
       {/* Inventory Table Card */}
-      <div className="surface-card p-4 md:p-6 rounded-lg">
+      <Card>
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
           <h2 className="text-lg font-semibold">Inventory Items</h2>
           <Input
             placeholder="Search by product name..."
             value={search}
-            onValueChange={setSearch}
-            isClearable
+            onChange={(e) => setSearch(e.target.value)}
+            allowClear
             type="search"
-            variant="bordered"
             className="w-full md:w-80"
           />
         </div>
 
-        <div className="overflow-x-auto">
-          <Table
-            aria-label="Inventory items table"
-            onRowAction={(key) => {
-              const record = filteredDataSource.find((r) => r.key === key);
-              if (record) {
-                const variantId =
-                  record.variant?.id ?? record.subItems?.[0]?.variantId;
-                if (variantId) openItem(variantId, { showBatches: true });
-              }
-            }}
-            classNames={{
-              base: "max-h-full",
-              wrapper: "shadow-sm",
-            }}
-          >
-            <TableHeader>
-              <TableColumn key="itemName">Item Name</TableColumn>
-              <TableColumn key="totalQuantity" align="end">
-                Total Stock
-              </TableColumn>
-              <TableColumn key="purchasePrice" align="end">
-                Purchase Price
-              </TableColumn>
-              <TableColumn key="retailPrice" align="end">
-                MRP/Unit
-              </TableColumn>
-              <TableColumn key="batchInfo">Batch Info</TableColumn>
-            </TableHeader>
-            <TableBody
-              items={filteredDataSource}
-              loadingContent={<Spinner />}
-              isLoading={isLoading}
-              emptyContent={
-                <div className="text-center py-8 text-gray-500">
-                  No inventory items found
-                </div>
-              }
-            >
-              {(item) => (
-                <TableRow
-                  key={item.key}
-                  className="cursor-pointer hover:bg-gray-50"
-                  onClick={() => {
-                    const variantId =
-                      item.variant?.id ?? item.subItems?.[0]?.variantId;
-                    if (variantId) openItem(variantId, { showBatches: true });
-                  }}
-                >
-                  <TableCell>
-                    {item.variant
-                      ? `${item.variant.product.name}${
-                          item.variant.variantName === "Standard"
-                            ? ""
-                            : ` - ${item.variant.variantName}`
-                        }`
-                      : item.itemName || "Unnamed item"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Chip
-                      size="sm"
-                      variant="flat"
-                      color={item.totalQuantity < 5 ? "danger" : "success"}
-                    >
-                      {item.totalQuantity}
-                    </Chip>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ৳{item.latestPurchasePrice}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ৳{item.latestRetailPrice}
-                  </TableCell>
-                  <TableCell>{item.batchInfo}</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+        <Table<InventoryRow>
+          columns={columns}
+          dataSource={filteredDataSource}
+          rowKey={(item) => item.key}
+          loading={isLoading}
+          pagination={false}
+          scroll={{ x: true }}
+          locale={{ emptyText: "No inventory items found" }}
+          onRow={(record) => ({
+            onClick: () => openRow(record),
+            style: { cursor: "pointer" },
+          })}
+        />
+      </Card>
 
       {/* Delete Confirmation Modal */}
       <Modal
-        isOpen={deleteConfirmOpen}
-        onOpenChange={setDeleteConfirmOpen}
-        size="sm"
-        backdrop="blur"
+        open={deleteConfirmOpen}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        title="Delete Item"
+        okText="Delete"
+        okButtonProps={{ danger: true, loading: deleteMutation.isPending }}
+        onOk={confirmDelete}
       >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader>Delete Item</ModalHeader>
-              <ModalBody>
-                Are you sure you want to delete this inventory item?
-              </ModalBody>
-              <ModalFooter>
-                <Button color="default" variant="light" onPress={onClose}>
-                  Cancel
-                </Button>
-                <Button
-                  color="danger"
-                  onPress={confirmDelete}
-                  isLoading={deleteMutation.isPending}
-                >
-                  Delete
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
+        Are you sure you want to delete this inventory item?
       </Modal>
 
       {/* Edit Modal */}
       <Modal
-        isOpen={modalOpen}
-        onOpenChange={setModalOpen}
-        size="md"
-        backdrop="blur"
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        title="Edit Inventory Item"
+        footer={[
+          <Button key="cancel" onClick={() => setModalOpen(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="delete"
+            danger
+            onClick={handleDelete}
+            loading={deleteMutation.isPending}
+          >
+            Delete
+          </Button>,
+          <Button
+            key="update"
+            type="primary"
+            loading={updateMutation.isPending}
+            onClick={editForm.handleSubmit(submitEdit)}
+          >
+            Update Item
+          </Button>,
+        ]}
       >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                Edit Inventory Item
-              </ModalHeader>
-              <ModalBody>
-                <form
-                  onSubmit={editForm.handleSubmit(submitEdit)}
-                  className="space-y-4"
-                >
-                  <Controller
-                    name="itemName"
-                    control={editForm.control}
-                    render={({ field, fieldState: { error } }) => (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Item Name</label>
-                        <Input
-                          {...field}
-                          type="text"
-                          placeholder="Item name"
-                          variant="bordered"
-                          isInvalid={!!error}
-                          errorMessage={error?.message}
-                          isDisabled={!!editFormState.variantId}
-                        />
-                      </div>
-                    )}
-                  />
+        <form
+          onSubmit={editForm.handleSubmit(submitEdit)}
+          className="space-y-4"
+        >
+          <Controller
+            name="itemName"
+            control={editForm.control}
+            render={({ field, fieldState: { error } }) => (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Item Name</label>
+                <Input
+                  {...field}
+                  placeholder="Item name"
+                  status={error ? "error" : undefined}
+                  disabled={!!editFormState.variantId}
+                />
+                <FieldError message={error?.message} />
+              </div>
+            )}
+          />
 
-                  <Controller
-                    name="quantity"
-                    control={editForm.control}
-                    render={({ field, fieldState: { error } }) => (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Quantity</label>
-                        <Input
-                          {...field}
-                          type="number"
-                          placeholder="0"
-                          inputMode="numeric"
-                          variant="bordered"
-                          isInvalid={!!error}
-                          errorMessage={error?.message}
-                          min="1"
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        />
-                      </div>
-                    )}
-                  />
+          <Controller
+            name="quantity"
+            control={editForm.control}
+            render={({ field, fieldState: { error } }) => (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Quantity</label>
+                <InputNumber
+                  value={field.value}
+                  placeholder="0"
+                  status={error ? "error" : undefined}
+                  min={1}
+                  style={{ width: "100%" }}
+                  onChange={(val) => field.onChange(val ?? 0)}
+                />
+                <FieldError message={error?.message} />
+              </div>
+            )}
+          />
 
-                  <Controller
-                    name="purchasePrice"
-                    control={editForm.control}
-                    render={({ field, fieldState: { error } }) => (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                          Purchase/unit
-                        </label>
-                        <Input
-                          {...field}
-                          type="number"
-                          placeholder="0"
-                          inputMode="numeric"
-                          variant="bordered"
-                          isInvalid={!!error}
-                          errorMessage={error?.message}
-                          startContent={<span className="text-gray-500">৳</span>}
-                          min="0"
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                    )}
-                  />
+          <Controller
+            name="purchasePrice"
+            control={editForm.control}
+            render={({ field, fieldState: { error } }) => (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Purchase/unit</label>
+                <InputNumber
+                  value={field.value}
+                  placeholder="0"
+                  status={error ? "error" : undefined}
+                  prefix="৳"
+                  min={0}
+                  style={{ width: "100%" }}
+                  onChange={(val) => field.onChange(val ?? 0)}
+                />
+                <FieldError message={error?.message} />
+              </div>
+            )}
+          />
 
-                  <Controller
-                    name="retailPrice"
-                    control={editForm.control}
-                    render={({ field, fieldState: { error } }) => (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">MRP/unit</label>
-                        <Input
-                          {...field}
-                          type="number"
-                          placeholder="0"
-                          inputMode="numeric"
-                          variant="bordered"
-                          isInvalid={!!error}
-                          errorMessage={error?.message}
-                          startContent={<span className="text-gray-500">৳</span>}
-                          min="0"
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        />
-                      </div>
-                    )}
-                  />
-                </form>
-              </ModalBody>
-              <ModalFooter>
-                <Button color="default" variant="light" onPress={onClose}>
-                  Cancel
-                </Button>
-                <Button
-                  color="danger"
-                  variant="flat"
-                  onPress={handleDelete}
-                  isLoading={deleteMutation.isPending}
-                >
-                  Delete
-                </Button>
-                <Button
-                  color="primary"
-                  isLoading={updateMutation.isPending}
-                  onPress={editForm.handleSubmit(submitEdit)}
-                >
-                  Update Item
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
+          <Controller
+            name="retailPrice"
+            control={editForm.control}
+            render={({ field, fieldState: { error } }) => (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">MRP/unit</label>
+                <InputNumber
+                  value={field.value}
+                  placeholder="0"
+                  status={error ? "error" : undefined}
+                  prefix="৳"
+                  min={0}
+                  style={{ width: "100%" }}
+                  onChange={(val) => field.onChange(val ?? 0)}
+                />
+                <FieldError message={error?.message} />
+              </div>
+            )}
+          />
+        </form>
       </Modal>
     </div>
   );
