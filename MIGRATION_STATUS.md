@@ -89,14 +89,14 @@ Live tracking file — updated as work progresses. See full plan at
 | `npm run build` green | ✅ Done | Full Vite build + SW injectManifest, 56 precache entries |
 
 ### Phase A2 — Forms → RHF + Zod (5 files)
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
 Files to convert (antd `Form.useForm` → shadcn Form + RHF + Zod):
-- [ ] `src/app/cash-box/components/AddEntryModal.tsx`
-- [ ] `src/app/expenses/components/ExpenseModal.tsx`
-- [ ] `src/components/catalog/BrandsClient.tsx`
-- [ ] `src/components/catalog/CatalogClient.tsx`
-- [ ] `src/components/catalog/CategoriesClient.tsx`
+- [x] `src/app/cash-box/components/AddEntryModal.tsx`
+- [x] `src/app/expenses/components/ExpenseModal.tsx`
+- [x] `src/components/catalog/BrandsClient.tsx`
+- [x] `src/components/catalog/CatalogClient.tsx`
+- [x] `src/components/catalog/CategoriesClient.tsx`
 
 Reference pattern: `src/components/inventory/InventoryClient.tsx` (already RHF+Zod).
 
@@ -137,5 +137,5 @@ Last verified: 2026-06-25
 
 ```
 npm run type-check  → ✅ 0 errors
-npm run build       → ✅ dist/sw.js (56 precache entries), main bundle builds clean
+npm run build       → ✅ dist/sw.js (60 precache entries), main bundle builds clean
 ```

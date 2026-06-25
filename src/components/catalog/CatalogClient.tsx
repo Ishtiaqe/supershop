@@ -6,7 +6,6 @@ import {
   Table,
   Button,
   Modal,
-  Form,
   Input,
   InputNumber,
   Select,
@@ -21,6 +20,17 @@ import {
   MedicineBoxOutlined,
 } from "@ant-design/icons";
 import api from "@/lib/api";
+import { useForm, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
 
 interface CatalogItem {
   variantId: string;
@@ -38,15 +48,40 @@ interface CatalogItem {
   manufacturerName?: string;
 }
 
+const catalogSchema = z.object({
+  productName: z.string().min(1, "Product name is required"),
+  productType: z.enum(["GENERAL", "MEDICINE"]).default("GENERAL"),
+  genericName: z.string().optional(),
+  manufacturerName: z.string().optional(),
+  variantName: z.string().min(1, "Variant name is required"),
+  sku: z.string().min(1, "SKU is required"),
+  retailPrice: z.coerce.number().min(0, "Retail price must be at least 0"),
+  description: z.string().optional(),
+});
+
+type CatalogFormData = z.infer<typeof catalogSchema>;
+
 export default function CatalogClient() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
-  const [form] = Form.useForm();
   const queryClient = useQueryClient();
-  const [productType, setProductType] = useState<"GENERAL" | "MEDICINE">(
-    "GENERAL"
-  );
   const [search, setSearch] = useState("");
+
+  const form = useForm<CatalogFormData>({
+    resolver: zodResolver(catalogSchema) as Resolver<CatalogFormData>,
+    defaultValues: {
+      productName: "",
+      productType: "GENERAL",
+      genericName: "",
+      manufacturerName: "",
+      variantName: "",
+      sku: "",
+      retailPrice: undefined,
+      description: "",
+    },
+  });
+
+  const watchedProductType = form.watch("productType");
 
   const { data: catalogItems = [], isLoading } = useQuery<CatalogItem[]>({
     queryKey: ["catalog"],
@@ -104,21 +139,28 @@ export default function CatalogClient() {
   const handleOpenModal = (item?: CatalogItem) => {
     if (item) {
       setEditingItem(item);
-      setProductType((item.productType as "GENERAL" | "MEDICINE") || "GENERAL");
-      form.setFieldsValue({
+      form.reset({
         productName: item.productName,
-        productType: item.productType || "GENERAL",
-        genericName: item.genericName,
-        manufacturerName: item.manufacturerName,
+        productType: (item.productType as "GENERAL" | "MEDICINE") || "GENERAL",
+        genericName: item.genericName || "",
+        manufacturerName: item.manufacturerName || "",
         variantName: item.variantName,
         sku: item.sku,
         retailPrice: item.retailPrice,
-        description: item.description,
+        description: item.description || "",
       });
     } else {
       setEditingItem(null);
-      setProductType("GENERAL");
-      form.resetFields();
+      form.reset({
+        productName: "",
+        productType: "GENERAL",
+        genericName: "",
+        manufacturerName: "",
+        variantName: "",
+        sku: "",
+        retailPrice: undefined,
+        description: "",
+      });
     }
     setIsModalOpen(true);
   };
@@ -126,31 +168,35 @@ export default function CatalogClient() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingItem(null);
-    form.resetFields();
+    form.reset({
+      productName: "",
+      productType: "GENERAL",
+      genericName: "",
+      manufacturerName: "",
+      variantName: "",
+      sku: "",
+      retailPrice: undefined,
+      description: "",
+    });
   };
 
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      const data = {
-        productName: values.productName,
-        variantName: values.variantName,
-        sku: values.sku,
-        retailPrice: values.retailPrice,
-        description: values.description,
-        productType: values.productType || "GENERAL",
-        genericName:
-          values.productType === "MEDICINE" ? values.genericName : undefined,
-        manufacturerName: values.manufacturerName,
-      };
+  const handleSubmit = (values: CatalogFormData) => {
+    const data = {
+      productName: values.productName,
+      variantName: values.variantName,
+      sku: values.sku,
+      retailPrice: values.retailPrice,
+      description: values.description,
+      productType: values.productType || "GENERAL",
+      genericName:
+        values.productType === "MEDICINE" ? values.genericName : undefined,
+      manufacturerName: values.manufacturerName,
+    };
 
-      if (editingItem) {
-        updateMutation.mutate({ id: editingItem.variantId, data });
-      } else {
-        createMutation.mutate(data);
-      }
-    } catch {
-      // Form validation failed
+    if (editingItem) {
+      updateMutation.mutate({ id: editingItem.variantId, data });
+    } else {
+      createMutation.mutate(data);
     }
   };
 
@@ -171,44 +217,6 @@ export default function CatalogClient() {
         </div>
       ),
     },
-    // {
-    //   title: "Variant",
-    //   dataIndex: "variantName",
-    //   key: "variantName",
-    // },
-    // {
-    //   title: "SKU",
-    //   dataIndex: "sku",
-    //   key: "sku",
-    // },
-    // {
-    //   title: "Type",
-    //   dataIndex: "productType",
-    //   key: "productType",
-    //   render: (type: string) => (
-    //     <Tag color={type === "MEDICINE" ? "blue" : "default"}>
-    //       {type || "General"}
-    //     </Tag>
-    //   ),
-    // },
-    // {
-    //   title: "Manufacturer",
-    //   dataIndex: "manufacturerName",
-    //   key: "manufacturerName",
-    //   render: (text: string) => text || "-",
-    // },
-    // {
-    //   title: "Price",
-    //   dataIndex: "retailPrice",
-    //   key: "retailPrice",
-    //   render: (price: number) => `৳${price.toFixed(2)}`,
-    // },
-    // {
-    //   title: "Stock",
-    //   dataIndex: "currentStock",
-    //   key: "currentStock",
-    //   render: (stock: number) => stock || 0,
-    // },
     {
       title: "Actions",
       key: "actions",
@@ -272,77 +280,173 @@ export default function CatalogClient() {
       <Modal
         title={editingItem ? "Edit Product" : "Add to Catalog"}
         open={isModalOpen}
-        onOk={handleSubmit}
+        onOk={form.handleSubmit(handleSubmit)}
         onCancel={handleCloseModal}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
         width={600}
       >
-        <Form form={form} layout="vertical" className="mt-4">
-          <Form.Item
-            name="productName"
-            label="Product Name"
-            rules={[{ required: true, message: "Required" }]}
-          >
-            <Input placeholder="e.g., Paracetamol, Rice" />
-          </Form.Item>
-
-          <Form.Item
-            name="productType"
-            label="Product Type"
-            initialValue="GENERAL"
-          >
-            <Select
-              onChange={(value) =>
-                setProductType(value as "GENERAL" | "MEDICINE")
-              }
-            >
-              <Select.Option value="GENERAL">General</Select.Option>
-              <Select.Option value="MEDICINE">Medicine</Select.Option>
-            </Select>
-          </Form.Item>
-
-          {productType === "MEDICINE" && (
-            <Form.Item name="genericName" label="Generic Name">
-              <Input placeholder="e.g., Acetaminophen" />
-            </Form.Item>
-          )}
-
-          <Form.Item name="manufacturerName" label="Manufacturer">
-            <Input placeholder="e.g., Square Pharmaceuticals" />
-          </Form.Item>
-
-          <Form.Item
-            name="variantName"
-            label="Variant"
-            rules={[{ required: true, message: "Required" }]}
-          >
-            <Input placeholder="e.g., 500mg Tablet, 1kg Pack" />
-          </Form.Item>
-
-          <Form.Item
-            name="sku"
-            label="SKU"
-            rules={[{ required: true, message: "Required" }]}
-          >
-            <Input placeholder="Unique product code" />
-          </Form.Item>
-
-          <Form.Item
-            name="retailPrice"
-            label="Retail Price"
-            rules={[{ required: true, message: "Required" }]}
-          >
-            <InputNumber
-              min={0}
-              step={0.01}
-              style={{ width: "100%" }}
-              prefix="৳"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 mt-4">
+            <FormField
+              control={form.control}
+              name="productName"
+              render={({ field, fieldState: { error } }) => (
+                <FormItem>
+                  <FormLabel>Product Name</FormLabel>
+                  <FormControl>
+                    <Input 
+                      value={field.value}
+                      placeholder="e.g., Paracetamol, Rice" 
+                      status={error ? "error" : undefined}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </Form.Item>
 
-          <Form.Item name="description" label="Description">
-            <Input.TextArea rows={2} placeholder="Optional description" />
-          </Form.Item>
+            <FormField
+              control={form.control}
+              name="productType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Product Type</FormLabel>
+                  <FormControl>
+                    <Select
+                      value={field.value}
+                      onChange={(val) => field.onChange(val)}
+                      options={[
+                        { value: "GENERAL", label: "General" },
+                        { value: "MEDICINE", label: "Medicine" }
+                      ]}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {watchedProductType === "MEDICINE" && (
+              <FormField
+                control={form.control}
+                name="genericName"
+                render={({ field, fieldState: { error } }) => (
+                  <FormItem>
+                    <FormLabel>Generic Name</FormLabel>
+                    <FormControl>
+                      <Input 
+                        value={field.value}
+                        placeholder="e.g., Acetaminophen" 
+                        status={error ? "error" : undefined}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <FormField
+              control={form.control}
+              name="manufacturerName"
+              render={({ field, fieldState: { error } }) => (
+                <FormItem>
+                  <FormLabel>Manufacturer</FormLabel>
+                  <FormControl>
+                    <Input 
+                      value={field.value}
+                      placeholder="e.g., Square Pharmaceuticals" 
+                      status={error ? "error" : undefined}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="variantName"
+              render={({ field, fieldState: { error } }) => (
+                <FormItem>
+                  <FormLabel>Variant</FormLabel>
+                  <FormControl>
+                    <Input 
+                      value={field.value}
+                      placeholder="e.g., 500mg Tablet, 1kg Pack" 
+                      status={error ? "error" : undefined}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="sku"
+              render={({ field, fieldState: { error } }) => (
+                <FormItem>
+                  <FormLabel>SKU</FormLabel>
+                  <FormControl>
+                    <Input 
+                      value={field.value}
+                      placeholder="Unique product code" 
+                      status={error ? "error" : undefined}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="retailPrice"
+              render={({ field, fieldState: { error } }) => (
+                <FormItem>
+                  <FormLabel>Retail Price</FormLabel>
+                  <FormControl>
+                    <InputNumber
+                      value={field.value}
+                      min={0}
+                      step={0.01}
+                      style={{ width: "100%" }}
+                      prefix="৳"
+                      status={error ? "error" : undefined}
+                      onChange={(val) => field.onChange(val)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field, fieldState: { error } }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Input.TextArea 
+                      value={field.value}
+                      rows={2} 
+                      placeholder="Optional description" 
+                      status={error ? "error" : undefined}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
         </Form>
       </Modal>
     </div>

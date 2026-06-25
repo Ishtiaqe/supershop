@@ -2,9 +2,20 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Table, Button, Modal, Form, Input, message, Popconfirm } from "antd";
+import { Table, Button, Modal, Input, message, Popconfirm } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import api from "@/lib/api";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
 
 interface Category {
   id: string;
@@ -12,11 +23,23 @@ interface Category {
   _count?: { products: number };
 }
 
+const categorySchema = z.object({
+  name: z.string().min(1, "Please enter category name"),
+});
+
+type CategoryFormData = z.infer<typeof categorySchema>;
+
 export default function CategoriesClient() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [form] = Form.useForm();
   const queryClient = useQueryClient();
+
+  const form = useForm<CategoryFormData>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: "",
+    },
+  });
 
   const { data: categories = [], isLoading } = useQuery<Category[]>({
     queryKey: ["categories"],
@@ -59,10 +82,10 @@ export default function CategoriesClient() {
   const handleOpenModal = (category?: Category) => {
     if (category) {
       setEditingCategory(category);
-      form.setFieldsValue({ name: category.name });
+      form.reset({ name: category.name });
     } else {
       setEditingCategory(null);
-      form.resetFields();
+      form.reset({ name: "" });
     }
     setIsModalOpen(true);
   };
@@ -70,19 +93,14 @@ export default function CategoriesClient() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingCategory(null);
-    form.resetFields();
+    form.reset({ name: "" });
   };
 
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      if (editingCategory) {
-        updateMutation.mutate({ id: editingCategory.id, name: values.name });
-      } else {
-        createMutation.mutate(values.name);
-      }
-    } catch {
-      // Form validation failed
+  const handleSubmit = (values: CategoryFormData) => {
+    if (editingCategory) {
+      updateMutation.mutate({ id: editingCategory.id, name: values.name });
+    } else {
+      createMutation.mutate(values.name);
     }
   };
 
@@ -147,18 +165,31 @@ export default function CategoriesClient() {
       <Modal
         title={editingCategory ? "Edit Category" : "Add Category"}
         open={isModalOpen}
-        onOk={handleSubmit}
+        onOk={form.handleSubmit(handleSubmit)}
         onCancel={handleCloseModal}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
       >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="Category Name"
-            rules={[{ required: true, message: "Please enter category name" }]}
-          >
-            <Input placeholder="e.g., Electronics, Food, Medicine" />
-          </Form.Item>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 pt-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field, fieldState: { error } }) => (
+                <FormItem>
+                  <FormLabel>Category Name</FormLabel>
+                  <FormControl>
+                    <Input 
+                      value={field.value}
+                      placeholder="e.g., Electronics, Food, Medicine" 
+                      status={error ? "error" : undefined}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
         </Form>
       </Modal>
     </div>

@@ -17,7 +17,7 @@ import {
   useExpenses,
   useDeleteExpense 
 } from "../hooks/useExpensesHooks";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -31,9 +31,7 @@ import {
 
 const expenseSchema = z.object({
   amount: z.coerce.number().min(0.01, "Amount must be at least 0.01"),
-  categoryId: z.string({
-    required_error: "Please select a category",
-  }),
+  categoryId: z.string().min(1, "Please select a category"),
   expenseDate: z.any().refine((val) => val && dayjs(val).isValid(), "Date is required"),
   description: z.string().optional(),
 });
@@ -58,7 +56,7 @@ export function ExpenseModal({ isOpen, onClose, expenseId }: ExpenseModalProps) 
   const { mutate: deleteExpense, isPending: isDeleting } = useDeleteExpense();
 
   const form = useForm<ExpenseFormData>({
-    resolver: zodResolver(expenseSchema),
+    resolver: zodResolver(expenseSchema) as Resolver<ExpenseFormData>,
     defaultValues: {
       amount: undefined,
       categoryId: undefined,

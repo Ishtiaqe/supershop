@@ -8,7 +8,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { useCreateCashBoxEntry } from "../hooks/useCashBoxHooks";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useEffect } from "react";
@@ -22,9 +22,7 @@ import {
 } from "@/components/ui/form";
 
 const cashBoxEntrySchema = z.object({
-  entryType: z.enum(["MANUAL_IN", "MANUAL_OUT"], {
-    required_error: "Please select entry type",
-  }),
+  entryType: z.enum(["MANUAL_IN", "MANUAL_OUT"]),
   amount: z.coerce.number().min(0.01, "Amount must be at least 0.01"),
   entryDate: z.any().refine((val) => val && dayjs(val).isValid(), "Please select date"),
   note: z.string().optional(),
@@ -35,14 +33,13 @@ type CashBoxEntryFormData = z.infer<typeof cashBoxEntrySchema>;
 interface AddEntryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  id?: string;
 }
 
-export function AddEntryModal({ isOpen, onClose, id }: AddEntryModalProps) {
+export function AddEntryModal({ isOpen, onClose }: AddEntryModalProps) {
   const { mutate: createEntry, isPending } = useCreateCashBoxEntry();
 
   const form = useForm<CashBoxEntryFormData>({
-    resolver: zodResolver(cashBoxEntrySchema),
+    resolver: zodResolver(cashBoxEntrySchema) as Resolver<CashBoxEntryFormData>,
     defaultValues: {
       entryType: "MANUAL_IN",
       amount: undefined,
@@ -76,8 +73,9 @@ export function AddEntryModal({ isOpen, onClose, id }: AddEntryModalProps) {
           form.reset();
           onClose();
         },
-        onError: (err: any) => {
-          message.error(err?.response?.data?.message || "Failed to add entry");
+        onError: (err: unknown) => {
+          const errorMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to add entry";
+          message.error(errorMsg);
         }
       }
     );
