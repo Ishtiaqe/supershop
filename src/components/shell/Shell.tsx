@@ -1,31 +1,30 @@
 "use client";
-// Force rebuild timestamp: 1764941600
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import {
-  Layout,
-  Menu,
-  Button,
-  Avatar,
-  Dropdown,
-  Drawer,
-} from "antd";
-import { theme } from "antd";
 import { useTheme } from "@/components/providers";
 import { getFilteredNavigation } from "@/config/navigation";
 import { NetworkStatus } from "./NetworkStatus";
 import { useAuth } from "@/components/auth/AuthProvider";
-
-import MenuOutlined from "@ant-design/icons/MenuOutlined";
-import DesktopOutlined from "@ant-design/icons/DesktopOutlined";
-import SunOutlined from "@ant-design/icons/SunOutlined";
-import MoonOutlined from "@ant-design/icons/MoonOutlined";
-import LogoutOutlined from "@ant-design/icons/LogoutOutlined";
-import UserSwitchOutlined from "@ant-design/icons/UserSwitchOutlined";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Monitor,
+  Sun,
+  Moon,
+  LogOut,
+  User,
+  Menu as MenuIcon,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import NotificationSetup from "@/components/notifications/NotificationSetup";
-
-const { Header, Sider, Content } = Layout;
 
 const PATH_LABELS: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -47,103 +46,104 @@ const AppSidebar = ({
   isMobile,
   setMobileOpen,
   setCollapsed,
-  items,
+  navigationItems,
   selectedKey,
   user,
-  token,
   onLogout,
 }: {
   collapsed: boolean;
   isMobile: boolean;
   setMobileOpen: (open: boolean) => void;
   setCollapsed: (collapsed: boolean) => void;
-  items: any[];
+  navigationItems: any[];
   selectedKey: string;
   user: any;
-  token: any;
   onLogout: () => void;
 }) => (
-  <div className="flex flex-col h-full">
-    <div className="flex items-center justify-start px-3 py-4 gap-2">
-      <div
-        className="flex items-center justify-center font-bold flex-shrink-0 w-9 h-9 text-lg cursor-pointer hover:bg-accent/70 active:bg-accent rounded-lg transition-all duration-200"
-        onClick={() => isMobile ? setMobileOpen(false) : setCollapsed?.(!collapsed)}
-        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        <MenuOutlined />
+  <div className="flex flex-col h-full bg-background">
+    <div className="flex items-center justify-between px-4 py-4 gap-2">
+      <div className="flex items-center gap-2 overflow-hidden">
+        <div className="flex items-center justify-center bg-primary text-primary-foreground font-bold rounded-lg w-8.5 h-8.5 flex-shrink-0 text-sm">
+          S
+        </div>
+        {!collapsed && (
+          <span className="font-bold text-lg text-foreground tracking-tight truncate">
+            SuperShop
+          </span>
+        )}
       </div>
-      {!collapsed && (
-        <span className="font-bold text-lg text-foreground tracking-tight truncate">
-          SuperShop
-        </span>
+      {!isMobile && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setCollapsed(!collapsed)}
+          className="h-8 w-8 text-muted-foreground hover:text-foreground hidden md:flex"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
+        </Button>
       )}
     </div>
 
-    <div className="flex-1 px-2 overflow-y-auto">
-      <Menu
-        mode="inline"
-        items={items}
-        selectedKeys={[selectedKey]}
-        style={{ background: "transparent", border: "none", fontSize: 14 }}
-        className="custom-menu"
-        onClick={() => isMobile && setMobileOpen(false)}
-      />
-    </div>
+    <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+      {navigationItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = selectedKey === item.key;
+        return (
+          <Link
+            key={item.key}
+            to={item.key}
+            onClick={() => isMobile && setMobileOpen(false)}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive
+                ? "bg-primary text-primary-foreground shadow-xs"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            }`}
+            title={collapsed ? item.label : undefined}
+          >
+            <Icon className="w-5 h-5 flex-shrink-0" />
+            {!collapsed && <span className="truncate">{item.label}</span>}
+          </Link>
+        );
+      })}
+    </nav>
 
     <div className="p-3 border-t border-border/50">
-      <Dropdown
-        trigger={["click"]}
-        menu={{
-          items: [
-            {
-              key: "profile",
-              label: (
-                <Link to="/profile" className="flex items-center gap-2 px-2 py-1.5">
-                  <UserSwitchOutlined /> Profile
-                </Link>
-              ),
-            },
-            { type: "divider" },
-            {
-              key: "logout",
-              danger: true,
-              label: (
-                <a onClick={onLogout} className="flex items-center gap-2 px-2 py-1.5">
-                  <LogoutOutlined /> Sign out
-                </a>
-              ),
-            },
-          ],
-        }}
-      >
-        <div
-          className={`cursor-pointer flex items-center gap-3 ${
-            collapsed ? "p-0 w-10 h-10 justify-center" : "p-2"
-          } rounded-lg hover:bg-accent/80 active:bg-accent transition-all duration-200`}
-          title="User menu"
-        >
-          <Avatar
-            style={{
-              backgroundColor: token.colorPrimary,
-              verticalAlign: "middle",
-              flexShrink: 0,
-            }}
-            size={36}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className={`w-full text-left cursor-pointer flex items-center gap-3 ${
+              collapsed ? "p-0 w-10 h-10 justify-center mx-auto" : "p-2"
+            } rounded-lg hover:bg-accent/80 active:bg-accent transition-all duration-200 focus-visible:outline-none`}
+            title="User menu"
           >
-            {(user?.fullName || "U")[0]}
-          </Avatar>
-          {!collapsed && (
-            <div className="flex flex-col overflow-hidden text-left">
-              <span className="font-semibold text-sm truncate text-foreground">
-                {user?.fullName || "User"}
-              </span>
-              <span className="text-xs text-muted-foreground truncate">
-                {user?.email}
-              </span>
+            <div className="flex items-center justify-center bg-primary text-primary-foreground font-semibold rounded-full w-9 h-9 flex-shrink-0 text-sm">
+              {(user?.fullName || "U")[0].toUpperCase()}
             </div>
-          )}
-        </div>
-      </Dropdown>
+            {!collapsed && (
+              <div className="flex flex-col overflow-hidden text-left min-w-0">
+                <span className="font-semibold text-sm truncate text-foreground leading-tight">
+                  {user?.fullName || "User"}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {user?.email}
+                </span>
+              </div>
+            )}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align={collapsed ? "center" : "start"} side="right" className="w-56">
+          <DropdownMenuItem asChild>
+            <Link to="/profile" className="flex items-center gap-2 w-full cursor-pointer">
+              <User className="w-4 h-4" /> Profile
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={onLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
+            <LogOut className="w-4 h-4 mr-2" /> Sign out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   </div>
 );
@@ -158,9 +158,9 @@ const ThemeToggle = ({
   compact?: boolean;
 }) => {
   const options: { value: "system" | "light" | "dark"; icon: React.ReactNode; label: string }[] = [
-    { value: "system", icon: <DesktopOutlined />, label: "System" },
-    { value: "light", icon: <SunOutlined />, label: "Light" },
-    { value: "dark", icon: <MoonOutlined />, label: "Dark" },
+    { value: "system", icon: <Monitor className="w-4 h-4" />, label: "System" },
+    { value: "light", icon: <Sun className="w-4 h-4" />, label: "Light" },
+    { value: "dark", icon: <Moon className="w-4 h-4" />, label: "Dark" },
   ];
   return (
     <div className="flex items-center rounded-lg border border-border bg-muted p-0.5 gap-0.5">
@@ -171,7 +171,7 @@ const ThemeToggle = ({
           title={opt.label}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-ring ${
             mode === opt.value
-              ? "bg-background text-foreground"
+              ? "bg-background text-foreground shadow-xs"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -190,7 +190,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { token } = theme.useToken();
   const themeContext = useTheme();
   const [tenantName, setTenantName] = useState<string>("SuperShop");
   const { user, loading, logout } = useAuth();
@@ -225,13 +224,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   const navigationItems = getFilteredNavigation(user?.role);
 
-  const items = navigationItems.map((item) => ({
-    key: item.key,
-    icon: <item.icon style={{ fontSize: 18 }} />,
-    label: <Link to={item.key}>{item.label}</Link>,
-    style: { height: 48, lineHeight: "48px", display: "flex", alignItems: "center" },
-  }));
-
   if (loading && !user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -245,7 +237,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   const selectedKey = (() => {
     let matched: string | undefined;
-    for (const it of items) {
+    for (const it of navigationItems) {
       if (pathname === it.key) return it.key;
       if (pathname.startsWith(it.key + "/")) {
         if (!matched || it.key.length > matched.length) matched = it.key;
@@ -261,76 +253,71 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   void tenantName; // used in future tenant display
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "transparent" }}>
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar for Desktop */}
       {!isMobile && (
-        <Sider
-          trigger={null}
-          collapsible
-          collapsed={drawerCollapse}
-          width={240}
-          collapsedWidth={64}
-          className="glass border-r border-border/50"
-          style={{
-            background: "transparent",
-            position: "sticky",
-            top: 0,
-            height: "100vh",
-            zIndex: 50,
-            overflow: "hidden",
-          }}
+        <aside
+          className={`glass border-r border-border/50 sticky top-0 h-screen z-50 flex flex-col transition-all duration-300 ${
+            drawerCollapse ? "w-16" : "w-60"
+          }`}
         >
           <AppSidebar
             collapsed={drawerCollapse}
             isMobile={isMobile}
             setMobileOpen={setMobileOpen}
             setCollapsed={setDrawerCollapsed}
-            items={items}
+            navigationItems={navigationItems}
             selectedKey={selectedKey}
             user={user}
-            token={token}
             onLogout={handleLogout}
           />
-        </Sider>
+        </aside>
       )}
 
+      {/* Sidebar Drawer for Mobile */}
       {isMobile && (
-        <Drawer
-          placement="left"
-          onClose={() => setMobileOpen(false)}
-          open={mobileOpen}
-          width={280}
-          styles={{ body: { padding: 0, background: "transparent" } }}
-          closable={false}
-          maskClosable={true}
-        >
-          <AppSidebar
-            collapsed={false}
-            isMobile={isMobile}
-            setMobileOpen={setMobileOpen}
-            setCollapsed={setDrawerCollapsed}
-            items={items}
-            selectedKey={selectedKey}
-            user={user}
-            token={token}
-            onLogout={handleLogout}
-          />
-        </Drawer>
+        <>
+          {/* Backdrop */}
+          {mobileOpen && (
+            <div
+              className="fixed inset-0 bg-black/40 z-50 md:hidden"
+              onClick={() => setMobileOpen(false)}
+            />
+          )}
+          {/* Drawer content */}
+          <aside
+            className={`fixed inset-y-0 left-0 w-64 bg-background border-r border-border z-50 md:hidden flex flex-col transform transition-transform duration-300 ${
+              mobileOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            <AppSidebar
+              collapsed={false}
+              isMobile={isMobile}
+              setMobileOpen={setMobileOpen}
+              setCollapsed={setDrawerCollapsed}
+              navigationItems={navigationItems}
+              selectedKey={selectedKey}
+              user={user}
+              onLogout={handleLogout}
+            />
+          </aside>
+        </>
       )}
 
-      <Layout style={{ background: "transparent" }}>
-        <Header
-          className="glass sticky top-0 z-40 flex items-center justify-between border-b border-border/50"
-          style={{ height: 64, background: "transparent", paddingInline: 24 }}
-        >
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="glass sticky top-0 z-40 h-16 flex items-center justify-between border-b border-border/50 px-6 bg-background/80 backdrop-blur-md">
           <div className="flex items-center gap-2">
             {isMobile && (
               <Button
-                type="text"
-                icon={<MenuOutlined />}
+                variant="ghost"
+                size="icon"
                 onClick={() => setMobileOpen(true)}
-                className="hover:bg-accent transition-colors"
-                style={{ fontSize: "18px", width: 40, height: 40, borderRadius: 8 }}
-              />
+                className="hover:bg-accent transition-colors h-10 w-10"
+              >
+                <MenuIcon className="w-5 h-5" />
+              </Button>
             )}
           </div>
           <div className="font-semibold text-lg text-foreground tracking-tight">
@@ -344,19 +331,20 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               compact={isMobile}
             />
           </div>
-        </Header>
+        </header>
+
+        {/* Content */}
         <NotificationSetup />
-        <Content
-          style={{
-            minHeight: "calc(100vh - 64px)",
-            padding: isMobile ? "16px" : "24px",
-          }}
+        <main
+          className={`flex-1 overflow-y-auto ${
+            isMobile ? "p-4" : "p-6"
+          }`}
         >
           <div key={pathname} className="transition-opacity duration-200">
             {children}
           </div>
-        </Content>
-      </Layout>
-    </Layout>
+        </main>
+      </div>
+    </div>
   );
 }

@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { Modal, Button, Input, List, Popconfirm, message, Typography } from "antd";
-import { PlusOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { Trash2, Edit2, Check, X } from "lucide-react";
 import { 
   useCategories, 
   useCreateCategory, 
@@ -12,13 +15,9 @@ import {
 interface ManageCategoriesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  id?: string;
 }
 
-const { Text } = Typography;
-
-export function ManageCategoriesModal({ isOpen, onClose, id }: ManageCategoriesModalProps) {
-
+export function ManageCategoriesModal({ isOpen, onClose }: ManageCategoriesModalProps) {
   const { data: categories, isLoading } = useCategories();
   const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
   const { mutate: updateCategory, isPending: isUpdating } = useUpdateCategory();
@@ -27,13 +26,14 @@ export function ManageCategoriesModal({ isOpen, onClose, id }: ManageCategoriesM
   const [newCatName, setNewCatName] = useState("");
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editingCatName, setEditingCatName] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleCreate = () => {
     if (!newCatName.trim()) return;
     createCategory({ name: newCatName.trim() }, {
       onSuccess: () => {
         setNewCatName("");
-        message.success("Category created successfully");
+        toast.success("Category created successfully");
       }
     });
   };
@@ -49,120 +49,143 @@ export function ManageCategoriesModal({ isOpen, onClose, id }: ManageCategoriesM
       onSuccess: () => {
         setEditingCatId(null);
         setEditingCatName("");
-        message.success("Category updated successfully");
+        toast.success("Category updated successfully");
       }
     });
   };
 
   const handleDelete = (id: string) => {
     deleteCategory(id, {
-      onSuccess: () => message.success("Category deleted successfully"),
-      onError: () => message.error("Failed to delete category")
+      onSuccess: () => {
+        setConfirmDeleteId(null);
+        toast.success("Category deleted successfully");
+      },
+      onError: () => toast.error("Failed to delete category")
     });
   };
 
   return (
-    <Modal
-      title="Manage Expense Categories"
-      open={isOpen}
-      onCancel={onClose}
-      footer={null}
-    >
-      <div className="space-y-4 pt-4">
-        <div className="flex items-center gap-2">
-          <Input 
-            placeholder="New category name..." 
-            value={newCatName}
-            onChange={(e) => setNewCatName(e.target.value)}
-            onPressEnter={handleCreate}
-          />
-          <Button 
-            type="primary" 
-            onClick={handleCreate} 
-            disabled={!newCatName.trim() || isCreating}
-            icon={<PlusOutlined />}
-            loading={isCreating}
-          >
-            Add
-          </Button>
-        </div>
-
-        <List
-          bordered
-          size="small"
-          loading={isLoading}
-          dataSource={categories || []}
-          className="max-h-[300px] overflow-y-auto rounded-md"
-          locale={{ emptyText: "No categories defined." }}
-          renderItem={(cat: ExpenseCategory) => (
-
-            <List.Item
-              actions={[
-                editingCatId === cat.id ? (
-                  <Button 
-                    key="save" 
-                    type="link" 
-                    size="small" 
-                    onClick={() => handleUpdate(cat.id)}
-                    disabled={!editingCatName.trim() || isUpdating}
-                  >
-                    Save
-                  </Button>
-                ) : (
-                  <Button 
-                    key="edit" 
-                    type="link" 
-                    icon={<EditOutlined />} 
-                    size="small" 
-                    onClick={() => startEdit(cat)} 
-                  />
-                ),
-                editingCatId === cat.id ? (
-                  <Button 
-                    key="cancel" 
-                    type="link" 
-                    size="small" 
-                    onClick={() => setEditingCatId(null)}
-                  >
-                    Cancel
-                  </Button>
-                ) : (
-                  <Popconfirm
-                    key="delete"
-                    title="Delete category"
-                    description="Are you sure? This category will be deleted. Ensure no expenses are using it."
-                    onConfirm={() => handleDelete(cat.id)}
-                    okText="Yes"
-                    cancelText="No"
-                    disabled={isDeleting}
-                  >
-                    <Button 
-                      type="link" 
-                      danger 
-                      icon={<DeleteOutlined />} 
-                      size="small" 
-                      disabled={isDeleting}
-                    />
-                  </Popconfirm>
-                ),
-              ]}
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Manage Expense Categories</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center gap-2">
+            <Input 
+              placeholder="New category name..." 
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreate();
+              }}
+            />
+            <Button 
+              onClick={handleCreate} 
+              disabled={!newCatName.trim() || isCreating}
             >
-              {editingCatId === cat.id ? (
-                <Input
-                  value={editingCatName}
-                  onChange={(e) => setEditingCatName(e.target.value)}
-                  onPressEnter={() => handleUpdate(cat.id)}
-                  autoFocus
-                  size="small"
-                />
-              ) : (
-                <Typography.Text>{cat.name}</Typography.Text>
-              )}
-            </List.Item>
-          )}
-        />
-      </div>
-    </Modal>
+              {isCreating ? "Adding..." : "Add"}
+            </Button>
+          </div>
+
+          <div className="max-h-[300px] overflow-y-auto rounded-md border divide-y bg-card text-card-foreground">
+            {isLoading ? (
+              <div className="flex justify-center p-6">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              </div>
+            ) : categories && categories.length > 0 ? (
+              categories.map((cat) => (
+                <div key={cat.id} className="flex items-center justify-between p-3 text-sm">
+                  <div className="flex-1 mr-4">
+                    {editingCatId === cat.id ? (
+                      <Input
+                        value={editingCatName}
+                        onChange={(e) => setEditingCatName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleUpdate(cat.id);
+                        }}
+                        autoFocus
+                        className="h-8"
+                      />
+                    ) : (
+                      <span className="font-medium text-foreground">{cat.name}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {editingCatId === cat.id ? (
+                      <>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-green-600 hover:text-green-600 hover:bg-green-50"
+                          onClick={() => handleUpdate(cat.id)}
+                          disabled={!editingCatName.trim() || isUpdating}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-muted-foreground"
+                          onClick={() => setEditingCatId(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : confirmDeleteId === cat.id ? (
+                      <div className="flex items-center gap-1 bg-destructive/10 px-2 py-0.5 rounded border border-destructive/20">
+                        <span className="text-xs text-destructive font-medium mr-1">Delete?</span>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 text-destructive hover:bg-destructive/20"
+                          onClick={() => handleDelete(cat.id)}
+                          disabled={isDeleting}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 text-muted-foreground hover:bg-muted"
+                          onClick={() => setConfirmDeleteId(null)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => startEdit(cat)}
+                        >
+                          <Edit2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 hover:text-destructive"
+                          onClick={() => setConfirmDeleteId(cat.id)}
+                          disabled={isDeleting}
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center p-6 text-muted-foreground">
+                No categories defined.
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

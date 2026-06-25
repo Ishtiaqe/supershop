@@ -1,21 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
-  Card,
-  Input,
-  Button,
   Table,
-  Space,
-  message,
-  Tag,
-  Spin,
-} from "antd";
-import {
-  DownloadOutlined,
-  SearchOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import { toast } from "sonner";
+import { Download, Search, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useUserSearch, useUserDataExport } from "@/hooks/useBackupApi";
 import { downloadBlob, generateTimestampedFilename } from "@/lib/download-utils";
@@ -43,13 +42,13 @@ export default function UserDataExportComponent() {
       await userSearch.mutateAsync(value);
     } catch (error) {
       console.error("Search error:", error);
-      message.error("Failed to search users");
+      toast.error("Failed to search users");
     }
   };
 
   const handleExportUserData = async (userId: string) => {
     if (!isTenantOwner) {
-      message.error("Only tenant owners can export user data");
+      toast.error("Only tenant owners can export user data");
       return;
     }
 
@@ -58,10 +57,10 @@ export default function UserDataExportComponent() {
       const blob = await userExport.mutateAsync(userId);
       const filename = generateTimestampedFilename(`user-data-${userId}`, "json");
       downloadBlob(blob, filename);
-      message.success("User data exported successfully!");
+      toast.success("User data exported successfully!");
     } catch (error) {
       console.error("Export error:", error);
-      message.error("Failed to export user data. Please try again.");
+      toast.error("Failed to export user data. Please try again.");
     } finally {
       setSelectedUserId(null);
     }
@@ -70,128 +69,118 @@ export default function UserDataExportComponent() {
   if (!isTenantOwner) {
     return (
       <Card>
-        <div className="text-center text-red-500">
-          <UserOutlined className="text-2xl mr-2" />
-          <p>Only tenant owners can access user data export.</p>
-        </div>
+        <CardContent className="pt-6 text-center text-red-500">
+          <UserIcon className="text-2xl mr-2 inline" />
+          <p className="inline-block">Only tenant owners can access user data export.</p>
+        </CardContent>
       </Card>
     );
   }
-
-  const columns = [
-    {
-      title: "Email",
-      dataIndex: "email",
-      key: "email",
-    },
-    {
-      title: "Full Name",
-      dataIndex: "fullName",
-      key: "fullName",
-    },
-    {
-      title: "Role",
-      dataIndex: "role",
-      key: "role",
-      render: (role: string) => (
-        <Tag color={role === "SUPER_ADMIN" ? "red" : "blue"}>{role}</Tag>
-      ),
-    },
-    {
-      title: "Created",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (date: string) => formatDate(date, "short"),
-    },
-    {
-      title: "Action",
-      key: "action",
-      render: (_: unknown, record: User) => (
-        <Button
-          type="primary"
-          size="small"
-          icon={<DownloadOutlined />}
-          loading={userExport.isPending && selectedUserId === record.id}
-          onClick={() => handleExportUserData(record.id)}
-        >
-          Export Data
-        </Button>
-      ),
-    },
-  ];
 
   const users = (userSearch.data || []) as User[];
 
-  if (!isTenantOwner) {
-    return (
-      <Card>
-        <div className="text-center text-red-500">
-          <UserOutlined className="text-2xl mr-2" />
-          <p>Only tenant owners can access user data export.</p>
-        </div>
-      </Card>
-    );
-  }
-
   return (
     <Card className="mt-6">
-      <h2 className="text-xl font-bold mb-4">Export User Data (GDPR)</h2>
-
-      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded">
-        <p className="text-sm text-gray-700">
-          <strong>SUPER_ADMIN Feature:</strong> Search for any user and download
-          all their data across all tables (sales, short lists, inventory, etc.)
-          in JSON format. This feature complies with data privacy regulations.
-        </p>
-      </div>
-
-      <Space direction="vertical" style={{ width: "100%" }} size="large">
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Search User by Email
-          </label>
-          <Input
-            placeholder="Enter user email..."
-            prefix={<SearchOutlined />}
-            value={searchEmail}
-            onChange={(e) => setSearchEmail(e.target.value)}
-            onPressEnter={(e) => {
-              const value = (e.target as HTMLInputElement).value;
-              if (value) handleSearch(value);
-            }}
-          />
+      <CardHeader>
+        <CardTitle className="text-xl font-bold">Export User Data (GDPR)</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">SUPER_ADMIN Feature:</strong> Search for any user and download
+            all their data across all tables (sales, short lists, inventory, etc.)
+            in JSON format. This feature complies with data privacy regulations.
+          </p>
         </div>
 
-        {userSearch.isPending && <Spin />}
-
-        {users && users.length > 0 && (
-          <Table
-            dataSource={users}
-            columns={columns}
-            rowKey="id"
-            pagination={{ pageSize: 10 }}
-            size="small"
-          />
-        )}
-
-        {searchEmail && !userSearch.isPending && users?.length === 0 && (
-          <div className="text-center text-gray-500 py-8">
-            No users found matching &quot;{searchEmail}&quot;
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Search User by Email
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Enter user email..."
+                value={searchEmail}
+                onChange={(e) => setSearchEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const value = (e.target as HTMLInputElement).value;
+                    if (value) handleSearch(value);
+                  }
+                }}
+                className="pl-10 h-11"
+              />
+            </div>
           </div>
-        )}
-      </Space>
 
-      <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded">
-        <h3 className="font-semibold mb-2">Export Contents:</h3>
-        <ul className="text-sm space-y-1">
-          <li>✓ User profile information</li>
-          <li>✓ All sales/transactions</li>
-          <li>✓ Short list items</li>
-          <li>✓ Inventory overview</li>
-          <li>✓ Notifications history</li>
-          <li>✓ Sales summary and totals</li>
-        </ul>
-      </div>
+          {userSearch.isPending && (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+
+          {users && users.length > 0 && (
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Full Name</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-medium">{record.email}</TableCell>
+                      <TableCell>{record.fullName}</TableCell>
+                      <TableCell>
+                        <Badge variant={record.role === "SUPER_ADMIN" ? "destructive" : "secondary"}>
+                          {record.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{record.createdAt ? formatDate(record.createdAt, "short") : "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          disabled={userExport.isPending && selectedUserId === record.id}
+                          onClick={() => handleExportUserData(record.id)}
+                          className="inline-flex items-center gap-1.5"
+                        >
+                          <Download className="h-4 w-4" />
+                          {userExport.isPending && selectedUserId === record.id ? "Exporting..." : "Export Data"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {searchEmail && !userSearch.isPending && users?.length === 0 && (
+            <div className="text-center text-muted-foreground py-8 border border-dashed rounded-lg">
+              No users found matching &quot;{searchEmail}&quot;
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 bg-muted/50 border border-border rounded-lg">
+          <h3 className="font-semibold mb-2 text-sm text-foreground">Export Contents:</h3>
+          <ul className="text-sm space-y-1.5 text-muted-foreground">
+            <li>✓ User profile information</li>
+            <li>✓ All sales/transactions</li>
+            <li>✓ Short list items</li>
+            <li>✓ Inventory overview</li>
+            <li>✓ Notifications history</li>
+            <li>✓ Sales summary and totals</li>
+          </ul>
+        </div>
+      </CardContent>
     </Card>
   );
 }

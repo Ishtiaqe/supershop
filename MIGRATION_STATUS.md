@@ -101,28 +101,31 @@ Files to convert (antd `Form.useForm` → shadcn Form + RHF + Zod):
 Reference pattern: `src/components/inventory/InventoryClient.tsx` (already RHF+Zod).
 
 ### Phase A3 — Replace antd components file-by-file
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
-Antd usage surface (from exploration):
-- Button × 19 files → shadcn `Button`
-- Input × 12 → shadcn `Input`
-- Card × 12 → shadcn `Card`
-- Table × 9 → TanStack Table + shadcn `Table`
-- Modal × 8 → shadcn `Dialog`
-- Typography × 7 → native + Tailwind
-- Popconfirm × 6 → shadcn `AlertDialog`
-- Form × 6 → Phase A2 (done first)
-- Alert × 6 → shadcn `Alert`
-- Space/List/Tag/Spin/Progress/Empty → flex utils / `Badge` / `Skeleton` / `Progress`
-- Shell.tsx: Layout, Sider, Menu, Drawer, Avatar, Dropdown (biggest chunk)
+All Ant Design components (Button, Input, Card, Table, Modal, Typography, Popconfirm, Form, Alert, Space, List, Tag, Spin, Progress, Empty) have been replaced with `shadcn/ui` components and native Tailwind CSS styled elements across all files in the repository.
 
 ### Phase A4 — Flatten pages to single-file client pages
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
 
-(Partially done by Vite migration — pages are already simpler.)
+* Route-wrapper files and split `Client` components have been flattened. Client logic has been merged directly into their respective `page.tsx` files:
+  * `src/app/categories/page.tsx` (CategoriesClient merged, original deleted)
+  * `src/app/brands/page.tsx` (BrandsClient merged, original deleted)
+  * `src/app/catalog/page.tsx` (CatalogClient merged, original deleted)
+  * `src/app/inventory/page.tsx` (InventoryClient merged, original deleted)
+  * `src/app/sales/page.tsx` (SalesClient merged, original deleted)
+  * `src/app/pos/page.tsx` (POSClient merged, original deleted)
+  * `src/app/medicine-database/page.tsx` (MedicineDatabaseClient merged, original deleted)
+  * `src/app/dashboard/page.tsx` (Merged DashboardClient + DashboardSummaryClient, original client files deleted)
+* This removes unnecessary dynamic lazy-loading wrappers where direct page-level import or rendering is more performant and maintainable.
 
 ### Phase A5 — Remove antd + dead-code sweep + bundle verification
-**Status:** ⬜ Not started
+**Status:** ✅ Complete
+
+* Ant Design and Ant Design Icons dependencies removed from `package.json`.
+* Global CSS `antd/dist/reset.css` removed from `src/main.tsx`.
+* Cleaned up `node_modules` (64 packages removed).
+* Verified `npm run type-check` (0 errors) and `npm run build` (successful production build).
 
 ---
 

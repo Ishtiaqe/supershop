@@ -1,17 +1,54 @@
-"use client"
+"use client";
 
-import { useState, startTransition } from 'react'
-import api from '@/lib/api'
-import { Input, Button, Form, Alert, Card } from 'antd'
-import { useNavigate } from 'react-router-dom'
+import { useState, startTransition } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import api from '@/lib/api';
+
+// Import shadcn UI components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+
+const tenantSetupSchema = z.object({
+  name: z.string().min(1, 'Store name is required'),
+  registrationNumber: z.string().optional(),
+  addressStreet: z.string().optional(),
+  addressCity: z.string().optional(),
+  addressZone: z.string().optional(),
+});
+
+type TenantSetupFormData = z.infer<typeof tenantSetupSchema>;
 
 export default function TenantSetupPage() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  const onFinish = async (values: Record<string, unknown>) => {
+  const form = useForm<TenantSetupFormData>({
+    resolver: zodResolver(tenantSetupSchema),
+    defaultValues: {
+      name: '',
+      registrationNumber: '',
+      addressStreet: '',
+      addressCity: '',
+      addressZone: '',
+    },
+  });
+
+  const onSubmit = async (values: TenantSetupFormData) => {
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -23,7 +60,7 @@ export default function TenantSetupPage() {
         setSuccess('Tenant created successfully');
       });
 
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
       setTimeout(() => navigate('/sales'), 1000);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -31,35 +68,111 @@ export default function TenantSetupPage() {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      <Card title="Setup your store">
-        {error && <Alert type="error" message={error} className="mb-4" />}
-        {success && <Alert type="success" message={success} className="mb-4" />}
+    <div className="max-w-2xl mx-auto p-4">
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold">Setup your store</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive" className="bg-background border shadow-sm">
+              <AlertTitle className="font-semibold">Error</AlertTitle>
+              <AlertDescription className="mt-1 text-xs text-muted-foreground">
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
+          {success && (
+            <Alert className="bg-background border shadow-sm border-emerald-500 text-emerald-600">
+              <AlertTitle className="font-semibold text-emerald-600">Success</AlertTitle>
+              <AlertDescription className="mt-1 text-xs text-muted-foreground">
+                {success}
+              </AlertDescription>
+            </Alert>
+          )}
 
-        <Form layout="vertical" onFinish={onFinish}>
-          <Form.Item name="name" label="Store name" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="registrationNumber" label="Registration number">
-            <Input />
-          </Form.Item>
-          <Form.Item name="addressStreet" label="Street">
-            <Input />
-          </Form.Item>
-          <Form.Item name="addressCity" label="City">
-            <Input />
-          </Form.Item>
-          <Form.Item name="addressZone" label="Zone">
-            <Input />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading}>Create store</Button>
-          </Form.Item>
-        </Form>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Store Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter store name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="registrationNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Registration Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter registration number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="addressStreet"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Street Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter street" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="addressCity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter city" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="addressZone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Zone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter zone" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Creating store...' : 'Create store'}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -4,10 +4,19 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { debounce } from "lodash";
-import { Select, Button, Input, Table, Popconfirm, Card } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { useItemDetail } from "@/components/providers/ItemDetailContext";
-import { Loader2, Download, Trash2 } from "lucide-react";
+import { Loader2, Download, Trash2, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface ShortListItem {
@@ -47,6 +56,7 @@ export default function ShortListPage() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [shortlistSearchTerm, setShortlistSearchTerm] = useState("");
   const [debouncedShortlistSearch, setDebouncedShortlistSearch] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Debounce inventory search (stable ref + cleanup)
   const debouncedInventorySearch = useRef(
@@ -229,99 +239,49 @@ export default function ShortListPage() {
 
   const shortlistItems = filteredShortlistItems(data?.data);
 
-  const columns: ColumnsType<ShortListItem> = [
-    {
-      title: "Item Name",
-      key: "itemName",
-      render: (_, item) => {
-        const variantId = item.inventory?.variant?.id;
-        return variantId ? (
-          <button
-            onClick={() => openItem(variantId, { showBatches: false })}
-            className="text-primary hover:underline text-left font-medium"
-          >
-            {item.inventory.itemName}
-          </button>
-        ) : (
-          <span className="font-medium">{item.inventory.itemName}</span>
-        );
-      },
-    },
-    {
-      title: "Current Qty",
-      key: "quantity",
-      render: (_, item) => item.inventory.quantity,
-    },
-    {
-      title: "Last Restock Qty",
-      key: "lastRestockQty",
-      render: (_, item) => item.inventory.lastRestockQty || "N/A",
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, item) => (
-        <Popconfirm
-          title="Remove from shortlist"
-          description="Are you sure you want to remove this item from the shortlist?"
-          okText="Yes, Remove"
-          cancelText="No"
-          okButtonProps={{ danger: true }}
-          onConfirm={() => removeMutation.mutate(item.inventoryId)}
-        >
-          <Button
-            danger
-            type="text"
-            size="small"
-            icon={<Trash2 className="w-4 h-4" />}
-          />
-        </Popconfirm>
-      ),
-    },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="page-header">Short List</h1>
-        <p className="page-subheader">Items that need restocking</p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Short List</h1>
+        <p className="text-muted-foreground text-sm">Items that need restocking</p>
       </div>
 
       {/* Controls */}
-      <Card>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {/* Add to Shortlist Search */}
-          <div className="md:col-span-2">
-            <label className="block text-xs font-medium mb-2">
-              Add Item to Shortlist
-            </label>
-            <div className="space-y-2">
-              <Input
-                allowClear
-                placeholder="Search inventory items..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                disabled={isSearching}
-                prefix={
-                  isSearching ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : undefined
-                }
-              />
+      <Card className="shadow-sm">
+        <CardContent className="pt-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Add to Shortlist Search */}
+            <div className="md:col-span-2 relative">
+              <label className="block text-xs font-semibold text-muted-foreground mb-2">
+                Add Item to Shortlist
+              </label>
+              <div className="relative">
+                <Input
+                  placeholder="Search inventory items..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-10"
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-2.5">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
               {debouncedSearchTerm.length < 2 && (
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground mt-1">
                   Type at least 2 characters
                 </div>
               )}
               {debouncedSearchTerm.length >= 2 &&
                 inventorySearchResults.length > 0 && (
-                  <div className="border rounded-lg overflow-hidden bg-white z-10">
+                  <div className="absolute left-0 right-0 mt-1 border rounded-lg shadow-lg bg-popover text-popover-foreground z-50 max-h-60 overflow-y-auto">
                     {inventorySearchResults.map((item: any) => (
                       <button
                         key={item.id}
                         type="button"
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 border-b last:border-b-0 flex justify-between items-center"
+                        className="w-full px-4 py-2 text-left hover:bg-muted border-b border-border last:border-b-0 flex justify-between items-center transition-colors"
                         onClick={() => {
                           addToShortlistMutation.mutate(item.id);
                           setSearchTerm("");
@@ -333,10 +293,10 @@ export default function ShortListPage() {
                           </span>
                         </div>
                         <div className="flex flex-col items-end">
-                          <span className="font-bold text-sm">
+                          <span className="font-bold text-sm text-primary">
                             ৳{item.retailPrice ?? "-"}
                           </span>
-                          <span className="text-xs">
+                          <span className="text-xs text-muted-foreground">
                             {item.quantity > 0
                               ? `${item.quantity} in stock`
                               : "Out of stock"}
@@ -347,91 +307,170 @@ export default function ShortListPage() {
                   </div>
                 )}
             </div>
+
+            {/* Sort By */}
+            <div className="flex flex-col">
+              <label className="block text-xs font-semibold text-muted-foreground mb-2">Sort By</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="quantity">Lowest Stock First</option>
+                <option value="addedAt">Recently Added</option>
+                <option value="name">Item Name</option>
+              </select>
+            </div>
           </div>
 
-          {/* Sort By */}
-          <div>
-            <label className="block text-xs font-medium mb-2">Sort By</label>
-            <Select
-              value={sortBy}
-              onChange={(val) => setSortBy(val)}
-              style={{ width: "100%" }}
-              options={[
-                { value: "quantity", label: "Lowest Stock First" },
-                { value: "addedAt", label: "Recently Added" },
-                { value: "name", label: "Item Name" },
-              ]}
-            />
+          {/* Export Buttons */}
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button
+              onClick={() => exportPdf("shortlist")}
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" /> Download Shortlist
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => exportPdf("inventory")}
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" /> Download Inventory
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => exportPdf("analytics")}
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" /> Download Analytics
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => exportBackup()}
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" /> Download Backup
+            </Button>
+            <Button
+              variant="outline"
+              onClick={downloadAsImage}
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" /> Download as Image
+            </Button>
           </div>
-        </div>
-
-        {/* Export Buttons */}
-        <div className="flex flex-wrap gap-2 mb-2">
-          <Button
-            type="primary"
-            onClick={() => exportPdf("shortlist")}
-            icon={<Download className="w-4 h-4" />}
-          >
-            Download Shortlist
-          </Button>
-          <Button
-            onClick={() => exportPdf("inventory")}
-            icon={<Download className="w-4 h-4" />}
-          >
-            Download Inventory
-          </Button>
-          <Button
-            onClick={() => exportPdf("analytics")}
-            icon={<Download className="w-4 h-4" />}
-          >
-            Download Analytics
-          </Button>
-          <Button
-            onClick={() => exportBackup()}
-            icon={<Download className="w-4 h-4" />}
-          >
-            Download Backup
-          </Button>
-          <Button
-            onClick={downloadAsImage}
-            icon={<Download className="w-4 h-4" />}
-          >
-            Download as Image
-          </Button>
-        </div>
+        </CardContent>
       </Card>
 
       {/* Shortlist Items Table */}
       {error ? (
-        <div className="text-center py-12 text-destructive">
+        <div className="text-center py-12 text-destructive font-medium">
           Error loading short list
         </div>
       ) : (
-        <Card ref={shortlistTableRef}>
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-4">
-              Shortlist Items ({shortlistItems.length})
-            </h3>
-            <Input
-              allowClear
-              value={shortlistSearchTerm}
-              onChange={(e) => setShortlistSearchTerm(e.target.value)}
-              placeholder="Search shortlist by item name, SKU, or product..."
-            />
-          </div>
-
-          <Table<ShortListItem>
-            columns={columns}
-            dataSource={shortlistItems}
-            rowKey={(item) => item.id}
-            loading={isLoading}
-            pagination={false}
-            locale={{
-              emptyText: shortlistSearchTerm
-                ? `No items found matching "${shortlistSearchTerm}"`
-                : "No items in short list",
-            }}
-          />
+        <Card className="shadow-sm" ref={shortlistTableRef}>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-bold flex items-center justify-between flex-wrap gap-2">
+              <span>Shortlist Items ({shortlistItems.length})</span>
+            </CardTitle>
+            <div className="pt-2">
+              <Input
+                value={shortlistSearchTerm}
+                onChange={(e) => setShortlistSearchTerm(e.target.value)}
+                placeholder="Search shortlist by item name, SKU, or product..."
+                className="max-w-md"
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item Name</TableHead>
+                    <TableHead>Current Qty</TableHead>
+                    <TableHead>Last Restock Qty</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                      </TableCell>
+                    </TableRow>
+                  ) : shortlistItems.length > 0 ? (
+                    shortlistItems.map((item) => {
+                      const variantId = item.inventory?.variant?.id;
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            {variantId ? (
+                              <button
+                                onClick={() => openItem(variantId, { showBatches: false })}
+                                className="text-primary hover:underline text-left font-medium"
+                              >
+                                {item.inventory.itemName}
+                              </button>
+                            ) : (
+                              <span className="font-medium">{item.inventory.itemName}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-semibold">{item.inventory.quantity}</TableCell>
+                          <TableCell>{item.inventory.lastRestockQty || "N/A"}</TableCell>
+                          <TableCell className="text-right">
+                            {confirmDeleteId === item.id ? (
+                              <div className="flex items-center gap-1 bg-destructive/10 px-2 py-0.5 rounded border border-destructive/20 justify-end w-fit ml-auto">
+                                <span className="text-xs text-destructive font-medium mr-1">Remove?</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7 text-destructive hover:bg-destructive/20"
+                                  onClick={() => {
+                                    removeMutation.mutate(item.inventoryId);
+                                    setConfirmDeleteId(null);
+                                  }}
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7 text-muted-foreground hover:bg-muted"
+                                  onClick={() => setConfirmDeleteId(null)}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
+                                onClick={() => setConfirmDeleteId(item.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                        {shortlistSearchTerm
+                          ? `No items found matching "${shortlistSearchTerm}"`
+                          : "No items in short list"}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
         </Card>
       )}
     </div>

@@ -5,6 +5,7 @@ export interface User {
   phone?: string
   role: 'SUPER_ADMIN' | 'OWNER' | 'EMPLOYEE'
   tenantId?: string
+  createdAt?: string
 }
 
 export interface Tenant {

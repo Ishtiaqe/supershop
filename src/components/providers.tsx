@@ -2,7 +2,6 @@
 
 import { QueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useState, useEffect, useMemo } from "react";
-import { ConfigProvider, theme as antdTheme, App } from "antd";
 import React from "react";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
@@ -10,7 +9,6 @@ import { get, set, del } from "idb-keyval";
 import { OfflineProvider } from "./providers/offline-provider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ItemDetailProvider } from "@/components/providers/ItemDetailContext";
-import { getThemeColors } from "@/lib/theme";
 
 const ReactQueryDevtools = lazy(() =>
   import("@tanstack/react-query-devtools").then((m) => ({
@@ -43,7 +41,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       })
   );
 
-  // ponytail: async IDB persister — no localStorage main-thread blocking
   const persister = useMemo(
     () =>
       createAsyncStoragePersister({
@@ -90,58 +87,25 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [mode, systemDark]);
 
-  const isDark = mode === "dark" || (mode === "system" && systemDark);
-  const colors = getThemeColors(isDark ? "dark" : "light");
-
-  const themeConfig = {
-    algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-    token: {
-      colorPrimary: colors.primary.hex,
-      colorInfo: colors.primary.hex,
-      colorSuccess: colors.success.hex,
-      colorWarning: colors.warning.hex,
-      colorError: colors.destructive.hex,
-      colorBgBase: colors.background.hex,
-      colorBgContainer: colors.card.hex,
-      colorBgElevated: colors.card.hex,
-      colorTextBase: colors.foreground.hex,
-      colorTextSecondary: colors.mutedForeground.hex,
-      colorBorder: colors.border.hex,
-      colorBgLayout: colors.background.hex,
-      borderRadius: 8,
-      fontFamily: "inherit",
-    },
-    components: {
-      Menu: { itemHeight: 48, itemFontSize: 15 },
-      Button: { borderRadius: 6, fontWeight: 500 },
-      Card: { borderRadiusLG: 12 },
-      Table: { borderRadius: 12 },
-    },
-  };
-
   return (
     <ThemeContext.Provider value={{ mode, setMode }}>
-      <ConfigProvider theme={themeConfig}>
-        <App>
-          <OfflineProvider>
-            <AuthProvider>
-              <PersistQueryClientProvider
-                client={queryClient}
-                persistOptions={{ persister }}
-              >
-                <ItemDetailProvider>
-                  {children}
-                </ItemDetailProvider>
-                {import.meta.env.DEV && (
-                  <Suspense fallback={null}>
-                    <ReactQueryDevtools initialIsOpen={false} />
-                  </Suspense>
-                )}
-              </PersistQueryClientProvider>
-            </AuthProvider>
-          </OfflineProvider>
-        </App>
-      </ConfigProvider>
+      <OfflineProvider>
+        <AuthProvider>
+          <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{ persister }}
+          >
+            <ItemDetailProvider>
+              {children}
+            </ItemDetailProvider>
+            {import.meta.env.DEV && (
+              <Suspense fallback={null}>
+                <ReactQueryDevtools initialIsOpen={false} />
+              </Suspense>
+            )}
+          </PersistQueryClientProvider>
+        </AuthProvider>
+      </OfflineProvider>
     </ThemeContext.Provider>
   );
 }

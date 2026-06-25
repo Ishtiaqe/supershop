@@ -1,16 +1,18 @@
 import React from "react";
-import DashboardOutlined from "@ant-design/icons/DashboardOutlined";
-import ShoppingCartOutlined from "@ant-design/icons/ShoppingCartOutlined";
-import BarChartOutlined from "@ant-design/icons/BarChartOutlined";
-import InboxOutlined from "@ant-design/icons/InboxOutlined";
-import AppstoreOutlined from "@ant-design/icons/AppstoreOutlined";
-import MedicineBoxOutlined from "@ant-design/icons/MedicineBoxOutlined";
-import CheckSquareOutlined from "@ant-design/icons/CheckSquareOutlined";
-import DatabaseOutlined from "@ant-design/icons/DatabaseOutlined";
-import UserOutlined from "@ant-design/icons/UserOutlined";
-import DollarOutlined from "@ant-design/icons/DollarOutlined";
-import WalletOutlined from "@ant-design/icons/WalletOutlined";
-import CreditCardOutlined from "@ant-design/icons/CreditCardOutlined";
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  BarChart3,
+  Inbox,
+  Layers,
+  Pill,
+  ClipboardList,
+  CreditCard,
+  DollarSign,
+  Wallet,
+  Database,
+  Users,
+} from "lucide-react";
 
 export interface NavigationItem {
   key: string;
@@ -23,73 +25,73 @@ export interface NavigationItem {
 export const navigationConfig: NavigationItem[] = [
   {
     key: "/dashboard",
-    icon: DashboardOutlined as any,
+    icon: LayoutDashboard,
     label: "Dashboard",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {
     key: "/pos",
-    icon: ShoppingCartOutlined as any,
+    icon: ShoppingCart,
     label: "Sales Portal",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {
     key: "/sales",
-    icon: BarChartOutlined as any,
+    icon: BarChart3,
     label: "Sales History",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {
     key: "/inventory",
-    icon: InboxOutlined as any,
+    icon: Inbox,
     label: "Inventory",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {
     key: "/catalog",
-    icon: AppstoreOutlined as any,
+    icon: Layers,
     label: "Catalog",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {
     key: "/medicine-database",
-    icon: MedicineBoxOutlined as any,
+    icon: Pill,
     label: "Medicine Database",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {
     key: "/shortlist",
-    icon: CheckSquareOutlined as any,
+    icon: ClipboardList,
     label: "Short List",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {
     key: "/credits",
-    icon: CreditCardOutlined as any,
+    icon: CreditCard,
     label: "Credits",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {
     key: "/expenses",
-    icon: DollarOutlined as any,
+    icon: DollarSign,
     label: "Expenses",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {
     key: "/cash-box",
-    icon: WalletOutlined as any,
+    icon: Wallet,
     label: "Cash Box",
     roles: ["OWNER", "SUPER_ADMIN"],
   },
   {
     key: "/data-management",
-    icon: DatabaseOutlined as any,
+    icon: Database,
     label: "Data Management",
     roles: ["OWNER", "SUPER_ADMIN"],
   },
   {
     key: "/admin/tenants",
-    icon: UserOutlined as any,
+    icon: Users,
     label: "Tenants",
     roles: ["SUPER_ADMIN"],
   },

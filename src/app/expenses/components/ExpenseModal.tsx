@@ -1,21 +1,11 @@
-import { useEffect } from "react";
-import { 
-  Modal, 
-  Input, 
-  Button, 
-  Select, 
-  DatePicker, 
-  Popconfirm, 
-  message,
-  InputNumber
-} from "antd";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
-import { 
-  useCategories, 
-  useCreateExpense, 
-  useUpdateExpense, 
+import {
+  useCategories,
+  useCreateExpense,
+  useUpdateExpense,
   useExpenses,
-  useDeleteExpense 
+  useDeleteExpense,
 } from "../hooks/useExpensesHooks";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,11 +18,20 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const expenseSchema = z.object({
   amount: z.coerce.number().min(0.01, "Amount must be at least 0.01"),
   categoryId: z.string().min(1, "Please select a category"),
-  expenseDate: z.any().refine((val) => val && dayjs(val).isValid(), "Date is required"),
+  expenseDate: z.string().min(1, "Date is required"),
   description: z.string().optional(),
 });
 
@@ -47,7 +46,8 @@ interface ExpenseModalProps {
 export function ExpenseModal({ isOpen, onClose, expenseId }: ExpenseModalProps) {
   const isEditing = !!expenseId;
   const { data: categories } = useCategories();
-  
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
   const { data: expensesData } = useExpenses({ page: 1, limit: 100 });
   const expenseToEdit = expensesData?.data?.find((e: { id: string }) => e.id === expenseId);
 
@@ -58,27 +58,28 @@ export function ExpenseModal({ isOpen, onClose, expenseId }: ExpenseModalProps) 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema) as Resolver<ExpenseFormData>,
     defaultValues: {
-      amount: undefined,
-      categoryId: undefined,
-      expenseDate: dayjs(),
+      amount: 0,
+      categoryId: "",
+      expenseDate: dayjs().format("YYYY-MM-DD"),
       description: "",
     },
   });
 
   useEffect(() => {
     if (isOpen) {
+      setShowConfirmDelete(false);
       if (isEditing && expenseToEdit) {
         form.reset({
           amount: expenseToEdit.amount,
           categoryId: expenseToEdit.categoryId,
-          expenseDate: dayjs(expenseToEdit.expenseDate),
+          expenseDate: dayjs(expenseToEdit.expenseDate).format("YYYY-MM-DD"),
           description: expenseToEdit.description || "",
         });
       } else {
         form.reset({
-          amount: undefined,
-          categoryId: undefined,
-          expenseDate: dayjs(),
+          amount: 0,
+          categoryId: "",
+          expenseDate: dayjs().format("YYYY-MM-DD"),
           description: "",
         });
       }
@@ -86,172 +87,185 @@ export function ExpenseModal({ isOpen, onClose, expenseId }: ExpenseModalProps) 
   }, [isOpen, isEditing, expenseToEdit, form]);
 
   const onFinish = (values: ExpenseFormData) => {
-    const payload = {
-      ...values,
-      expenseDate: dayjs(values.expenseDate).format("YYYY-MM-DD"),
-    };
-
     if (isEditing) {
       updateExpense(
-        { id: expenseId as string, ...payload },
-        { 
+        { id: expenseId as string, ...values },
+        {
           onSuccess: () => {
-            message.success("Expense updated successfully");
+            toast.success("Expense updated successfully");
             onClose();
-          } 
+          },
         }
       );
     } else {
-      createExpense(payload, { 
+      createExpense(values, {
         onSuccess: () => {
-          message.success("Expense added successfully");
+          toast.success("Expense added successfully");
           onClose();
-        } 
+        },
       });
     }
   };
 
   const handleDelete = () => {
-    deleteExpense(expenseId as string, { 
+    deleteExpense(expenseId as string, {
       onSuccess: () => {
-        message.success("Expense deleted successfully");
+        toast.success("Expense deleted successfully");
         onClose();
-      } 
+      },
     });
   };
 
   const isSaving = isCreating || isUpdating;
 
   return (
-    <Modal
-      title={isEditing ? "Edit Expense" : "Add Expense"}
-      open={isOpen}
-      onCancel={onClose}
-      footer={[
-        <div key="footer-row" className="flex justify-between items-center w-full">
-          {isEditing ? (
-            <Popconfirm
-              title="Delete expense"
-              description="Are you sure you want to delete this expense?"
-              onConfirm={handleDelete}
-              okText="Yes"
-              cancelText="No"
-              disabled={isDeleting || isSaving}
-            >
-              <Button 
-                danger 
-                disabled={isDeleting || isSaving}
-                loading={isDeleting}
-              >
-                Delete
-              </Button>
-            </Popconfirm>
-          ) : <div /> }
-          <div className="flex gap-2">
-            <Button onClick={onClose} disabled={isSaving}>
-              Cancel
-            </Button>
-            <Button 
-              type="primary" 
-              onClick={form.handleSubmit(onFinish)} 
-              loading={isSaving}
-              disabled={isSaving}
-            >
-              {isEditing ? "Save Changes" : "Add Expense"}
-            </Button>
-          </div>
-        </div>
-      ]}
-    >
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onFinish)} className="space-y-4 pt-4">
-          <FormField
-            control={form.control}
-            name="amount"
-            render={({ field, fieldState: { error } }) => (
-              <FormItem>
-                <FormLabel>Amount (৳)</FormLabel>
-                <FormControl>
-                  <InputNumber 
-                    value={field.value}
-                    className="w-full" 
-                    min={0.01} 
-                    step={0.01} 
-                    placeholder="0.00"
-                    status={error ? "error" : undefined}
-                    onChange={(val) => field.onChange(val)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? "Edit Expense" : "Add Expense"}</DialogTitle>
+        </DialogHeader>
 
-          <FormField
-            control={form.control}
-            name="categoryId"
-            render={({ field, fieldState: { error } }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <FormControl>
-                  <Select 
-                    value={field.value}
-                    placeholder="Select an expense category"
-                    status={error ? "error" : undefined}
-                    onChange={(val) => field.onChange(val)}
-                    options={categories?.map((cat) => ({
-                      value: cat.id,
-                      label: cat.name,
-                    })) || []}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onFinish)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount (৳)</FormLabel>
+                  <FormControl>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="0.00"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="expenseDate"
-            render={({ field, fieldState: { error } }) => (
-              <FormItem>
-                <FormLabel>Date</FormLabel>
-                <FormControl>
-                  <DatePicker 
-                    value={field.value}
-                    className="w-full" 
-                    format="DD/MM/YYYY"
-                    status={error ? "error" : undefined}
-                    onChange={(val) => field.onChange(val)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="categoryId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <FormControl>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      {...field}
+                    >
+                      <option value="">Select an expense category</option>
+                      {categories?.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field, fieldState: { error } }) => (
-              <FormItem>
-                <FormLabel>Description (Optional)</FormLabel>
-                <FormControl>
-                  <Input.TextArea 
-                    value={field.value}
-                    placeholder="Notes or details about this expense..." 
-                    autoSize={{ minRows: 3, maxRows: 6 }}
-                    status={error ? "error" : undefined}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </form>
-      </Form>
-    </Modal>
+            <FormField
+              control={form.control}
+              name="expenseDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <input
+                      type="date"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <textarea
+                      placeholder="Notes or details about this expense..."
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter className="pt-4 border-t border-border flex flex-row items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {isEditing && (
+                  <>
+                    {showConfirmDelete ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Sure?</span>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleDelete}
+                          disabled={isDeleting || isSaving}
+                        >
+                          Confirm
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowConfirmDelete(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setShowConfirmDelete(true)}
+                        disabled={isSaving || isDeleting}
+                      >
+                        Delete
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onClose}
+                  disabled={isSaving || isDeleting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={isSaving || isDeleting}>
+                  {isEditing ? "Save Changes" : "Add Expense"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

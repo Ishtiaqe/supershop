@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import WifiOutlined from "@ant-design/icons/WifiOutlined";
-import DisconnectOutlined from "@ant-design/icons/DisconnectOutlined";
-import { Tooltip } from "antd";
+import { Wifi, WifiOff } from "lucide-react";
 
 export function NetworkStatus() {
   const [isOnline, setIsOnline] = useState(true);
@@ -27,19 +25,21 @@ export function NetworkStatus() {
 
   if (isOnline) {
     return (
-      <Tooltip title="You are online">
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-success/10 text-success border border-success/20">
-          <WifiOutlined />
-        </div>
-      </Tooltip>
+      <div 
+        title="You are online"
+        className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/10 text-green-600 border border-green-500/20"
+      >
+        <Wifi className="h-4 w-4" />
+      </div>
     );
   }
 
   return (
-    <Tooltip title="You are offline. Changes will be saved locally.">
-      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-destructive/10 text-destructive border border-destructive/20 animate-pulse">
-        <DisconnectOutlined />
-      </div>
-    </Tooltip>
+    <div 
+      title="You are offline. Changes will be saved locally."
+      className="flex items-center justify-center w-8 h-8 rounded-full bg-destructive/10 text-destructive border border-destructive/20 animate-pulse"
+    >
+      <WifiOff className="h-4 w-4" />
+    </div>
   );
 }

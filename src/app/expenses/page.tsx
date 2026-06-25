@@ -1,29 +1,27 @@
 "use client";
+
 import { useState } from "react";
-import { PlusOutlined, SettingOutlined } from "@ant-design/icons";
-import { 
-  Button, 
-  Card, 
-  Input, 
-  Table, 
-  Select, 
-  Space, 
-  Typography, 
-  Tag, 
-  Row, 
-  Col, 
-  DatePicker 
-} from "antd";
+import { Plus, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import dayjs from "dayjs";
 import { useExpenses, useExpenseSummary, ExpenseFilters } from "./hooks/useExpensesHooks";
 import { ExpenseModal } from "./components/ExpenseModal";
 import { ManageCategoriesModal } from "./components/ManageCategoriesModal";
 import { useCategories } from "./hooks/useExpensesHooks";
 
-const { Title, Text } = Typography;
-
 export default function ExpensesPage() {
   const [filters, setFilters] = useState<ExpenseFilters>({ page: 1, limit: 10 });
+  const page = filters.page ?? 1;
+  const limit = filters.limit ?? 10;
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
@@ -48,153 +46,178 @@ export default function ExpensesPage() {
     setIsExpenseModalOpen(true);
   };
 
-  const columns = [
-    {
-      title: "Date",
-      dataIndex: "expenseDate",
-      key: "expenseDate",
-      render: (date: string) => dayjs(date).format("DD/MM/YYYY"),
-    },
-    {
-      title: "Category",
-      dataIndex: ["category", "name"],
-      key: "category",
-      render: (name: string) => <Tag color="blue">{name}</Tag>,
-    },
-    {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
-      ellipsis: true,
-      render: (text: string) => text || "-",
-    },
-    {
-      title: "Logged By",
-      dataIndex: ["employee", "fullName"],
-      key: "employee",
-    },
-    {
-      title: "Amount",
-      dataIndex: "amount",
-      key: "amount",
-      align: "right" as const,
-      render: (amount: number) => <Text strong>{formatCurrency(amount)}</Text>,
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      align: "right" as const,
-      render: (_: any, record: any) => (
-        <Button type="link" size="small" onClick={() => openEditModal(record.id)}>
-          Edit
-        </Button>
-      ),
-    },
-  ];
-
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h1 className="page-header">Expenses</h1>
-          <p className="page-subheader">Track and categorize shop expenses</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Expenses</h1>
+          <p className="text-sm text-muted-foreground">Track and categorize shop expenses</p>
         </div>
-        <Space>
-          <Button icon={<SettingOutlined />} onClick={() => setIsCategoriesModalOpen(true)}>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsCategoriesModalOpen(true)} className="flex items-center gap-1">
+            <Settings className="w-4 h-4" />
             Manage Categories
           </Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openAddModal}>
+          <Button onClick={openAddModal} className="flex items-center gap-1">
+            <Plus className="w-4 h-4" />
             Add Expense
           </Button>
-        </Space>
+        </div>
       </div>
 
-      <Row gutter={16}>
-        <Col span={6}>
-          <Card className="stat-card stat-card-danger">
-            <Text type="secondary">Total Expenses</Text>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card className="shadow-sm border-l-4 border-l-destructive">
+          <CardContent className="pt-6">
+            <div className="text-sm text-muted-foreground font-semibold">Total Expenses</div>
             <div className="text-2xl font-bold text-destructive mt-1">
               {isLoadingSummary ? "..." : formatCurrency(summaryData?.totalAmount || 0)}
             </div>
-          </Card>
-        </Col>
-        
-        <Col span={6}>
-          <Card className="stat-card stat-card-warning">
-            <Text type="secondary">Top Category</Text>
-            <div className="text-2xl font-bold truncate text-warning mt-1">
-              {isLoadingSummary 
-                ? "..." 
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-l-4 border-l-yellow-500">
+          <CardContent className="pt-6">
+            <div className="text-sm text-muted-foreground font-semibold">Top Category</div>
+            <div className="text-2xl font-bold truncate text-yellow-600 dark:text-yellow-500 mt-1">
+              {isLoadingSummary
+                ? "..."
                 : (summaryData?.categorySummary?.[0]?.name || "N/A")}
             </div>
             {summaryData?.categorySummary?.[0]?.amount && (
-              <p className="text-xs text-warning/85 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {formatCurrency(summaryData.categorySummary[0].amount)}
               </p>
             )}
-          </Card>
-        </Col>
-      </Row>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Filters */}
-      <Card size="small" className="mb-4">
-        <Space wrap size="middle">
-          <div className="flex flex-col">
-            <Text type="secondary">Start Date</Text>
-            <DatePicker 
-              value={filters.startDate ? dayjs(filters.startDate) : null}
-              onChange={(date) => setFilters(prev => ({ ...prev, startDate: date?.format("YYYY-MM-DD"), page: 1 }))}
-              placeholder="Start Date"
-            />
+      <Card className="shadow-sm">
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+              <label className="text-xs font-semibold text-muted-foreground">Start Date</label>
+              <input
+                type="date"
+                value={filters.startDate || ""}
+                onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value || undefined, page: 1 }))}
+                className="flex h-10 w-full sm:w-[180px] rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+              <label className="text-xs font-semibold text-muted-foreground">End Date</label>
+              <input
+                type="date"
+                value={filters.endDate || ""}
+                onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value || undefined, page: 1 }))}
+                className="flex h-10 w-full sm:w-[180px] rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+              <label className="text-xs font-semibold text-muted-foreground">Category</label>
+              <select
+                value={filters.categoryId || "all"}
+                onChange={(e) => setFilters(prev => ({ ...prev, categoryId: e.target.value === "all" ? undefined : e.target.value, page: 1 }))}
+                className="flex h-10 w-full sm:w-[200px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="all">All Categories</option>
+                {categories?.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <Text type="secondary">End Date</Text>
-            <DatePicker 
-              value={filters.endDate ? dayjs(filters.endDate) : null}
-              onChange={(date) => setFilters(prev => ({ ...prev, endDate: date?.format("YYYY-MM-DD"), page: 1 }))}
-              placeholder="End Date"
-            />
-          </div>
-          <div className="flex flex-col">
-            <Text type="secondary">Category</Text>
-            <Select 
-              style={{ width: 200 }}
-              value={filters.categoryId || "all"} 
-              onChange={(val) => setFilters(prev => ({ ...prev, categoryId: val === "all" ? undefined : val, page: 1 }))}
-            >
-              <Select.Option value="all">All Categories</Select.Option>
-              {categories?.map((c) => (
-                <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
-              ))}
-            </Select>
-          </div>
-        </Space>
+        </CardContent>
       </Card>
 
       {/* Data Table */}
-      <Table
-        columns={columns}
-        dataSource={expensesData?.data || []}
-        rowKey="id"
-        loading={isLoadingExpenses}
-        scroll={{ x: 'max-content' }}
-        pagination={{
-          current: filters.page,
-          pageSize: filters.limit,
-          total: expensesData?.meta?.total || 0,
-          onChange: (page, pageSize) => setFilters(prev => ({ ...prev, page, limit: pageSize })),
-          showSizeChanger: true,
-          showTotal: (total) => `Total ${total} expenses`
-        }}
-      />
+      <div className="rounded-md border overflow-hidden bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Logged By</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoadingExpenses ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                </TableCell>
+              </TableRow>
+            ) : expensesData?.data && expensesData.data.length > 0 ? (
+              expensesData.data.map((record: any) => (
+                <TableRow key={record.id}>
+                  <TableCell>{dayjs(record.expenseDate).format("DD/MM/YYYY")}</TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/20">
+                      {record.category?.name}
+                    </span>
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate" title={record.description}>
+                    {record.description || "-"}
+                  </TableCell>
+                  <TableCell>{record.employee?.fullName || "-"}</TableCell>
+                  <TableCell className="text-right font-bold">{formatCurrency(record.amount)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="link" size="sm" className="h-auto p-0" onClick={() => openEditModal(record.id)}>
+                      Edit
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  No expenses found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+
+        {/* Pagination */}
+        {expensesData?.meta && expensesData.meta.total > 0 && (
+          <div className="flex items-center justify-between px-4 py-4 border-t border-border bg-card">
+            <span className="text-sm text-muted-foreground">
+              Showing {Math.min((page - 1) * limit + 1, expensesData.meta.total)} to{" "}
+              {Math.min(page * limit, expensesData.meta.total)} of {expensesData.meta.total} expenses
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFilters(prev => ({ ...prev, page: Math.max(1, (prev.page ?? 1) - 1) }))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFilters(prev => ({ ...prev, page: Math.min(Math.ceil(expensesData.meta.total / limit), (prev.page ?? 1) + 1) }))}
+                disabled={page >= Math.ceil(expensesData.meta.total / limit)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Modals */}
-      <ExpenseModal 
-        isOpen={isExpenseModalOpen} 
-        onClose={() => setIsExpenseModalOpen(false)} 
+      <ExpenseModal
+        isOpen={isExpenseModalOpen}
+        onClose={() => setIsExpenseModalOpen(false)}
         expenseId={editingExpenseId}
       />
-      
+
       <ManageCategoriesModal
         isOpen={isCategoriesModalOpen}
         onClose={() => setIsCategoriesModalOpen(false)}

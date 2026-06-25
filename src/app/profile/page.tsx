@@ -1,147 +1,234 @@
-"use client"
+"use client";
 
-import { useEffect, useState, startTransition } from 'react'
-import { Card, Avatar, Button, Form, Input, message, Tabs } from 'antd'
-import type { User } from '@/types'
-import api from '@/lib/api'
+import { useEffect, useState, startTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import type { User } from '@/types';
+import api from '@/lib/api';
+
+// Import shadcn UI components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+
+const profileSchema = z.object({
+  fullName: z.string().min(1, 'Full name is required'),
+  email: z.string().email('Please enter a valid email'),
+});
+
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string().min(1, 'Please confirm your new password'),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
+type ProfileFormData = z.infer<typeof profileSchema>;
+type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const u = localStorage.getItem('user')
-    if (u) setUser(JSON.parse(u))
-  }, [])
+    const u = localStorage.getItem('user');
+    if (u) setUser(JSON.parse(u));
+  }, []);
 
-  const onProfileFinish = async (values: Partial<User>) => {
-    if (!user) return
+  const profileForm = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+    },
+  });
+
+  const passwordForm = useForm<PasswordFormData>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+  });
+
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        fullName: user.fullName || '',
+        email: user.email || '',
+      });
+    }
+  }, [user, profileForm]);
+
+  const onProfileSubmit = async (values: ProfileFormData) => {
+    if (!user) return;
 
     try {
       const response = await api.put('/users/me', {
         fullName: values.fullName,
         email: values.email,
-      })
-
-      const updatedUser = response.data
-
-      // Use startTransition for state updates
-      startTransition(() => {
-        localStorage.setItem('user', JSON.stringify(updatedUser))
-        setUser(updatedUser)
       });
 
-      message.success('Profile saved')
-    } catch (error) {
-      message.error('Failed to update profile')
-      console.error('Profile update error:', error)
-    }
-  }
+      const updatedUser = response.data;
 
-  const onPasswordFinish = async (values: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
-    if (!user) return
+      startTransition(() => {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      });
+
+      toast.success('Profile saved successfully');
+    } catch (error) {
+      toast.error('Failed to update profile');
+      console.error('Profile update error:', error);
+    }
+  };
+
+  const onPasswordSubmit = async (values: PasswordFormData) => {
+    if (!user) return;
 
     try {
       await api.post('/users/me/change-password', {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
-      })
+      });
 
-      // Allow UI to update before showing success message
-      await new Promise(resolve => setTimeout(resolve, 0));
-
-      message.success('Password changed successfully')
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      toast.success('Password changed successfully');
+      passwordForm.reset();
     } catch (error) {
-      message.error('Failed to change password')
-      console.error('Password change error:', error)
+      toast.error('Failed to change password');
+      console.error('Password change error:', error);
     }
-  }
+  };
 
   if (!user) {
-    return <div className="p-6">Not signed in</div>
+    return <div className="p-6 text-muted-foreground text-sm text-center">Not signed in</div>;
   }
 
   return (
-    <div className="p-4 md:p-6">
-      <Card title="Profile" className="w-full max-w-2xl mx-auto">
-        <Tabs defaultActiveKey="profile">
-          <Tabs.TabPane tab="Profile" key="profile">
-            <div className="flex items-center gap-4 mb-4">
-              <Avatar style={{ backgroundColor: 'hsl(var(--primary))' }}>{(user.fullName || user.email || 'U')[0]}</Avatar>
-              <div>
-                <div className="font-bold text-foreground">{user.fullName || user.email}</div>
-                <div className="text-muted-foreground">{user.email}</div>
+    <div className="p-4 md:p-6 max-w-2xl mx-auto">
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold">Profile Settings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="profile" className="space-y-6">
+            <TabsList className="grid grid-cols-2 w-full max-w-[400px]">
+              <TabsTrigger value="profile">Profile Details</TabsTrigger>
+              <TabsTrigger value="password">Change Password</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="profile" className="space-y-6 outline-none">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg shadow-sm">
+                  {(user.fullName || user.email || 'U')[0].toUpperCase()}
+                </div>
+                <div>
+                  <div className="font-bold text-foreground">{user.fullName || user.email}</div>
+                  <div className="text-xs text-muted-foreground">{user.email}</div>
+                </div>
               </div>
-            </div>
 
-            <Form
-              layout="vertical"
-              initialValues={{ fullName: user.fullName, email: user.email }}
-              onFinish={onProfileFinish}
-            >
-              <Form.Item label="Full name" name="fullName">
-                <Input />
-              </Form.Item>
+              <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4 pt-2">
+                  <FormField
+                    control={profileForm.control}
+                    name="fullName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter your name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <Form.Item label="Email" name="email" rules={[{ type: 'email', message: 'Please enter a valid email' }]}>
-                <Input />
-              </Form.Item>
+                  <FormField
+                    control={profileForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email address</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter your email" type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <Form.Item>
-                <Button type="primary" htmlType="submit">Save</Button>
-              </Form.Item>
-            </Form>
-          </Tabs.TabPane>
+                  <Button type="submit">Save Changes</Button>
+                </form>
+              </Form>
+            </TabsContent>
 
-          <Tabs.TabPane tab="Change Password" key="password">
-            <Form
-              layout="vertical"
-              onFinish={onPasswordFinish}
-            >
-              <Form.Item
-                label="Current Password"
-                name="currentPassword"
-                rules={[{ required: true, message: 'Please enter your current password' }]}
-              >
-                <Input.Password />
-              </Form.Item>
+            <TabsContent value="password" className="space-y-4 outline-none">
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                  <FormField
+                    control={passwordForm.control}
+                    name="currentPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Password</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter current password" type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <Form.Item
-                label="New Password"
-                name="newPassword"
-                rules={[
-                  { required: true, message: 'Please enter a new password' },
-                  { min: 8, message: 'Password must be at least 8 characters' }
-                ]}
-              >
-                <Input.Password />
-              </Form.Item>
+                  <FormField
+                    control={passwordForm.control}
+                    name="newPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter new password (min. 8 chars)" type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <Form.Item
-                label="Confirm New Password"
-                name="confirmPassword"
-                dependencies={['newPassword']}
-                rules={[
-                  { required: true, message: 'Please confirm your new password' },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('newPassword') === value) {
-                        return Promise.resolve();
-                      }
-                      return Promise.reject(new Error('Passwords do not match'));
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password />
-              </Form.Item>
+                  <FormField
+                    control={passwordForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm New Password</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Re-enter new password" type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <Form.Item>
-                <Button type="primary" htmlType="submit">Change Password</Button>
-              </Form.Item>
-            </Form>
-          </Tabs.TabPane>
-        </Tabs>
+                  <Button type="submit">Change Password</Button>
+                </form>
+              </Form>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -1,9 +1,12 @@
+'use client';
+
 import React, { useState } from 'react';
-import { Card, Row, Col, Statistic, Progress, Button, Space, Typography, List } from 'antd';
-import { SyncOutlined, ClockCircleOutlined, WarningOutlined } from '@ant-design/icons';
+import { Clock, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useOfflineAnalytics } from '../lib/offline-analytics';
 
-const { Title, Text } = Typography;
+// Import shadcn UI components
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function OfflineAnalyticsDashboard() {
   const analytics = useOfflineAnalytics();
@@ -13,6 +16,11 @@ export function OfflineAnalyticsDashboard() {
   const refreshData = () => {
     setStats(analytics.getStats());
     setEvents(analytics.getEvents(20));
+  };
+
+  const handleClear = () => {
+    analytics.clearData();
+    refreshData();
   };
 
   const formatTime = (ms: number) => {
@@ -25,103 +33,138 @@ export function OfflineAnalyticsDashboard() {
     return `${seconds}s`;
   };
 
+  const successRate = analytics.getSyncSuccessRate();
+
   return (
-    <div style={{ padding: '24px' }}>
-      <Space direction="vertical" style={{ width: '100%' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Title level={3}>Offline Analytics</Title>
-          <Space>
-            <Button onClick={refreshData}>Refresh</Button>
-            <Button danger onClick={analytics.clearData}>Clear Data</Button>
-          </Space>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">Offline Analytics</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={refreshData}>
+            Refresh
+          </Button>
+          <Button variant="destructive" onClick={handleClear}>
+            Clear Data
+          </Button>
         </div>
+      </div>
 
-        <Row gutter={16}>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Total Offline Time"
-                value={formatTime(stats.totalOfflineTime)}
-                prefix={<ClockCircleOutlined />}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Sync Success Rate"
-                value={analytics.getSyncSuccessRate()}
-                suffix="%"
-                prefix={<SyncOutlined />}
-                valueStyle={{ color: analytics.getSyncSuccessRate() > 80 ? 'hsl(var(--success))' : 'hsl(var(--destructive))' }}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Total Syncs"
-                value={stats.syncAttempts}
-                prefix={<SyncOutlined />}
-              />
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card>
-              <Statistic
-                title="Storage Issues"
-                value={stats.storageWarnings + stats.storageErrors}
-                prefix={<WarningOutlined />}
-                valueStyle={{ color: stats.storageErrors > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--warning))' }}
-              />
-            </Card>
-          </Col>
-        </Row>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Total Offline Time
+            </CardTitle>
+            <Clock className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg font-bold text-foreground">{formatTime(stats.totalOfflineTime)}</div>
+          </CardContent>
+        </Card>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Card title="Sync Performance" size="small">
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <div>
-                  <Text strong>Successful Syncs: </Text>
-                  <Text>{stats.syncSuccesses}</Text>
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Sync Success Rate
+            </CardTitle>
+            <RefreshCw className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-lg font-bold ${successRate > 80 ? 'text-emerald-600' : 'text-destructive'}`}>
+              {successRate}%
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Total Syncs
+            </CardTitle>
+            <RefreshCw className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg font-bold text-foreground">{stats.syncAttempts}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Storage Issues
+            </CardTitle>
+            <AlertTriangle className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-lg font-bold ${stats.storageErrors > 0 ? 'text-destructive' : 'text-amber-500'}`}>
+              {stats.storageWarnings + stats.storageErrors}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Sync Performance</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center border-b pb-1.5">
+                <span className="text-muted-foreground font-medium">Successful Syncs:</span>
+                <span className="text-foreground font-semibold">{stats.syncSuccesses}</span>
+              </div>
+              <div className="flex justify-between items-center border-b pb-1.5">
+                <span className="text-muted-foreground font-medium">Failed Syncs:</span>
+                <span className="text-foreground font-semibold">{stats.syncFailures}</span>
+              </div>
+              <div className="flex justify-between items-center pb-1.5">
+                <span className="text-muted-foreground font-medium">Average Sync Time:</span>
+                <span className="text-foreground font-semibold">{formatTime(stats.totalSyncTime / Math.max(1, stats.syncAttempts))}</span>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-semibold text-muted-foreground uppercase">
+                <span>Sync Health</span>
+                <span>{successRate}%</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${successRate > 80 ? 'bg-emerald-600' : 'bg-destructive'}`}
+                  style={{ width: `${successRate}%` }}
+                ></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Recent Events</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 overflow-y-auto max-h-60">
+            <div className="divide-y divide-border text-sm">
+              {events.length > 0 ? (
+                events.slice(-10).map((event, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-3 first:pt-0 last:pb-0">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(event.timestamp).toLocaleTimeString()}
+                    </span>
+                    <span className="font-semibold text-foreground uppercase tracking-wide text-xs">
+                      {event.type.replace('_', ' ')}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center text-muted-foreground text-sm">
+                  No events recorded yet.
                 </div>
-                <div>
-                  <Text strong>Failed Syncs: </Text>
-                  <Text>{stats.syncFailures}</Text>
-                </div>
-                <div>
-                  <Text strong>Average Sync Time: </Text>
-                  <Text>{formatTime(stats.totalSyncTime / Math.max(1, stats.syncAttempts))}</Text>
-                </div>
-                <Progress
-                  percent={analytics.getSyncSuccessRate()}
-                  status={analytics.getSyncSuccessRate() > 80 ? 'success' : 'exception'}
-                  showInfo={false}
-                />
-              </Space>
-            </Card>
-          </Col>
-          <Col span={12}>
-            <Card title="Recent Events" size="small">
-              <List
-                size="small"
-                dataSource={events.slice(-10)}
-                renderItem={(event) => (
-                  <List.Item>
-                    <Space>
-                      <Text style={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>
-                        {new Date(event.timestamp).toLocaleTimeString()}
-                      </Text>
-                      <Text>{event.type.replace('_', ' ').toUpperCase()}</Text>
-                    </Space>
-                  </List.Item>
-                )}
-              />
-            </Card>
-          </Col>
-        </Row>
-      </Space>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
