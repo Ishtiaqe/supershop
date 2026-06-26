@@ -309,9 +309,22 @@ localStorage.getItem('sb-...')       // Supabase session data
 
 ---
 
+---
+
+## Reference Documentation
+
+Read these files for more context:
+1. **ARCHITECTURE.md** — Complete system architecture & data flow
+2. **MIGRATION_STATUS.md** — Migration progress from Next.js to Vite
+3. **src/hooks/useSupabaseAuth.ts** — Auth hook implementation details
+4. **src/components/auth/AuthProvider.tsx** — Auth context using Supabase
+
+---
+
 ## Questions?
 
 Refer to:
-- Supabase Docs: https://supabase.com/docs/guides/auth
-- Implementation: `src/hooks/useSupabaseAuth.ts`
-- Backend validation: See Step 3 above
+- **Supabase Docs:** https://supabase.com/docs/guides/auth
+- **Implementation:** `src/hooks/useSupabaseAuth.ts`
+- **Backend JWT validation:** See Step 3 in this guide
+- **System architecture:** See `ARCHITECTURE.md`

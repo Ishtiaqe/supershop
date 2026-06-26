@@ -1,164 +1,112 @@
-"use client";
+'use client'
 
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import api, { startProactiveRefresh } from "@/lib/api";
+import React, { useEffect, useMemo, useCallback } from 'react'
+import api from '@/lib/api'
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 
 export type AuthContextType = {
-  user: any | null;
-  loading: boolean;
-  refresh: () => Promise<any>;
-  logout: () => Promise<void>;
-  login: (user: any) => void;
-};
+  user: any | null
+  loading: boolean
+  refresh: () => Promise<any>
+  logout: () => Promise<void>
+  login: (user: any) => void
+}
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
 
 export function useAuth(): AuthContextType {
-  const ctx = React.useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+  const ctx = React.useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const { user: supabaseUser, logout: supabaseLogout } = useSupabaseAuth()
 
-  const hydrateFromProfile = useCallback((profile: any) => {
-    setUser(profile);
-    try {
-      localStorage.setItem("user", JSON.stringify(profile));
-      if (profile?.tenant) {
-        localStorage.setItem("tenant", JSON.stringify(profile.tenant));
-      }
-    } catch {}
-  }, []);
-
-  const fetchProfile = useCallback(async () => {
-    const resp = await api.get("/users/me");
-    if (!resp?.data) throw new Error("No user data");
-    hydrateFromProfile(resp.data);
-    return true;
-  }, [hydrateFromProfile]);
-
-  const refresh = useCallback(async (): Promise<any> => {
-    try {
-      // Refresh token is now in httpOnly cookie, backend reads it automatically
-      const response = await api.post("/auth/refresh");
-
-      if (response.data?.accessToken) {
-        // Access token is stored by api interceptor
-        // Fetch and update user profile
-        try {
-          const resp = await api.get("/users/me");
-          if (resp?.data) {
-            hydrateFromProfile(resp.data);
-            return resp.data;
-          }
-        } catch (e) {
-          console.warn("Token refresh succeeded but profile fetch failed:", e);
-        }
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }, [hydrateFromProfile]);
-
-  const bootstrap = useCallback(async () => {
-    setLoading(true);
-
-    // Check if we have access token (refresh token is in httpOnly cookie)
-    const hasAccessToken =
-      typeof window !== "undefined" &&
-      localStorage.getItem("accessToken");
-
-    if (!hasAccessToken) {
-      // No access token, try to refresh using the httpOnly cookie
-      try {
-        const userData = await refresh();
-        if (userData) {
-          setLoading(false);
-          return;
-        }
-      } catch {}
-      // No valid session
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Try current session
-      await fetchProfile();
-      setLoading(false);
-      return;
-    } catch {
-      // Attempt refresh, then retry profile
-      try {
-        const userData = await refresh();
-        if (userData) {
-          setLoading(false);
-          return;
-        }
-      } catch {}
-      // Failed: clear all auth data
-      try {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("user");
-        localStorage.removeItem("tenant");
-      } catch {}
-      setUser(null);
-      setLoading(false);
-    }
-  }, [fetchProfile, refresh]);
+  // Fetch and cache user profile from backend (includes tenant info)
+  const [cachedProfile, setCachedProfile] = React.useState<any | null>(null)
+  const [loading, setLoading] = React.useState(true)
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    const fetchProfile = async () => {
       try {
-        const hydratedUser = localStorage.getItem("user");
-        if (hydratedUser) {
-          setUser(JSON.parse(hydratedUser));
+        if (!supabaseUser) {
+          setCachedProfile(null)
+          setLoading(false)
+          return
         }
-      } catch {}
+
+        // Fetch full profile from backend (includes tenant, role, etc.)
+        const resp = await api.get('/users/me')
+        if (resp?.data) {
+          setCachedProfile(resp.data)
+          try {
+            localStorage.setItem('user', JSON.stringify(resp.data))
+            if (resp.data?.tenant) {
+              localStorage.setItem('tenant', JSON.stringify(resp.data.tenant))
+            }
+          } catch {}
+        }
+      } catch (e) {
+        console.warn('Failed to fetch user profile:', e)
+        setCachedProfile(null)
+      } finally {
+        setLoading(false)
+      }
     }
 
-    // Start proactive refresh to keep session warm
-    const stop = startProactiveRefresh(12 * 60 * 1000);
-    // Bootstrap current session on mount
-    bootstrap();
-    return () => {
-      if (stop) stop();
-    };
-  }, [bootstrap]);
+    fetchProfile()
+  }, [supabaseUser])
+
+  // Simplified refresh: Supabase handles token refresh automatically
+  const refresh = useCallback(async (): Promise<any> => {
+    try {
+      const resp = await api.get('/users/me')
+      if (resp?.data) {
+        setCachedProfile(resp.data)
+        return resp.data
+      }
+    } catch (e) {
+      console.warn('Profile refresh failed:', e)
+    }
+    return null
+  }, [])
 
   const logout = useCallback(async () => {
     try {
-      // Refresh token is now in httpOnly cookie, backend reads it from there
-      await api.post("/auth/logout");
-    } catch {}
-    setUser(null);
-    try {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("user");
-      localStorage.removeItem("tenant");
-    } catch {}
-    // Navigate via hard redirect to ensure clean state
-    if (typeof window !== "undefined") {
-      window.location.href = "/login?logout=true";
+      // Use Supabase logout (handles token cleanup)
+      await supabaseLogout()
+    } catch (e) {
+      console.error('Supabase logout failed:', e)
     }
-  }, []);
 
-  const login = useCallback(
-    (userData: any) => {
-      hydrateFromProfile(userData);
-    },
-    [hydrateFromProfile],
-  );
+    // Clear local storage
+    try {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('user')
+      localStorage.removeItem('tenant')
+    } catch {}
+
+    // Redirect to login
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
+  }, [supabaseLogout])
+
+  const login = useCallback((userData: any) => {
+    setCachedProfile(userData)
+  }, [])
 
   const value = useMemo<AuthContextType>(
-    () => ({ user, loading, refresh, logout, login }),
-    [user, loading, refresh, logout, login],
-  );
+    () => ({
+      user: cachedProfile,
+      loading,
+      refresh,
+      logout,
+      login,
+    }),
+    [cachedProfile, loading, refresh, logout, login]
+  )
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

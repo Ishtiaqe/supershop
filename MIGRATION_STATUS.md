@@ -228,7 +228,7 @@ All core infrastructure complete. Remaining phases (B3 continuation, B4-B7) foll
 
 ## Plan Document
 
-Full detailed plan with phases, tasks, verification checklists, and rollback strategy: [`BACKEND_COLLAPSE_PLAN.md`](../BACKEND_COLLAPSE_PLAN.md)
+Architecture details: See [`ARCHITECTURE.md`](ARCHITECTURE.md) and [`SUPABASE_AUTH_SETUP.md`](SUPABASE_AUTH_SETUP.md)
 
 ---
 
