@@ -3,16 +3,16 @@ import axios, { AxiosError } from 'axios'
 const PRIMARY_API_URL = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL
 const BACKUP_API_URL = import.meta.env.VITE_API_URL_BACKUP || import.meta.env.NEXT_PUBLIC_API_URL_BACKUP
 
-// Create axios instance with retry logic
+// Create axios instance for business logic API calls
 const api = axios.create({
   baseURL: PRIMARY_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Enable sending cookies with requests
+  withCredentials: true,
 })
 
-// Request interceptor to add auth token from localStorage
+// Request interceptor: inject Supabase JWT token from localStorage
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
@@ -26,140 +26,39 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Simple refresh queue to avoid multiple concurrent refreshes
-let isRefreshing = false as boolean
-let refreshSubscribers: Array<(success: boolean) => void> = []
-
-function subscribeTokenRefresh(cb: (success: boolean) => void) {
-  refreshSubscribers.push(cb)
-}
-
-function onRefreshed(success: boolean) {
-  const subs = [...refreshSubscribers]
-  refreshSubscribers = []
-  subs.forEach((cb) => {
-    try {
-      cb(success)
-    } catch {}
-  })
-}
-
-// Helper: perform refresh against primary, then backup
-async function performRefresh() {
-  // Refresh token is now in httpOnly cookie, no need to read from localStorage
-  const refreshConfig = {
-    method: 'POST' as const,
-    url: '/auth/refresh',
-    baseURL: PRIMARY_API_URL,
-    withCredentials: true, // Send cookies with refresh request
-  }
-  
-  try {
-    const response = await axios(refreshConfig)
-    // Store only access token (refresh token is in httpOnly cookie)
-    if (response.data?.accessToken) {
-      localStorage.setItem('accessToken', response.data.accessToken)
-    }
-    return response.data
-  } catch (primaryError) {
-    const error = primaryError as AxiosError
-    if (
-      error.code === 'ECONNREFUSED' ||
-      error.code === 'ENOTFOUND' ||
-      error.code === 'ECONNRESET' ||
-      (error.response?.status && error.response.status >= 500) ||
-      !error.response
-    ) {
-      console.warn('Primary API refresh failed, trying backup...')
-      refreshConfig.baseURL = BACKUP_API_URL
-      const response = await axios(refreshConfig)
-      // Store only access token (refresh token is in httpOnly cookie)
-      if (response.data?.accessToken) {
-        localStorage.setItem('accessToken', response.data.accessToken)
-      }
-      return response.data
-    } else {
-      throw primaryError
-    }
-  }
-}
-
-// Response interceptor to handle token refresh and fallback
+// Response interceptor: handle auth errors and API fallback
 api.interceptors.response.use(
-  (response) => {
-    // Any successful /auth/refresh (e.g. AuthProvider's direct call on bootstrap)
-    // returns a fresh accessToken in the body — persist it so the next request
-    // and the next app restart have a valid token. Without this, a direct
-    // refresh succeeds but localStorage stays empty → /users/me 401s → logout.
-    if (
-      response.config?.url?.includes('/auth/refresh') &&
-      response.data?.accessToken &&
-      typeof window !== 'undefined'
-    ) {
-      localStorage.setItem('accessToken', response.data.accessToken)
-    }
-    return response
-  },
+  (response) => response,
   async (error) => {
-    
     const originalRequest = error.config
 
-    if (error.response?.status === 401) {
-      // Ensure we only refresh once at a time
-      if (originalRequest && !originalRequest._retry) {
-        originalRequest._retry = true
-      }
+    // Handle 401 - likely token expired or invalid
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true
 
-      
-
-      if (isRefreshing) {
-        // Queue this request until refresh completes
-        return new Promise((resolve, reject) => {
-          subscribeTokenRefresh((success) => {
-            if (success) {
-              resolve(api(originalRequest))
-            } else {
-              reject(error)
-            }
-          })
-        })
-      }
-
-      isRefreshing = true
-      try {
-        await performRefresh()
-        isRefreshing = false
-        onRefreshed(true)
-        // Retry original request after refresh with new token
-        const token = localStorage.getItem('accessToken')
-        if (token && originalRequest) {
-          originalRequest.headers.Authorization = `Bearer ${token}`
+      // Token is managed by Supabase client; if 401, session is invalid
+      // Clear localStorage and redirect to login
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('user')
+        localStorage.removeItem('tenant')
+        // Redirect to login for user to re-authenticate
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
         }
-        return api(originalRequest)
-      } catch (e) {
-        isRefreshing = false
-        onRefreshed(false)
-        // If refresh fails, clear tokens and navigate to login
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken')
-          localStorage.removeItem('user')
-          localStorage.removeItem('tenant')
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login'
-          }
-        }
-        return Promise.reject(e)
       }
+      return Promise.reject(error)
     }
 
-    // Handle fallback for other requests
-    if (!originalRequest._retry &&
+    // Handle API fallback: if primary API fails, try backup
+    if (
+      !originalRequest._retry &&
       (error.code === 'ECONNREFUSED' ||
         error.code === 'ENOTFOUND' ||
         error.code === 'ECONNRESET' ||
         (error.response?.status && error.response.status >= 500) ||
-        !error.response)) {
-
+        !error.response)
+    ) {
       console.warn('Primary API failed, trying backup URL...')
       originalRequest._retry = true
       originalRequest.baseURL = BACKUP_API_URL
@@ -172,20 +71,8 @@ api.interceptors.response.use(
       }
     }
 
-    
     return Promise.reject(error)
   }
 )
 
 export default api
-
-// Proactive refresh helper: call periodically to avoid expiry-triggered 401s
-export function startProactiveRefresh(intervalMs = 12 * 60 * 1000) {
-  if (typeof window === 'undefined') return () => {}
-  const id = window.setInterval(() => {
-    performRefresh().catch(() => {
-      // Ignore failures; interceptor will handle if real 401 occurs
-    })
-  }, intervalMs)
-  return () => window.clearInterval(id)
-}

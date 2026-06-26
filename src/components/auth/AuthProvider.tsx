@@ -85,9 +85,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('user')
       localStorage.removeItem('tenant')
-    } catch {}
+      // Also clear any Supabase session storage
+      localStorage.removeItem('sb-session')
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key)
+        }
+      })
+    } catch (e) {
+      console.error('Failed to clear localStorage:', e)
+    }
 
-    // Redirect to login
+    // Clear cached profile
+    setCachedProfile(null)
+
+    // Redirect to login using window.location for hard refresh
     if (typeof window !== 'undefined') {
       window.location.href = '/login'
     }

@@ -51,11 +51,16 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      await login(values.email, values.password)
-      navigate('/pos')
+      const result = await login(values.email, values.password)
+      if (result?.user) {
+        // User state will update via useEffect, no need to navigate manually
+        // useEffect above will handle the redirect
+      } else {
+        setError('Login failed. Please try again.')
+        setLoading(false)
+      }
     } catch (err: any) {
       setError(err?.message || 'Login failed. Please check your email and password.')
-    } finally {
       setLoading(false)
     }
   }
