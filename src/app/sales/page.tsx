@@ -1,11 +1,12 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { Sale } from "@/types";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { toast } from "sonner";
 
 // Import shadcn UI components
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 
 function fetchSales() {
@@ -49,6 +51,7 @@ export default function SalesPage() {
   const [paymentFilter, setPaymentFilter] = useState<string | undefined>(
     undefined
   );
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const deferredSearchText = useDeferredValue(searchText);
 
   const { data: saleDetails, isLoading: isLoadingDetails } = useQuery({
@@ -75,7 +78,20 @@ export default function SalesPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedSaleId(null);
+    setDeletingId(null);
   };
+
+  const voidMutation = useMutation({
+    mutationFn: (saleId: string) => api.delete(`/sales/${saleId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      toast.success("Sale voided successfully");
+      handleCloseModal();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Failed to void sale");
+    },
+  });
 
   const normalizedSearch = deferredSearchText.trim().toLowerCase();
 
@@ -123,10 +139,6 @@ export default function SalesPage() {
 
   return (
     <div className="w-full space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Sales History</h1>
-        <p className="text-muted-foreground">View and filter transaction receipts</p>
-      </div>
 
       <div className="space-y-6 max-w-full md:max-w-7xl mx-auto w-full">
         <div className="flex flex-wrap gap-3 items-center justify-between">
@@ -179,6 +191,7 @@ export default function SalesPage() {
                 <TableHead>Time</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Profit</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -190,23 +203,83 @@ export default function SalesPage() {
                 </TableRow>
               ) : filteredSales.length > 0 ? (
                 filteredSales.map((record) => (
-                  <TableRow
-                    key={record.id}
-                    onClick={() => handleRowClick(record)}
-                    onMouseEnter={() => prefetchSaleDetails(record.id)}
-                    className="cursor-pointer hover:bg-muted/50"
-                  >
-                    <TableCell className="font-semibold">{record.receiptNumber}</TableCell>
-                    <TableCell>{record.customerName || "—"}</TableCell>
-                    <TableCell>{record.customerPhone || "—"}</TableCell>
-                    <TableCell>{new Date(record.saleTime).toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-medium">৳{record.totalAmount.toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-emerald-600 font-semibold">৳{record.totalProfit.toFixed(2)}</TableCell>
+                  <TableRow key={record.id} className="hover:bg-muted/50">
+                    <TableCell
+                      className="font-semibold cursor-pointer"
+                      onClick={() => handleRowClick(record)}
+                      onMouseEnter={() => prefetchSaleDetails(record.id)}
+                    >
+                      {record.receiptNumber}
+                    </TableCell>
+                    <TableCell
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(record)}
+                      onMouseEnter={() => prefetchSaleDetails(record.id)}
+                    >
+                      {record.customerName || "—"}
+                    </TableCell>
+                    <TableCell
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(record)}
+                      onMouseEnter={() => prefetchSaleDetails(record.id)}
+                    >
+                      {record.customerPhone || "—"}
+                    </TableCell>
+                    <TableCell
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(record)}
+                      onMouseEnter={() => prefetchSaleDetails(record.id)}
+                    >
+                      {new Date(record.saleTime).toLocaleString()}
+                    </TableCell>
+                    <TableCell
+                      className="text-right font-medium cursor-pointer"
+                      onClick={() => handleRowClick(record)}
+                      onMouseEnter={() => prefetchSaleDetails(record.id)}
+                    >
+                      ৳{record.totalAmount.toFixed(2)}
+                    </TableCell>
+                    <TableCell
+                      className="text-right text-emerald-600 font-semibold cursor-pointer"
+                      onClick={() => handleRowClick(record)}
+                      onMouseEnter={() => prefetchSaleDetails(record.id)}
+                    >
+                      ৳{record.totalProfit.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                      {user?.role === "OWNER" && deletingId === record.id ? (
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => voidMutation.mutate(record.id)}
+                            disabled={voidMutation.isPending}
+                          >
+                            {voidMutation.isPending ? "..." : "Confirm"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setDeletingId(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : user?.role === "OWNER" ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDeletingId(record.id)}
+                        >
+                          🗑️
+                        </Button>
+                      ) : null}
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No sales found.
                   </TableCell>
                 </TableRow>
@@ -216,7 +289,7 @@ export default function SalesPage() {
         </div>
 
         <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleCloseModal()}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[100vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 Transaction Details - {saleDetails?.receiptNumber || ""}
@@ -338,6 +411,28 @@ export default function SalesPage() {
               </div>
             ) : (
               <div className="text-center py-6 text-muted-foreground text-sm">No details available</div>
+            )}
+            {saleDetails && user?.role === "OWNER" && (
+              <DialogFooter>
+                {deletingId === saleDetails.id ? (
+                  <div className="flex gap-2 w-full justify-end">
+                    <Button
+                      variant="destructive"
+                      onClick={() => voidMutation.mutate(saleDetails.id)}
+                      disabled={voidMutation.isPending}
+                    >
+                      {voidMutation.isPending ? "Voiding..." : "Confirm Void"}
+                    </Button>
+                    <Button variant="outline" onClick={() => setDeletingId(null)}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="destructive" onClick={() => setDeletingId(saleDetails.id)}>
+                    Void Sale
+                  </Button>
+                )}
+              </DialogFooter>
             )}
           </DialogContent>
         </Dialog>

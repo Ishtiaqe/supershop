@@ -64,9 +64,11 @@ export interface Sale {
   customerName?: string
   customerPhone?: string
   saleType: 'POS' | 'ONLINE' | 'WHOLESALE'
-  paymentMethod: 'CASH' | 'CARD' | 'MOBILE_PAYMENT' | 'OTHER'
+  paymentMethod: 'CASH' | 'CARD' | 'MOBILE_PAYMENT' | 'CREDIT' | 'OTHER'
   discountType?: 'PERCENTAGE' | 'FIXED'
   discountValue?: number
+  amountPaid?: number
+  dueAmount?: number
   employee?: { fullName?: string }
   employeeName?: string
   employeeFullName?: string

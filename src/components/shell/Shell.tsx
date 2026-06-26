@@ -36,6 +36,7 @@ const PATH_LABELS: Record<string, string> = {
   "/shortlist": "Short List",
   "/expenses": "Expenses",
   "/cash-box": "Cash Box",
+  "/credits": "Credits",
   "/data-management": "Data Management",
   "/admin/tenants": "Tenants",
   "/profile": "Profile",
