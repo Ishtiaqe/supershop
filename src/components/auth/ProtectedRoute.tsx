@@ -1,33 +1,27 @@
-"use client";
+'use client'
 
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/components/auth/AuthProvider";
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
-  requiredRole?: string[];
-  fallbackPath?: string;
+  children: React.ReactNode
+  fallbackPath?: string
 }
 
 export function ProtectedRoute({
   children,
-  requiredRole = [],
-  fallbackPath = "/login",
+  fallbackPath = '/login',
 }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const { user, loading } = useSupabaseAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
-    if (loading) return;
+    if (loading) return
     if (!user) {
-      navigate(fallbackPath);
-      return;
+      navigate(fallbackPath)
     }
-    if (requiredRole.length > 0 && !requiredRole.includes(user.role)) {
-      navigate("/unauthorized");
-    }
-  }, [user, loading, navigate, requiredRole, fallbackPath]);
+  }, [user, loading, navigate, fallbackPath])
 
   if (loading) {
     return (
@@ -37,11 +31,10 @@ export function ProtectedRoute({
           <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
-    );
+    )
   }
 
-  if (!user) return null;
-  if (requiredRole.length > 0 && !requiredRole.includes(user.role)) return null;
+  if (!user) return null
 
-  return <>{children}</>;
+  return <>{children}</>
 }

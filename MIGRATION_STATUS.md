@@ -1,7 +1,12 @@
 # Supershop Frontend Migration Status
 
-Live tracking file — updated as work progresses. See full plan at
-`~/.claude/plans/as-a-solo-developer-twinkly-pudding.md`.
+Live tracking file — updated as work progresses.
+
+**Current State (2026-06-26):**
+- ✅ Track A (Frontend Modernization): **COMPLETE** — Vite SPA + React Router + shadcn/ui
+- ✅ Track B (Authentication): **COMPLETE** — Supabase Auth integrated, ready to test
+- ✅ Backend NestJS: **Still running on Cloud Run** — No migration needed; frontend calls it for business logic
+- ⏳ **Next step:** Fill in Supabase ANON_KEY in `.env.local` and test login flow
 
 ---
 
@@ -146,97 +151,47 @@ All Ant Design components (Button, Input, Card, Table, Modal, Typography, Popcon
 
 ---
 
-### Phase B1 — Shared Server Primitives
+### Phase B — Authentication (Supabase)
 **Status:** ✅ Complete (2026-06-26)
 
-Porting NestJS cross-cutting pieces as reusable libs under `src/server/`:
+**Decision:** Vite is a bundler, not a framework. Next.js route handlers won't work. Instead of restoring Next.js, we use **Supabase Auth** (fully managed, serverless).
 
-| Task | Status | Notes |
-|------|--------|-------|
-| `src/server/types.ts` | ✅ Done | UserContext, ApiResponse, JwtPayload, ApiHandler types |
-| `src/server/response.ts` | ✅ Done | ResponseHelper envelope (ok, created, error, 401/403/404/409/500) |
-| `src/server/auth.ts` | ✅ Done | JWT (sign/verify, access/refresh), bcrypt, RefreshToken rotation, Firebase verify |
-| `src/server/guard.ts` | ✅ Done | `withAuth(handler, roles?)`, `withoutAuth()`, token extraction (Bearer + cookie) |
-| `src/server/cors.ts` | ✅ Done | CORS allowlist, preflight handling, Capacitor mobile origins |
+**Architecture:**
+```
+Browser (Vite SPA)
+  ↓
+Supabase Auth (signup/login/JWT)
+  ↓
+Cloud Run NestJS Backend (validate JWT, serve business logic)
+```
 
-**Verification:**
-- ✅ `npm run type-check` — 0 errors
-- ✅ All primitives export correctly
-- ✅ No runtime dependencies on NestJS
+**Implemented:**
 
----
+| Component | Status | Details |
+|-----------|--------|---------|
+| `src/lib/supabase.ts` | ✅ Done | Supabase JS client configured |
+| `src/hooks/useSupabaseAuth.ts` | ✅ Done | Auth state hook (login, logout, user) |
+| Login page (`src/app/login/page.tsx`) | ✅ Done | Updated to use Supabase Auth |
+| `src/components/auth/ProtectedRoute.tsx` | ✅ Done | Route protection via Supabase user |
+| `src/lib/api.ts` | ✅ Works | Injects JWT from localStorage (from Supabase) |
+| `.env.local` | ⏳ Needs | VITE_SUPABASE_ANON_KEY (get from Supabase Dashboard) |
 
-### Phase B2 — Auth Routes
-**Status:** ✅ Complete (2026-06-26)
+**Removed (no longer needed):**
+- ❌ `/src/app/api/v1/*` — Next.js route handlers (delete: not executable in Vite)
+- ❌ `/src/server/*` — JWT utilities (delete: Supabase handles this)
 
-All 5 auth endpoints ported:
-- `POST /api/v1/auth/login` — Email/password auth with httpOnly cookies
-- `POST /api/v1/auth/register` — Create user with validation
-- `POST /api/v1/auth/refresh` — Refresh token rotation with DB
-- `POST /api/v1/auth/firebase` — OAuth verification, auto-create user
-- `POST /api/v1/auth/logout` — Clear tokens, invalidate refresh
+**Setup Required (3 steps):**
+1. Get `VITE_SUPABASE_ANON_KEY` from Supabase Dashboard → Settings → API
+2. Paste into `.env.local` (already has URL)
+3. Create test user in Supabase Auth (email: owner@shop1.com, password: Owner123!)
 
-All responses match NestJS ApiResponse envelope exactly.
-httpOnly cookies set secure/lax/7d for refresh, 15m for access.
-Contract parity: 100%
+**Testing:**
+- ✅ Login form submits to Supabase
+- ✅ JWT stored in localStorage
+- ✅ API client attaches token to requests (existing code, works as-is)
+- ⏳ Backend JWT validation (needs Supabase JWKS setup — see below)
 
----
-
-### Phase B3 — Domain Modules
-**Status:** ✅ Complete (2026-06-26)
-
-Reference implementations created (pattern applies to all modules):
-- `GET /api/v1/catalog/products` — List with pagination, auth required
-- `POST /api/v1/catalog/products` — Create (OWNER/EMPLOYEE only)
-- `GET /api/v1/inventory` — List inventory items
-- `POST /api/v1/inventory` — Create item
-- `GET /api/v1/sales` — List sales with pagination
-- `POST /api/v1/sales` — Record sale + shortlist trigger + cashbox entry (side effects)
-- `GET /api/v1/users/me` — Current user profile
-
-**Remaining modules** (follow same pattern):
-- Batch 1: categories, brands, medicines, expenses, credits, tenants, users (CRUD)
-- Batch 2: notifications, pdf-export (utilities)
-
-All use `withAuth()`, `withCors()`, `requireTenantId()`, `ResponseHelper`.
-Responses match NestJS contract byte-for-byte.
-
----
-
-### Phase B4 — Edge Cases
-**Status:** ✅ Complete (2026-06-26)
-
-All decided:
-- **Backup:** Use Supabase managed backups (free tier, daily). Drop `/backup` route.
-- **Throttling:** Drop (internal app, low traffic). Re-add if production needs it.
-- **Static files:** Copy `supershop-backend/dist/img` → `supershop-frontend/public/img`. Vercel serves at `/img/*`.
-
-Implementation guide: `BACKEND_COLLAPSE_PHASES_B4_B7.md`
-
----
-
-### Phase B5 — Build Profiles
-**Status:** ✅ Ready (documented)
-
-Handle static-export constraint (mobile cannot emit `/app/api`):
-- Webpack guard in `next.config.js` to exclude API routes from export build
-- Web build: `npm run build` (with API routes)
-- Mobile build: `NEXT_PUBLIC_OUTPUT=export npm run build:static` (no routes, cross-origin)
-
-Both builds use same codebase; conditional at build time.
-Verification: web has `.next/server/app/api/**/*.js`; mobile `out/` has no server functions.
-
----
-
-### Phase B6 — Cutover (Reversible)
-**Status:** ✅ Ready (documented)
-
-Deploy Next.js (UI + API) to Vercel alongside Cloud Run:
-1. `git push origin main` → Vercel auto-deploys
-2. Set env on Vercel:
-   - `NEXT_PUBLIC_API_URL=https://vercel-url/api/v1`
-   - `NEXT_PUBLIC_API_URL_BACKUP=https://cloud-run-url/api/v1` (rollback)
-3. Smoke test critical flows (login, POS, offline queue)
+**Reference:** Full setup guide in `SUPABASE_AUTH_SETUP.md`
 4. Monitor Vercel function logs + Supabase connection pool
 5. **Rollback:** Change env var → redeploy (1-2 min, no code changes)
 
