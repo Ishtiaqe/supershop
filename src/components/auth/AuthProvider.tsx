@@ -21,9 +21,9 @@ export function useAuth(): AuthContextType {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { user: supabaseUser, logout: supabaseLogout } = useSupabaseAuth()
+  const { user: supabaseUser, logout: supabaseLogout, supabase } = useSupabaseAuth()
 
-  // Fetch and cache user profile from backend (includes tenant info)
+  // Fetch and cache user profile from Supabase (includes tenant info)
   const [cachedProfile, setCachedProfile] = React.useState<any | null>(null)
   const [loading, setLoading] = React.useState(true)
 
@@ -36,14 +36,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // Fetch full profile from backend (includes tenant, role, etc.)
-        const resp = await api.get('/users/me')
-        if (resp?.data) {
-          setCachedProfile(resp.data)
+        // Fetch full profile from Supabase directly using email (to handle user ID mismatches)
+        let queryResult = await supabase
+          .from('users')
+          .select('*, tenant:tenants(*)')
+          .eq('email', supabaseUser.email)
+          .single()
+
+        if (queryResult.error) {
+          console.warn('Query by email failed, trying query by ID:', queryResult.error)
+          queryResult = await supabase
+            .from('users')
+            .select('*, tenant:tenants(*)')
+            .eq('id', supabaseUser.id)
+            .single()
+        }
+
+        const { data, error } = queryResult
+
+        if (error) {
+          console.warn('Failed to query user profile from Supabase DB, falling back to metadata:', error)
+          const fallbackProfile = {
+            id: supabaseUser.id,
+            email: supabaseUser.email,
+            fullName: supabaseUser.user_metadata?.full_name || 'User',
+            role: supabaseUser.user_metadata?.role || 'OWNER',
+            tenantId: supabaseUser.user_metadata?.tenantId || 'default-tenant',
+            tenant: {
+              id: supabaseUser.user_metadata?.tenantId || 'default-tenant',
+              name: supabaseUser.user_metadata?.tenantName || 'Demo Shop',
+              status: 'ACTIVE'
+            }
+          }
+          setCachedProfile(fallbackProfile)
           try {
-            localStorage.setItem('user', JSON.stringify(resp.data))
-            if (resp.data?.tenant) {
-              localStorage.setItem('tenant', JSON.stringify(resp.data.tenant))
+            localStorage.setItem('user', JSON.stringify(fallbackProfile))
+            localStorage.setItem('tenant', JSON.stringify(fallbackProfile.tenant))
+          } catch {}
+          return
+        }
+
+        if (data) {
+          setCachedProfile(data)
+          try {
+            localStorage.setItem('user', JSON.stringify(data))
+            if (data.tenant) {
+              localStorage.setItem('tenant', JSON.stringify(data.tenant))
             }
           } catch {}
         }
@@ -56,21 +94,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     fetchProfile()
-  }, [supabaseUser])
+  }, [supabaseUser, supabase])
 
   // Simplified refresh: Supabase handles token refresh automatically
   const refresh = useCallback(async (): Promise<any> => {
     try {
-      const resp = await api.get('/users/me')
-      if (resp?.data) {
-        setCachedProfile(resp.data)
-        return resp.data
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      if (!currentUser) return null
+
+      let queryResult = await supabase
+        .from('users')
+        .select('*, tenant:tenants(*)')
+        .eq('email', currentUser.email)
+        .single()
+
+      if (queryResult.error) {
+        queryResult = await supabase
+          .from('users')
+          .select('*, tenant:tenants(*)')
+          .eq('id', currentUser.id)
+          .single()
+      }
+
+      const { data, error } = queryResult
+
+      if (error) {
+        console.warn('Profile refresh query failed, using metadata fallback:', error)
+        const fallbackProfile = {
+          id: currentUser.id,
+          email: currentUser.email,
+          fullName: currentUser.user_metadata?.full_name || 'User',
+          role: currentUser.user_metadata?.role || 'OWNER',
+          tenantId: currentUser.user_metadata?.tenantId || 'default-tenant',
+          tenant: {
+            id: currentUser.user_metadata?.tenantId || 'default-tenant',
+            name: currentUser.user_metadata?.tenantName || 'Demo Shop',
+            status: 'ACTIVE'
+          }
+        }
+        setCachedProfile(fallbackProfile)
+        return fallbackProfile
+      }
+
+      if (data) {
+        setCachedProfile(data)
+        return data
       }
     } catch (e) {
       console.warn('Profile refresh failed:', e)
     }
     return null
-  }, [])
+  }, [supabase])
 
   const logout = useCallback(async () => {
     try {

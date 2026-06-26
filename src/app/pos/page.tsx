@@ -187,11 +187,10 @@ export default function POSPage() {
 
       if (!map.has(key)) {
         const name = item.variant
-          ? `${item.variant.product.name}${
-              item.variant.variantName !== "Standard"
-                ? ` - ${item.variant.variantName}`
-                : ""
-            }`
+          ? `${item.variant.product.name}${item.variant.variantName !== "Standard"
+            ? ` - ${item.variant.variantName}`
+            : ""
+          }`
           : item.itemName || "Unknown Item";
 
         const sku = item.variant?.sku || "-";
@@ -412,10 +411,6 @@ export default function POSPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Point of Sale (POS)</h1>
-        <p className="text-muted-foreground">Process customer sales and transactions</p>
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left/Middle: Select, Quantity, Add to Cart */}
@@ -470,7 +465,7 @@ export default function POSPage() {
                         className="w-full flex justify-between items-center px-4 py-2 border-b border-border last:border-b-0 text-left hover:bg-accent disabled:opacity-50"
                       >
                         <div className="flex flex-col">
-                           <span className="font-semibold text-sm">{it.name}</span>
+                          <span className="font-semibold text-sm">{it.name}</span>
                           <span className="text-xs text-muted-foreground">SKU: {it.sku}</span>
                         </div>
                         <div className="flex flex-col items-end">

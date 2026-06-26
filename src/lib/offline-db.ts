@@ -303,15 +303,32 @@ class OfflineDatabase {
   async getAllMedicines(search?: string): Promise<Array<Medicine & { _lastModified: number; _syncStatus: string }>> {
     if (!this.db) await this.init();
     if (search) {
-      // Simple search implementation - in a real app, you might want more sophisticated search
+      const lowerSearch = search.toLowerCase();
       const allMedicines = await this.db!.getAll('medicines');
-      return allMedicines.filter(med =>
-        med.brandName.toLowerCase().includes(search.toLowerCase()) ||
-        med.generic?.genericName.toLowerCase().includes(search.toLowerCase()) ||
-        med.manufacturer?.manufacturerName.toLowerCase().includes(search.toLowerCase()) ||
-        med.strength?.toLowerCase().includes(search.toLowerCase()) ||
-        med.dosageForm?.toLowerCase().includes(search.toLowerCase())
+
+      const matched = allMedicines.filter(med =>
+        med.brandName?.toLowerCase().includes(lowerSearch) ||
+        med.generic?.genericName?.toLowerCase().includes(lowerSearch) ||
+        med.manufacturer?.manufacturerName?.toLowerCase().includes(lowerSearch) ||
+        med.strength?.toLowerCase().includes(lowerSearch) ||
+        med.dosageForm?.toLowerCase().includes(lowerSearch)
       );
+
+      // Sort by relevance: brand name matches first, then generic name, then others
+      const getScore = (med: any): number => {
+        const brand = (med.brandName || '').toLowerCase();
+        const generic = (med.generic?.genericName || '').toLowerCase();
+
+        if (brand === lowerSearch) return 100;
+        if (generic === lowerSearch) return 90;
+        if (brand.startsWith(lowerSearch)) return 80;
+        if (generic.startsWith(lowerSearch)) return 70;
+        if (brand.includes(lowerSearch)) return 60;
+        if (generic.includes(lowerSearch)) return 50;
+        return 30;
+      };
+
+      return matched.sort((a, b) => getScore(b) - getScore(a));
     }
     return this.db!.getAll('medicines');
   }

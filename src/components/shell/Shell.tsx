@@ -341,7 +341,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             isMobile ? "p-4" : "p-6"
           }`}
         >
-          <div key={pathname} className="transition-opacity duration-200">
+          <div key={pathname} className="transition-opacity duration-200 max-w-7xl mx-auto w-full">
             {children}
           </div>
         </main>

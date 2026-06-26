@@ -242,10 +242,7 @@ export default function ShortListPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Short List</h1>
-        <p className="text-muted-foreground text-sm">Items that need restocking</p>
-      </div>
+
 
       {/* Controls */}
       <Card className="shadow-sm">
@@ -424,9 +421,9 @@ export default function ShortListPage() {
                             {confirmDeleteId === item.id ? (
                               <div className="flex items-center gap-1 bg-destructive/10 px-2 py-0.5 rounded border border-destructive/20 justify-end w-fit ml-auto">
                                 <span className="text-xs text-destructive font-medium mr-1">Remove?</span>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   className="h-7 w-7 text-destructive hover:bg-destructive/20"
                                   onClick={() => {
                                     removeMutation.mutate(item.inventoryId);
@@ -435,9 +432,9 @@ export default function ShortListPage() {
                                 >
                                   <Check className="h-3.5 w-3.5" />
                                 </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   className="h-7 w-7 text-muted-foreground hover:bg-muted"
                                   onClick={() => setConfirmDeleteId(null)}
                                 >
@@ -445,9 +442,9 @@ export default function ShortListPage() {
                                 </Button>
                               </div>
                             ) : (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
                                 onClick={() => setConfirmDeleteId(item.id)}
                               >

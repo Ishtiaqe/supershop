@@ -2,7 +2,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import api from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -10,13 +10,13 @@ export default function Home() {
   useEffect(() => {
     (async function checkSession() {
       try {
-        const resp = await api.get("/users/me");
-        if (resp?.data) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
           navigate("/pos", { replace: true });
           return;
         }
-      } catch {
-        // Not authenticated
+      } catch (err) {
+        console.warn("Session check failed:", err);
       }
       navigate("/login", { replace: true });
     })();

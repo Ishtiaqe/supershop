@@ -416,11 +416,10 @@ export default function InventoryPage() {
     const s = search.toLowerCase();
     return dataSource.filter((item) => {
       const name = item.variant
-        ? `${item.variant.product.name} ${
-            item.variant.variantName === "Standard"
-              ? ""
-              : item.variant.variantName
-          }`
+        ? `${item.variant.product.name} ${item.variant.variantName === "Standard"
+          ? ""
+          : item.variant.variantName
+        }`
         : item.itemName || "";
       return name.toLowerCase().includes(s);
     });
@@ -443,10 +442,7 @@ export default function InventoryPage() {
 
   return (
     <div className="w-full space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Inventory Management</h1>
-        <p className="text-muted-foreground">Manage stock levels, batches, and pricing</p>
-      </div>
+
 
       <div className="space-y-6">
         {/* Add Form Card */}
@@ -645,11 +641,10 @@ export default function InventoryPage() {
                     >
                       <TableCell className="font-medium">
                         {item.variant
-                          ? `${item.variant.product.name}${
-                              item.variant.variantName === "Standard"
-                                ? ""
-                                : ` - ${item.variant.variantName}`
-                            }`
+                          ? `${item.variant.product.name}${item.variant.variantName === "Standard"
+                            ? ""
+                            : ` - ${item.variant.variantName}`
+                          }`
                           : item.itemName || "Unnamed item"}
                       </TableCell>
                       <TableCell className="text-right">

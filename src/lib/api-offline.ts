@@ -15,66 +15,12 @@ interface ApiResponse<T = unknown> {
 
 class OfflineApiClient {
   private networkDetector = NetworkDetector.getInstance();
-  private baseURL: string;
-  private fallbackURL?: string;
 
-  constructor(baseURL: string, fallbackURL?: string) {
-    this.baseURL = baseURL;
-    this.fallbackURL = fallbackURL;
-  }
+  constructor() {}
 
   async request<T = unknown>(config: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    const isOnline = this.networkDetector.isOnline();
-
-    // If online, try primary API first, then fallback
-    if (isOnline) {
-      try {
-        const response = await this.makeRequest<T>(config, this.baseURL);
-        return response;
-      } catch (primaryError) {
-        if (this.fallbackURL) {
-          console.warn('Primary API failed, trying fallback...');
-          try {
-            const response = await this.makeRequest<T>(config, this.fallbackURL);
-            return response;
-          } catch {
-            console.warn('Fallback API also failed, going offline...');
-          }
-        }
-        throw primaryError;
-      }
-    }
-
     // Offline mode - handle with local database
     return this.handleOfflineRequest<T>(config);
-  }
-
-  private async makeRequest<T>(config: AxiosRequestConfig, baseURL: string): Promise<ApiResponse<T>> {
-    const fullConfig = {
-      ...config,
-      baseURL,
-      headers: {
-        ...config.headers,
-        ...this.getAuthHeaders()
-      }
-    };
-
-    const response: AxiosResponse<T> = await axios(fullConfig);
-    return {
-      data: response.data,
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers as Record<string, string>,
-      config: response.config
-    };
-  }
-
-  private getAuthHeaders(): Record<string, string> {
-    const authState = OfflineAuth.getAuthState();
-    if (authState?.tokens?.accessToken) {
-      return { Authorization: `Bearer ${authState.tokens.accessToken}` };
-    }
-    return {};
   }
 
   private async handleOfflineRequest<T>(config: AxiosRequestConfig): Promise<ApiResponse<T>> {
@@ -297,8 +243,4 @@ class OfflineApiClient {
   }
 }
 
-// Create instance with same config as main API
-const PRIMARY_API_URL = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
-const BACKUP_API_URL = import.meta.env.VITE_API_URL_BACKUP || import.meta.env.NEXT_PUBLIC_API_URL_BACKUP || PRIMARY_API_URL;
-
-export const offlineApi = new OfflineApiClient(PRIMARY_API_URL, BACKUP_API_URL);
+export const offlineApi = new OfflineApiClient();

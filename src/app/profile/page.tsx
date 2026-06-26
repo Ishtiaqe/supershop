@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import type { User } from '@/types';
 import api from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 
 // Import shadcn UI components
 import { Button } from '@/components/ui/button';
@@ -77,12 +78,26 @@ export default function ProfilePage() {
     if (!user) return;
 
     try {
-      const response = await api.put('/users/me', {
-        fullName: values.fullName,
+      // 1. Update Supabase Auth metadata
+      const { data: authData, error: authError } = await supabase.auth.updateUser({
         email: values.email,
+        data: { full_name: values.fullName }
       });
+      if (authError) throw authError;
 
-      const updatedUser = response.data;
+      // 2. Update public.users database table
+      const { data: dbData, error: dbError } = await supabase
+        .from('users')
+        .update({ fullName: values.fullName, email: values.email })
+        .eq('id', user.id)
+        .select()
+        .single();
+      
+      const updatedUser = dbError ? {
+        ...user,
+        fullName: values.fullName,
+        email: values.email
+      } : dbData;
 
       startTransition(() => {
         localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -100,10 +115,10 @@ export default function ProfilePage() {
     if (!user) return;
 
     try {
-      await api.post('/users/me/change-password', {
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword,
+      const { error } = await supabase.auth.updateUser({
+        password: values.newPassword
       });
+      if (error) throw error;
 
       await new Promise((resolve) => setTimeout(resolve, 0));
       toast.success('Password changed successfully');
