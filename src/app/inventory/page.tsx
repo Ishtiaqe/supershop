@@ -1,28 +1,18 @@
-import dynamic from "next/dynamic";
-import { Metadata } from "next";
+import { lazy, Suspense } from "react";
+import { Skeleton } from "antd";
 
-export const metadata: Metadata = {
-  title: "Inventory Management",
-  description: "Manage stock levels and batch tracking",
-};
-
-const InventoryClient = dynamic(
-  () => import("@/components/inventory/InventoryClient"),
-  {
-    ssr: false,
-  }
-);
+const InventoryClient = lazy(() => import("@/components/inventory/InventoryClient"));
 
 export default function InventoryPage() {
   return (
     <div className="w-full space-y-6">
       <div>
         <h1 className="page-header">Inventory Management</h1>
-        <p className="page-subheader">
-          Manage stock levels, batches, and pricing
-        </p>
+        <p className="page-subheader">Manage stock levels, batches, and pricing</p>
       </div>
-      <InventoryClient />
+      <Suspense fallback={<Skeleton active paragraph={{ rows: 10 }} />}>
+        <InventoryClient />
+      </Suspense>
     </div>
   );
 }

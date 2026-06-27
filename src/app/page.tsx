@@ -1,26 +1,26 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import api from "@/lib/api";
 
 export default function Home() {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     (async function checkSession() {
       try {
         const resp = await api.get("/users/me");
         if (resp?.data) {
-          router.push("/pos");
+          navigate("/pos", { replace: true });
           return;
         }
       } catch {
         // Not authenticated
       }
-      router.push("/login");
+      navigate("/login", { replace: true });
     })();
-  }, [router]);
+  }, [navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

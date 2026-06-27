@@ -14,9 +14,6 @@ export class NetworkDetector {
 
       window.addEventListener('online', () => this.updateStatus(true));
       window.addEventListener('offline', () => this.updateStatus(false));
-
-      // Periodic connectivity check
-      setInterval(() => this.checkConnectivity(), 30000);
     }
   }
 
@@ -31,21 +28,6 @@ export class NetworkDetector {
     if (this.currentStatus !== online) {
       this.currentStatus = online;
       this.listeners.forEach(listener => listener(online));
-    }
-  }
-
-  private async checkConnectivity(): Promise<void> {
-    try {
-      // Try to fetch the backend health endpoint
-      const healthUrl = `${process.env.NEXT_PUBLIC_API_URL}/health`;
-      const response = await fetch(healthUrl, {
-        method: 'HEAD',
-        cache: 'no-cache',
-        signal: AbortSignal.timeout(5000)
-      });
-      this.updateStatus(response.ok);
-    } catch {
-      this.updateStatus(false);
     }
   }
 

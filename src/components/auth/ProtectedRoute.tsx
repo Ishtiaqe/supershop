@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 interface ProtectedRouteProps {
@@ -10,27 +10,24 @@ interface ProtectedRouteProps {
   fallbackPath?: string;
 }
 
-export function ProtectedRoute({ 
-  children, 
-  requiredRole = [], 
-  fallbackPath = "/login" 
+export function ProtectedRoute({
+  children,
+  requiredRole = [],
+  fallbackPath = "/login",
 }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (loading) return;
-
     if (!user) {
-      router.push(fallbackPath);
+      navigate(fallbackPath);
       return;
     }
-
     if (requiredRole.length > 0 && !requiredRole.includes(user.role)) {
-      router.push("/unauthorized");
-      return;
+      navigate("/unauthorized");
     }
-  }, [user, loading, router, requiredRole, fallbackPath]);
+  }, [user, loading, navigate, requiredRole, fallbackPath]);
 
   if (loading) {
     return (
@@ -43,13 +40,8 @@ export function ProtectedRoute({
     );
   }
 
-  if (!user) {
-    return null;
-  }
-
-  if (requiredRole.length > 0 && !requiredRole.includes(user.role)) {
-    return null;
-  }
+  if (!user) return null;
+  if (requiredRole.length > 0 && !requiredRole.includes(user.role)) return null;
 
   return <>{children}</>;
 }

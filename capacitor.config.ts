@@ -16,7 +16,7 @@ const vercelUrl = 'https://supershop.shomaj.one';
 const config: CapacitorConfig = {
   appId: 'one.shomaj.supershop',
   appName: 'SuperShop',
-  webDir: 'out',
+  webDir: 'dist',
   server: useVercel
     ? {
       url: vercelUrl,

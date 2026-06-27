@@ -1,9 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useReportWebVitals } from "next/web-vitals";
-
-type SupportedMetric = "FCP" | "LCP" | "INP";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { onFCP, onLCP, onINP } from "web-vitals";
 
 declare global {
   interface Window {
@@ -19,31 +18,30 @@ function normalizeRoute(pathname: string): string {
 }
 
 export default function WebVitalsReporter() {
-  const pathname = usePathname() || "/";
+  const { pathname } = useLocation();
 
-  useReportWebVitals((metric) => {
-    const metricName = metric.name as SupportedMetric;
-    if (metricName !== "FCP" && metricName !== "LCP" && metricName !== "INP") {
-      return;
-    }
-
+  useEffect(() => {
     const route = normalizeRoute(pathname);
 
-    if (typeof window !== "undefined" && window.gtag) {
-      window.gtag("event", metricName, {
-        event_category: "Web Vitals",
-        event_label: route,
-        non_interaction: true,
-        value: Math.round(metric.value),
-        metric_id: metric.id,
-        metric_value: metric.value,
-        metric_delta: metric.delta,
-        route,
-      });
-    }
+    const report = (metric: { name: string; id: string; value: number; delta: number }) => {
+      if (typeof window !== "undefined" && window.gtag) {
+        window.gtag("event", metric.name, {
+          event_category: "Web Vitals",
+          event_label: route,
+          non_interaction: true,
+          value: Math.round(metric.value),
+          metric_id: metric.id,
+          metric_value: metric.value,
+          metric_delta: metric.delta,
+          route,
+        });
+      }
+    };
 
-    
-  });
+    onFCP(report);
+    onLCP(report);
+    onINP(report);
+  }, [pathname]);
 
   return null;
 }

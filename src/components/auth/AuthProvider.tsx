@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Bootstrap current session on mount
     bootstrap();
     return () => {
-      stop && stop();
+      if (stop) stop();
     };
   }, [bootstrap]);
 

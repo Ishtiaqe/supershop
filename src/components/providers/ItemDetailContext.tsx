@@ -1,6 +1,5 @@
 'use client';
-import dynamic from 'next/dynamic';
-import { createContext, useCallback, useContext, useState } from 'react';
+import { lazy, Suspense, createContext, useCallback, useContext, useState } from 'react';
 
 interface ItemDetailOptions {
   showBatches?: boolean;
@@ -20,11 +19,7 @@ export function useItemDetail() {
   return useContext(ItemDetailContext);
 }
 
-// Lazy import to avoid circular deps
-const ItemDetailModalLazy = dynamic(
-  () => import('@/components/shared/ItemDetailModal'),
-  { ssr: false },
-);
+const ItemDetailModalLazy = lazy(() => import('@/components/shared/ItemDetailModal'));
 
 export function ItemDetailProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<{ variantId: string | null; showBatches: boolean }>({
@@ -44,11 +39,13 @@ export function ItemDetailProvider({ children }: { children: React.ReactNode }) 
     <ItemDetailContext.Provider value={{ openItem, closeItem }}>
       {children}
       {state.variantId && (
-        <ItemDetailModalLazy
-          variantId={state.variantId}
-          showBatches={state.showBatches}
-          onClose={closeItem}
-        />
+        <Suspense fallback={null}>
+          <ItemDetailModalLazy
+            variantId={state.variantId}
+            showBatches={state.showBatches}
+            onClose={closeItem}
+          />
+        </Suspense>
       )}
     </ItemDetailContext.Provider>
   );

@@ -1,15 +1,7 @@
-import dynamic from "next/dynamic";
-import { Metadata } from "next";
+import { lazy, Suspense } from "react";
+import { Skeleton } from "antd";
 
-export const metadata: Metadata = {
-  title: "Product Catalog",
-  description: "Manage products and variants",
-};
-
-const CatalogClient = dynamic(
-  () => import("@/components/catalog/CatalogClient"),
-  { ssr: false }
-);
+const CatalogClient = lazy(() => import("@/components/catalog/CatalogClient"));
 
 export default function CatalogPage() {
   return (
@@ -17,11 +9,12 @@ export default function CatalogPage() {
       <div>
         <h1 className="page-header">Product Catalog</h1>
         <p className="page-subheader">
-          Manage your product catalog with variants, pricing, and medicine
-          information
+          Manage your product catalog with variants, pricing, and medicine information
         </p>
       </div>
-      <CatalogClient />
+      <Suspense fallback={<Skeleton active paragraph={{ rows: 10 }} />}>
+        <CatalogClient />
+      </Suspense>
     </div>
   );
 }

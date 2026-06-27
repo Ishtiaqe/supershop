@@ -1,16 +1,12 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
-const Analytics = dynamic(
-  () => import("@vercel/analytics/next").then((mod) => mod.Analytics),
-  { ssr: false }
+const Analytics = lazy(() =>
+  import("@vercel/analytics/react").then((m) => ({ default: m.Analytics }))
 );
-
-const SpeedInsights = dynamic(
-  () => import("@vercel/speed-insights/next").then((mod) => mod.SpeedInsights),
-  { ssr: false }
+const SpeedInsights = lazy(() =>
+  import("@vercel/speed-insights/react").then((m) => ({ default: m.SpeedInsights }))
 );
 
 export default function DeferredTelemetry() {
@@ -31,9 +27,9 @@ export default function DeferredTelemetry() {
   if (!enabled) return null;
 
   return (
-    <>
+    <Suspense fallback={null}>
       <SpeedInsights />
       <Analytics />
-    </>
+    </Suspense>
   );
 }

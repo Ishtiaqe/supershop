@@ -5,7 +5,7 @@ import { Button, message } from "antd";
 import BellOutlined from "@ant-design/icons/BellOutlined";
 import api from "@/lib/api";
 
-const PUBLIC_VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BBMc..."; // Replace with real key
+const PUBLIC_VAPID_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || import.meta.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "BBMc..."; // Replace with real key
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);

@@ -206,7 +206,7 @@ function POSClient() {
   }, [rawItems]);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [qty, setQty] = useState<number>(1);
+  const [qty, setQty] = useState<number | null>(null);
   // customerName, customerPhone, and setters are now provided by parent (page)
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCreditSale, setIsCreditSale] = useState(false);
@@ -261,8 +261,13 @@ function POSClient() {
 
   function addToCart() {
     if (!selectedKey) return;
+    if (qty === null || qty < 1) return;
     const item = aggregatedItems.find((i) => i.key === selectedKey);
     if (!item) return;
+    if (qty > item.totalQty) {
+      message.error(`Cannot add more than available stock (${item.totalQty})`);
+      return;
+    }
 
     // Calculate average purchase price
     const totalPurchase = item.batches.reduce(
@@ -280,8 +285,13 @@ function POSClient() {
     // Check if already in cart
     const existingIdx = cart.findIndex((c) => c.key === selectedKey);
     if (existingIdx >= 0) {
+      const existingQty = cart[existingIdx].quantity;
+      if (existingQty + qty! > item.totalQty) {
+        message.error(`Cannot add more than available stock (${item.totalQty})`);
+        return;
+      }
       const newCart = [...cart];
-      newCart[existingIdx].quantity += qty;
+      newCart[existingIdx].quantity += qty!;
       setCart(newCart);
     } else {
       setCart([
@@ -291,7 +301,7 @@ function POSClient() {
           name: item.name,
           unitPrice: item.retailPrice,
           purchasePrice: avgPurchase,
-          quantity: qty,
+          quantity: qty!,
           discount: 0, // percentage
           maxDiscount: maxDiscountPercent,
           batches: item.batches,
@@ -300,7 +310,7 @@ function POSClient() {
     }
 
     setSelectedKey(null);
-    setQty(1);
+    setQty(null);
     setSearch(""); // Clear search
 
     // Focus back to the item select
@@ -465,8 +475,8 @@ function POSClient() {
                   variant="outlined"
                   className="w-full"
                   min={1}
-                  value={qty}
-                  onChange={(value) => setQty(Number(value))}
+                  value={qty ?? undefined}
+                  onChange={(value) => setQty(value ? Number(value) : null)}
                   onPressEnter={addToCart}
                   changeOnWheel
                 />
@@ -475,7 +485,7 @@ function POSClient() {
                 <Button
                   type="primary"
                   onClick={addToCart}
-                  disabled={!selectedKey}
+                  disabled={!selectedKey || qty === null || qty < 1}
                 >
                   Add to cart
                 </Button>
