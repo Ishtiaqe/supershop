@@ -1,27 +1,27 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 interface ProtectedRouteProps {
-  children: React.ReactNode
-  fallbackPath?: string
+  children: React.ReactNode;
+  fallbackPath?: string;
 }
 
 export function ProtectedRoute({
   children,
-  fallbackPath = '/login',
+  fallbackPath = "/login",
 }: ProtectedRouteProps) {
-  const { user, loading } = useSupabaseAuth()
-  const navigate = useNavigate()
+  const { user, loading } = useSupabaseAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (loading) return
+    if (loading) return;
     if (!user) {
-      navigate(fallbackPath)
+      navigate(fallbackPath);
     }
-  }, [user, loading, navigate, fallbackPath])
+  }, [user, loading, navigate, fallbackPath]);
 
   if (loading) {
     return (
@@ -31,7 +31,7 @@ export function ProtectedRoute({
           <p className="text-muted-foreground">Authenticating...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!user) {
@@ -41,8 +41,8 @@ export function ProtectedRoute({
           <p className="text-muted-foreground">Redirecting to login...</p>
         </div>
       </div>
-    )
+    );
   }
 
-  return <>{children}</>
+  return <>{children}</>;
 }
