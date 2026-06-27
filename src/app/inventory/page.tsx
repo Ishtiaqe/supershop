@@ -481,14 +481,18 @@ export default function InventoryPage() {
                               type="button"
                               className="w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground border-b border-border last:border-b-0"
                               onClick={() => {
-                                const value = `${item.productName} - ${item.variantName}`;
+                                const value = item.variantName === "Standard"
+                                  ? item.productName
+                                  : `${item.productName} - ${item.variantName}`;
                                 field.onChange(value);
                                 handleCatalogSelect(value);
                                 setCatalogOptions([]);
                               }}
                             >
                               <div className="font-medium text-sm">
-                                {item.productName} - {item.variantName}
+                                {item.variantName === "Standard"
+                                  ? item.productName
+                                  : `${item.productName} - ${item.variantName}`}
                               </div>
                               <div className="text-xs text-muted-foreground">
                                 ৳{item.retailPrice}
