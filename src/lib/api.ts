@@ -183,17 +183,42 @@ async function handleRequest(method: string, url: string, requestData?: any): Pr
         const { data: variants, error } = await queryBuilder.limit(50)
         if (error) throw error
 
-        const catalogItems = (variants || []).map((v: any) => ({
-          variantId: v.id,
-          productName: v.product?.name || 'Unnamed Product',
-          variantName: v.variantName,
-          sku: v.sku,
-          retailPrice: v.retailPrice,
-          productType: v.product?.productType || 'GENERAL',
-          genericName: v.product?.genericName || '',
-          manufacturerName: v.product?.manufacturerName || '',
-          purchasePrice: v.retailPrice * 0.7
-        }))
+        const variantIds = (variants || []).map((v: any) => v.id).filter(Boolean)
+        const latestInventoryByVariant: Record<string, { purchasePrice: number; retailPrice: number }> = {}
+        if (variantIds.length > 0) {
+          const { data: inventoryItems } = await supabase
+            .from('inventory_items')
+            .select('variantId, purchasePrice, retailPrice, createdAt')
+            .eq('tenantId', tenantId)
+            .in('variantId', variantIds)
+            .order('createdAt', { ascending: false })
+            .limit(1000)
+
+          for (const item of (inventoryItems || [])) {
+            const key = item.variantId
+            if (key && !latestInventoryByVariant[key]) {
+              latestInventoryByVariant[key] = {
+                purchasePrice: item.purchasePrice || 0,
+                retailPrice: item.retailPrice || 0
+              }
+            }
+          }
+        }
+
+        const catalogItems = (variants || []).map((v: any) => {
+          const latest = latestInventoryByVariant[v.id]
+          return {
+            variantId: v.id,
+            productName: v.product?.name || 'Unnamed Product',
+            variantName: v.variantName,
+            sku: v.sku,
+            retailPrice: latest?.retailPrice ?? v.retailPrice,
+            productType: v.product?.productType || 'GENERAL',
+            genericName: v.product?.genericName || '',
+            manufacturerName: v.product?.manufacturerName || '',
+            purchasePrice: latest?.purchasePrice ?? v.retailPrice * 0.7
+          }
+        })
 
         // Sort by relevance:
         //   100 — exact product name match

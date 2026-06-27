@@ -50,6 +50,7 @@ export interface InventoryItem {
   expiryDate?: Date
   mfgDate?: Date
   batchNo?: string
+  lastRestockDate?: Date
   variant?: ProductVariant & { product: Product }
 }
 

@@ -208,9 +208,13 @@ export default function InventoryPage() {
   }, 300);
 
   const handleCatalogSelect = (value: string) => {
-    const selected = catalogOptions.find(
-      (item) => `${item.productName} - ${item.variantName}` === value
-    );
+    const selected = catalogOptions.find((item) => {
+      const itemValue =
+        item.variantName === "Standard"
+          ? item.productName
+          : `${item.productName} - ${item.variantName}`;
+      return itemValue === value;
+    });
 
     if (selected) {
       setSelectedFromCatalog(selected);
@@ -395,18 +399,30 @@ export default function InventoryPage() {
       {}
     );
 
-    return Object.values(grouped).map((item) => {
-      const latest = item.subItems[0];
-      return {
-        ...item,
-        batchInfo:
-          item.batches.length > 1
-            ? `${item.batches.length} Batches`
-            : item.subItems[0]?.batchNo || "-",
-        latestPurchasePrice: latest.purchasePrice,
-        latestRetailPrice: latest.retailPrice,
-      };
-    });
+    return Object.values(grouped)
+      .map((item) => {
+        const sortedByRestock = [...item.subItems].sort((a, b) => {
+          const aTime = a.lastRestockDate ? new Date(a.lastRestockDate).getTime() : 0;
+          const bTime = b.lastRestockDate ? new Date(b.lastRestockDate).getTime() : 0;
+          return bTime - aTime;
+        });
+        const latest = sortedByRestock[0];
+        return {
+          ...item,
+          batchInfo:
+            item.batches.length > 1
+              ? `${item.batches.length} Batches`
+              : item.subItems[0]?.batchNo || "-",
+          latestPurchasePrice: latest.purchasePrice,
+          latestRetailPrice: latest.retailPrice,
+          lastRestockDate: latest.lastRestockDate,
+        };
+      })
+      .sort((a, b) => {
+        const aTime = a.lastRestockDate ? new Date(a.lastRestockDate).getTime() : 0;
+        const bTime = b.lastRestockDate ? new Date(b.lastRestockDate).getTime() : 0;
+        return bTime - aTime;
+      });
   }, [items]);
 
   type InventoryRow = (typeof dataSource)[number];
@@ -628,7 +644,6 @@ export default function InventoryPage() {
                   <TableHead className="text-right">Total Stock</TableHead>
                   <TableHead className="text-right">Purchase Price</TableHead>
                   <TableHead className="text-right">MRP/Unit</TableHead>
-                  <TableHead>Batch Info</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -660,7 +675,6 @@ export default function InventoryPage() {
                       </TableCell>
                       <TableCell className="text-right">৳{item.latestPurchasePrice}</TableCell>
                       <TableCell className="text-right">৳{item.latestRetailPrice}</TableCell>
-                      <TableCell>{item.batchInfo}</TableCell>
                     </TableRow>
                   ))
                 ) : (
