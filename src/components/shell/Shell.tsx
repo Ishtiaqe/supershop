@@ -223,9 +223,17 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     }
   }, [loading, user, navigate]);
 
+  // Save current path for restoration on reload
+  useEffect(() => {
+    if (pathname && !pathname.includes("/login") && !pathname.includes("/auth")) {
+      sessionStorage.setItem("lastPath", pathname);
+    }
+  }, [pathname]);
+
   const navigationItems = getFilteredNavigation(user?.role);
 
-  if (loading && !user) {
+  // Show loading screen while auth is being checked
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
@@ -234,6 +242,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     );
+  }
+
+  // If not loading and no user, the effect above will redirect to login
+  if (!user) {
+    return null;
   }
 
   const selectedKey = (() => {

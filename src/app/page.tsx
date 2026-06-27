@@ -1,12 +1,11 @@
 "use client";
 
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     (async function checkSession() {
@@ -25,13 +24,6 @@ export default function Home() {
       navigate("/login", { replace: true });
     })();
   }, [navigate]);
-
-  // Store current path for restoration on reload
-  useEffect(() => {
-    if (location.pathname !== "/" && location.pathname !== "/login") {
-      sessionStorage.setItem("lastPath", location.pathname);
-    }
-  }, [location.pathname]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
