@@ -4,6 +4,9 @@
   "description": "SuperShop Management Dashboard",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

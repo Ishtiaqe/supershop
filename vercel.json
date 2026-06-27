@@ -1,5 +1,6 @@
 {
   "framework": null,
+  "nodeVersion": "24.x",
   "buildCommand": "npm run build:static",
   "outputDirectory": "dist",
   "installCommand": "npm install",
