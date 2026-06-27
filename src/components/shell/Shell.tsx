@@ -8,13 +8,6 @@ import { NetworkStatus } from "./NetworkStatus";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
   Monitor,
   Sun,
   Moon,
@@ -109,42 +102,50 @@ const AppSidebar = ({
       })}
     </nav>
 
-    <div className="p-3 border-t border-border/50">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            className={`w-full text-left cursor-pointer flex items-center gap-3 ${
-              collapsed ? "p-0 w-10 h-10 justify-center mx-auto" : "p-2"
-            } rounded-lg hover:bg-accent/80 active:bg-accent transition-all duration-200 focus-visible:outline-none`}
-            title="User menu"
+    <div className="p-3 border-t border-border/50 space-y-2">
+      <div
+        className={`flex items-center gap-3 ${
+          collapsed ? "p-0 w-10 h-10 justify-center mx-auto" : "p-2"
+        } rounded-lg transition-all duration-200`}
+        title={user?.fullName || "User"}
+      >
+        <div className="flex items-center justify-center bg-primary text-primary-foreground font-semibold rounded-full w-9 h-9 flex-shrink-0 text-sm">
+          {(user?.fullName || "U")[0].toUpperCase()}
+        </div>
+        {!collapsed && (
+          <div className="flex flex-col overflow-hidden text-left min-w-0">
+            <span className="font-semibold text-sm truncate text-foreground leading-tight">
+              {user?.fullName || "User"}
+            </span>
+            <span className="text-xs text-muted-foreground truncate">
+              {user?.email}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {!collapsed && (
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start"
+            asChild
           >
-            <div className="flex items-center justify-center bg-primary text-primary-foreground font-semibold rounded-full w-9 h-9 flex-shrink-0 text-sm">
-              {(user?.fullName || "U")[0].toUpperCase()}
-            </div>
-            {!collapsed && (
-              <div className="flex flex-col overflow-hidden text-left min-w-0">
-                <span className="font-semibold text-sm truncate text-foreground leading-tight">
-                  {user?.fullName || "User"}
-                </span>
-                <span className="text-xs text-muted-foreground truncate">
-                  {user?.email}
-                </span>
-              </div>
-            )}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align={collapsed ? "center" : "start"} side="right" className="w-56">
-          <DropdownMenuItem asChild>
-            <Link to="/profile" className="flex items-center gap-2 w-full cursor-pointer">
-              <User className="w-4 h-4" /> Profile
+            <Link to="/profile">
+              <User className="w-4 h-4 mr-2" /> Profile
             </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={onLogout}
+          >
             <LogOut className="w-4 h-4 mr-2" /> Sign out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          </Button>
+        </div>
+      )}
     </div>
   </div>
 );
