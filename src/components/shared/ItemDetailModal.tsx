@@ -1,8 +1,26 @@
 'use client';
-import { Modal, Table, Button, InputNumber, Spin } from 'antd';
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import api from '@/lib/api';
+
+// Import shadcn UI components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
 
 interface Props {
   variantId: string;
@@ -59,150 +77,181 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
     updateMutation.mutate({ id: batchId, data: editForm });
   };
 
-  const batchColumns = [
-    {
-      title: 'Batch No',
-      dataIndex: 'batchNo',
-      key: 'batchNo',
-      render: (v: string | null) => v || '—',
-    },
-    {
-      title: 'Purchase Price',
-      dataIndex: 'purchasePrice',
-      key: 'purchasePrice',
-      render: (v: number, record: Batch) =>
-        editingBatchId === record.id ? (
-          <InputNumber
-            value={editForm.purchasePrice ?? v}
-            min={0}
-            prefix="৳"
-            onChange={(val) => setEditForm((f) => ({ ...f, purchasePrice: val ?? 0 }))}
-            style={{ width: 110 }}
-          />
-        ) : (
-          `৳${v.toFixed(2)}`
-        ),
-    },
-    {
-      title: 'Retail Price',
-      dataIndex: 'retailPrice',
-      key: 'retailPrice',
-      render: (v: number, record: Batch) =>
-        editingBatchId === record.id ? (
-          <InputNumber
-            value={editForm.retailPrice ?? v}
-            min={0}
-            prefix="৳"
-            onChange={(val) => setEditForm((f) => ({ ...f, retailPrice: val ?? 0 }))}
-            style={{ width: 110 }}
-          />
-        ) : (
-          `৳${v.toFixed(2)}`
-        ),
-    },
-    { title: 'Qty', dataIndex: 'quantity', key: 'quantity' },
-    {
-      title: 'Expiry',
-      dataIndex: 'expiryDate',
-      key: 'expiryDate',
-      render: (v: string | null) => (v ? new Date(v).toLocaleDateString() : '—'),
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (_: unknown, record: Batch) =>
-        editingBatchId === record.id ? (
-          <div className="flex gap-1">
-            <Button
-              size="small"
-              type="primary"
-              onClick={() => handleSave(record.id)}
-              loading={updateMutation.isPending}
-            >
-              Save
-            </Button>
-            <Button size="small" onClick={() => setEditingBatchId(null)}>
-              Cancel
-            </Button>
-          </div>
-        ) : (
-          <Button
-            size="small"
-            onClick={() => {
-              setEditingBatchId(record.id);
-              setEditForm({});
-            }}
-          >
-            Edit
-          </Button>
-        ),
-    },
-  ];
-
   const product = catalogItem?.product;
 
   return (
-    <Modal
-      open
-      onCancel={onClose}
-      footer={null}
-      width={Math.min(800, typeof window !== 'undefined' ? window.innerWidth * 0.95 : 800)}
-      title={product?.name ?? catalogItem?.variantName ?? 'Item Details'}
-    >
-      {loadingItem ? (
-        <div className="flex justify-center py-8">
-          <Spin />
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {product?.category?.name && (
-              <div>
-                <span className="text-muted-foreground">Category: </span>
-                {product.category.name}
-              </div>
-            )}
-            {product?.brand?.name && (
-              <div>
-                <span className="text-muted-foreground">Brand: </span>
-                {product.brand.name}
-              </div>
-            )}
-            {catalogItem?.variantName && catalogItem.variantName !== 'Standard' && (
-              <div>
-                <span className="text-muted-foreground">Variant: </span>
-                {catalogItem.variantName}
-              </div>
-            )}
-            {product?.description && (
-              <div className="col-span-2">
-                <span className="text-muted-foreground">Description: </span>
-                {product.description}
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {product?.name ?? catalogItem?.variantName ?? 'Item Details'}
+          </DialogTitle>
+        </DialogHeader>
+
+        {loadingItem ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-lg">
+              {product?.category?.name && (
+                <div>
+                  <span className="text-muted-foreground font-medium">Category: </span>
+                  <span className="text-foreground">{product.category.name}</span>
+                </div>
+              )}
+              {product?.brand?.name && (
+                <div>
+                  <span className="text-muted-foreground font-medium">Brand: </span>
+                  <span className="text-foreground">{product.brand.name}</span>
+                </div>
+              )}
+              {catalogItem?.variantName && catalogItem.variantName !== 'Standard' && (
+                <div>
+                  <span className="text-muted-foreground font-medium">Variant: </span>
+                  <span className="text-foreground">{catalogItem.variantName}</span>
+                </div>
+              )}
+              {product?.description && (
+                <div className="col-span-2">
+                  <span className="text-muted-foreground font-medium">Description: </span>
+                  <span className="text-foreground">{product.description}</span>
+                </div>
+              )}
+            </div>
+
+            {showBatches && (
+              <div className="space-y-3">
+                <div className="font-semibold text-sm">
+                  Batches ({(batches as Batch[]).length})
+                </div>
+                {loadingBatches ? (
+                  <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                  </div>
+                ) : (
+                  <div className="rounded-md border overflow-hidden bg-card">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Batch No</TableHead>
+                          <TableHead>Purchase Price</TableHead>
+                          <TableHead>Retail Price</TableHead>
+                          <TableHead className="text-right">Qty</TableHead>
+                          <TableHead>Expiry</TableHead>
+                          <TableHead className="text-right w-[150px]">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(batches as Batch[]).length > 0 ? (
+                          (batches as Batch[]).map((record) => (
+                            <TableRow key={record.id}>
+                              <TableCell className="font-medium">
+                                {record.batchNo || '—'}
+                              </TableCell>
+                              <TableCell>
+                                {editingBatchId === record.id ? (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-muted-foreground">৳</span>
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      step="0.01"
+                                      className="w-24 h-8 px-2 py-1 text-xs"
+                                      value={editForm.purchasePrice ?? record.purchasePrice}
+                                      onChange={(e) =>
+                                        setEditForm((f) => ({
+                                          ...f,
+                                          purchasePrice: parseFloat(e.target.value) || 0,
+                                        }))
+                                      }
+                                    />
+                                  </div>
+                                ) : (
+                                  `৳${record.purchasePrice.toFixed(2)}`
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {editingBatchId === record.id ? (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-muted-foreground">৳</span>
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      step="0.01"
+                                      className="w-24 h-8 px-2 py-1 text-xs"
+                                      value={editForm.retailPrice ?? record.retailPrice}
+                                      onChange={(e) =>
+                                        setEditForm((f) => ({
+                                          ...f,
+                                          retailPrice: parseFloat(e.target.value) || 0,
+                                        }))
+                                      }
+                                    />
+                                  </div>
+                                ) : (
+                                  `৳${record.retailPrice.toFixed(2)}`
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">{record.quantity}</TableCell>
+                              <TableCell>
+                                {record.expiryDate
+                                  ? new Date(record.expiryDate).toLocaleDateString()
+                                  : '—'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {editingBatchId === record.id ? (
+                                  <div className="flex justify-end gap-1.5">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleSave(record.id)}
+                                      disabled={updateMutation.isPending}
+                                      className="h-8"
+                                    >
+                                      Save
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setEditingBatchId(null)}
+                                      className="h-8"
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingBatchId(record.id);
+                                      setEditForm({});
+                                    }}
+                                    className="h-8"
+                                  >
+                                    Edit
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-sm">
+                              No batches found.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
             )}
           </div>
-
-          {showBatches && (
-            <div>
-              <div className="font-semibold text-sm mb-2">
-                Batches ({(batches as Batch[]).length})
-              </div>
-              {loadingBatches ? (
-                <Spin size="small" />
-              ) : (
-                <Table
-                  columns={batchColumns}
-                  dataSource={batches as Batch[]}
-                  rowKey="id"
-                  pagination={false}
-                  size="small"
-                  scroll={{ x: 500 }}
-                />
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </Modal>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

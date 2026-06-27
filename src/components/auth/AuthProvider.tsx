@@ -1,164 +1,198 @@
-"use client";
+'use client'
 
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import api, { startProactiveRefresh } from "@/lib/api";
+import React, { useEffect, useMemo, useCallback } from 'react'
+import api from '@/lib/api'
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 
 export type AuthContextType = {
-  user: any | null;
-  loading: boolean;
-  refresh: () => Promise<any>;
-  logout: () => Promise<void>;
-  login: (user: any) => void;
-};
+  user: any | null
+  loading: boolean
+  refresh: () => Promise<any>
+  logout: () => Promise<void>
+  login: (user: any) => void
+}
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
 
 export function useAuth(): AuthContextType {
-  const ctx = React.useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+  const ctx = React.useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const { user: supabaseUser, logout: supabaseLogout, supabase } = useSupabaseAuth()
 
-  const hydrateFromProfile = useCallback((profile: any) => {
-    setUser(profile);
-    try {
-      localStorage.setItem("user", JSON.stringify(profile));
-      if (profile?.tenant) {
-        localStorage.setItem("tenant", JSON.stringify(profile.tenant));
-      }
-    } catch {}
-  }, []);
-
-  const fetchProfile = useCallback(async () => {
-    const resp = await api.get("/users/me");
-    if (!resp?.data) throw new Error("No user data");
-    hydrateFromProfile(resp.data);
-    return true;
-  }, [hydrateFromProfile]);
-
-  const refresh = useCallback(async (): Promise<any> => {
-    try {
-      // Refresh token is now in httpOnly cookie, backend reads it automatically
-      const response = await api.post("/auth/refresh");
-
-      if (response.data?.accessToken) {
-        // Access token is stored by api interceptor
-        // Fetch and update user profile
-        try {
-          const resp = await api.get("/users/me");
-          if (resp?.data) {
-            hydrateFromProfile(resp.data);
-            return resp.data;
-          }
-        } catch (e) {
-          console.warn("Token refresh succeeded but profile fetch failed:", e);
-        }
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }, [hydrateFromProfile]);
-
-  const bootstrap = useCallback(async () => {
-    setLoading(true);
-
-    // Check if we have access token (refresh token is in httpOnly cookie)
-    const hasAccessToken =
-      typeof window !== "undefined" &&
-      localStorage.getItem("accessToken");
-
-    if (!hasAccessToken) {
-      // No access token, try to refresh using the httpOnly cookie
-      try {
-        const userData = await refresh();
-        if (userData) {
-          setLoading(false);
-          return;
-        }
-      } catch {}
-      // No valid session
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Try current session
-      await fetchProfile();
-      setLoading(false);
-      return;
-    } catch {
-      // Attempt refresh, then retry profile
-      try {
-        const userData = await refresh();
-        if (userData) {
-          setLoading(false);
-          return;
-        }
-      } catch {}
-      // Failed: clear all auth data
-      try {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("user");
-        localStorage.removeItem("tenant");
-      } catch {}
-      setUser(null);
-      setLoading(false);
-    }
-  }, [fetchProfile, refresh]);
+  // Fetch and cache user profile from Supabase (includes tenant info)
+  const [cachedProfile, setCachedProfile] = React.useState<any | null>(null)
+  const [loading, setLoading] = React.useState(true)
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    const fetchProfile = async () => {
       try {
-        const hydratedUser = localStorage.getItem("user");
-        if (hydratedUser) {
-          setUser(JSON.parse(hydratedUser));
+        if (!supabaseUser) {
+          setCachedProfile(null)
+          setLoading(false)
+          return
         }
-      } catch {}
+
+        // Fetch full profile from Supabase directly using email (to handle user ID mismatches)
+        let queryResult = await supabase
+          .from('users')
+          .select('*, tenant:tenants(*)')
+          .eq('email', supabaseUser.email)
+          .single()
+
+        if (queryResult.error) {
+          console.warn('Query by email failed, trying query by ID:', queryResult.error)
+          queryResult = await supabase
+            .from('users')
+            .select('*, tenant:tenants(*)')
+            .eq('id', supabaseUser.id)
+            .single()
+        }
+
+        const { data, error } = queryResult
+
+        if (error) {
+          console.warn('Failed to query user profile from Supabase DB, falling back to metadata:', error)
+          const fallbackProfile = {
+            id: supabaseUser.id,
+            email: supabaseUser.email,
+            fullName: supabaseUser.user_metadata?.full_name || 'User',
+            role: supabaseUser.user_metadata?.role || 'OWNER',
+            tenantId: supabaseUser.user_metadata?.tenantId || 'default-tenant',
+            tenant: {
+              id: supabaseUser.user_metadata?.tenantId || 'default-tenant',
+              name: supabaseUser.user_metadata?.tenantName || 'Demo Shop',
+              status: 'ACTIVE'
+            }
+          }
+          setCachedProfile(fallbackProfile)
+          try {
+            localStorage.setItem('user', JSON.stringify(fallbackProfile))
+            localStorage.setItem('tenant', JSON.stringify(fallbackProfile.tenant))
+          } catch {}
+          return
+        }
+
+        if (data) {
+          setCachedProfile(data)
+          try {
+            localStorage.setItem('user', JSON.stringify(data))
+            if (data.tenant) {
+              localStorage.setItem('tenant', JSON.stringify(data.tenant))
+            }
+          } catch {}
+        }
+      } catch (e) {
+        console.warn('Failed to fetch user profile:', e)
+        setCachedProfile(null)
+      } finally {
+        setLoading(false)
+      }
     }
 
-    // Start proactive refresh to keep session warm
-    const stop = startProactiveRefresh(12 * 60 * 1000);
-    // Bootstrap current session on mount
-    bootstrap();
-    return () => {
-      if (stop) stop();
-    };
-  }, [bootstrap]);
+    fetchProfile()
+  }, [supabaseUser, supabase])
+
+  // Simplified refresh: Supabase handles token refresh automatically
+  const refresh = useCallback(async (): Promise<any> => {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      if (!currentUser) return null
+
+      let queryResult = await supabase
+        .from('users')
+        .select('*, tenant:tenants(*)')
+        .eq('email', currentUser.email)
+        .single()
+
+      if (queryResult.error) {
+        queryResult = await supabase
+          .from('users')
+          .select('*, tenant:tenants(*)')
+          .eq('id', currentUser.id)
+          .single()
+      }
+
+      const { data, error } = queryResult
+
+      if (error) {
+        console.warn('Profile refresh query failed, using metadata fallback:', error)
+        const fallbackProfile = {
+          id: currentUser.id,
+          email: currentUser.email,
+          fullName: currentUser.user_metadata?.full_name || 'User',
+          role: currentUser.user_metadata?.role || 'OWNER',
+          tenantId: currentUser.user_metadata?.tenantId || 'default-tenant',
+          tenant: {
+            id: currentUser.user_metadata?.tenantId || 'default-tenant',
+            name: currentUser.user_metadata?.tenantName || 'Demo Shop',
+            status: 'ACTIVE'
+          }
+        }
+        setCachedProfile(fallbackProfile)
+        return fallbackProfile
+      }
+
+      if (data) {
+        setCachedProfile(data)
+        return data
+      }
+    } catch (e) {
+      console.warn('Profile refresh failed:', e)
+    }
+    return null
+  }, [supabase])
 
   const logout = useCallback(async () => {
     try {
-      // Refresh token is now in httpOnly cookie, backend reads it from there
-      await api.post("/auth/logout");
-    } catch {}
-    setUser(null);
-    try {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("user");
-      localStorage.removeItem("tenant");
-    } catch {}
-    // Navigate via hard redirect to ensure clean state
-    if (typeof window !== "undefined") {
-      window.location.href = "/login?logout=true";
+      // Use Supabase logout (handles token cleanup)
+      await supabaseLogout()
+    } catch (e) {
+      console.error('Supabase logout failed:', e)
     }
-  }, []);
 
-  const login = useCallback(
-    (userData: any) => {
-      hydrateFromProfile(userData);
-    },
-    [hydrateFromProfile],
-  );
+    // Clear local storage
+    try {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('user')
+      localStorage.removeItem('tenant')
+      // Also clear any Supabase session storage
+      localStorage.removeItem('sb-session')
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key)
+        }
+      })
+    } catch (e) {
+      console.error('Failed to clear localStorage:', e)
+    }
+
+    // Clear cached profile
+    setCachedProfile(null)
+
+    // Redirect to login using window.location for hard refresh
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
+  }, [supabaseLogout])
+
+  const login = useCallback((userData: any) => {
+    setCachedProfile(userData)
+  }, [])
 
   const value = useMemo<AuthContextType>(
-    () => ({ user, loading, refresh, logout, login }),
-    [user, loading, refresh, logout, login],
-  );
+    () => ({
+      user: cachedProfile,
+      loading,
+      refresh,
+      logout,
+      login,
+    }),
+    [cachedProfile, loading, refresh, logout, login]
+  )
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

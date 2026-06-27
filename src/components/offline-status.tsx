@@ -1,9 +1,20 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { notification, Button, Progress, Modal, Space, Typography, Alert } from 'antd';
-import { WifiOutlined, DisconnectOutlined, SyncOutlined } from '@ant-design/icons';
+import { toast } from 'sonner';
+import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useOffline } from '@/hooks/useOffline';
 
-const { Text } = Typography;
+// Import shadcn UI components
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function OfflineIndicator() {
   const { isOnline, isSyncing, lastSyncTime } = useOffline();
@@ -13,32 +24,26 @@ export function OfflineIndicator() {
   useEffect(() => {
     const now = Date.now();
 
-    // Show notification when going offline (max once per minute)
     if (!isOnline && now - lastNotification > 60000) {
-      notification.warning({
-        message: 'You are offline',
+      toast.warning('You are offline', {
         description: 'Some features may be limited. Your data will sync when connection returns.',
-        duration: 4,
-        icon: <DisconnectOutlined style={{ color: 'hsl(var(--destructive))' }} />
+        duration: 4000,
       });
       setLastNotification(now);
     }
 
-    // Show notification when coming back online
     if (isOnline && !isSyncing && lastSyncTime && now - lastSyncTime > 30000) {
-      notification.success({
-        message: 'Back online',
+      toast.success('Back online', {
         description: 'Syncing your data...',
-        duration: 3,
-        icon: <WifiOutlined style={{ color: 'hsl(var(--success))' }} />
+        duration: 3000,
       });
     }
   }, [isOnline, isSyncing, lastSyncTime, lastNotification]);
 
   const getStatusColor = () => {
-    if (!isOnline) return 'hsl(var(--destructive))';
-    if (isSyncing) return 'hsl(var(--info))';
-    return 'hsl(var(--success))';
+    if (!isOnline) return 'text-destructive border-destructive';
+    if (isSyncing) return 'text-blue-500 border-blue-500';
+    return 'text-emerald-500 border-emerald-500';
   };
 
   const getStatusText = () => {
@@ -48,83 +53,69 @@ export function OfflineIndicator() {
   };
 
   const getStatusIcon = () => {
-    if (!isOnline) return <DisconnectOutlined />;
-    if (isSyncing) return <SyncOutlined spin />;
-    return <WifiOutlined />;
+    if (!isOnline) return <WifiOff className="w-4 h-4" />;
+    if (isSyncing) return <RefreshCw className="w-4 h-4 animate-spin" />;
+    return <Wifi className="w-4 h-4" />;
   };
 
   return (
     <>
       <div
-        style={{
-          position: 'fixed',
-          top: 64,
-          right: 24,
-          zIndex: 1000,
-          cursor: 'pointer'
-        }}
+        className="fixed top-[72px] right-6 z-[40] cursor-pointer"
         onClick={() => setShowOfflineModal(true)}
       >
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'hsl(var(--surface))',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            border: `2px solid ${getStatusColor()}`
-          }}
+          className={`flex items-center gap-2 bg-card px-3 py-1.5 rounded-lg shadow-md border-2 ${getStatusColor()}`}
         >
           {getStatusIcon()}
-          <Text style={{ color: getStatusColor(), fontWeight: 500 }}>
+          <span className="font-semibold text-xs uppercase tracking-wider">
             {getStatusText()}
-          </Text>
+          </span>
         </div>
       </div>
 
-      <Modal
-        title="Connection Status"
-        open={showOfflineModal}
-        onCancel={() => setShowOfflineModal(false)}
-        footer={[
-          <Button key="close" onClick={() => setShowOfflineModal(false)}>
-            Close
-          </Button>
-        ]}
-      >
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Alert
-            message={getStatusText()}
-            description={
-              !isOnline
-                ? "You're currently offline. Your changes will be saved locally and synced when connection returns."
-                : isSyncing
-                ? "Syncing your data with the server..."
-                : "You're online and all data is synchronized."
-            }
-            type={!isOnline ? 'warning' : isSyncing ? 'info' : 'success'}
-            showIcon
-          />
+      <Dialog open={showOfflineModal} onOpenChange={setShowOfflineModal}>
+        <DialogContent className="max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Connection Status</DialogTitle>
+          </DialogHeader>
 
-          {lastSyncTime && (
-            <div>
-              <Text strong>Last synced: </Text>
-              <Text>{new Date(lastSyncTime).toLocaleString()}</Text>
-            </div>
-          )}
+          <div className="space-y-4 py-2">
+            <Alert variant={!isOnline ? 'destructive' : 'default'} className="bg-background border shadow-sm">
+              <AlertTitle className="font-semibold">{getStatusText()}</AlertTitle>
+              <AlertDescription className="mt-1 text-xs text-muted-foreground">
+                {!isOnline
+                  ? "You're currently offline. Your changes will be saved locally and synced when connection returns."
+                  : isSyncing
+                  ? "Syncing your data with the server..."
+                  : "You're online and all data is synchronized."}
+              </AlertDescription>
+            </Alert>
 
-          {!isOnline && (
-            <Alert
-              message="Offline Capabilities"
-              description="You can continue working with inventory, sales, and products. All changes will be queued for sync."
-              type="info"
-              showIcon
-            />
-          )}
-        </Space>
-      </Modal>
+            {lastSyncTime && (
+              <div className="text-sm">
+                <span className="font-semibold text-foreground">Last synced: </span>
+                <span className="text-muted-foreground">{new Date(lastSyncTime).toLocaleString()}</span>
+              </div>
+            )}
+
+            {!isOnline && (
+              <Alert className="bg-background border shadow-sm">
+                <AlertTitle className="font-semibold">Offline Capabilities</AlertTitle>
+                <AlertDescription className="mt-1 text-xs text-muted-foreground">
+                  You can continue working with inventory, sales, and products. All changes will be queued for sync.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" onClick={() => setShowOfflineModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -135,7 +126,6 @@ export function SyncStatus() {
 
   useEffect(() => {
     if (isSyncing) {
-      // Simulate progress (in real implementation, this would come from sync events)
       const interval = setInterval(() => {
         setSyncProgress(prev => {
           if (prev >= 90) return prev;
@@ -152,39 +142,24 @@ export function SyncStatus() {
   if (!isSyncing) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 24,
-        right: 24,
-        zIndex: 1000,
-        background: 'hsl(var(--surface))',
-        padding: '16px',
-        borderRadius: '8px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        minWidth: '300px'
-      }}
-    >
-      <Space direction="vertical" style={{ width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <SyncOutlined spin style={{ color: 'hsl(var(--primary))' }} />
-          <Text strong>Syncing data...</Text>
-        </div>
+    <div className="fixed bottom-6 right-6 z-50 bg-card p-4 rounded-xl shadow-lg border border-border min-w-[300px] space-y-3">
+      <div className="flex items-center gap-2">
+        <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+        <span className="font-semibold text-sm text-foreground">Syncing data...</span>
+      </div>
 
-        <Progress
-          percent={Math.round(syncProgress)}
-          status="active"
-          strokeColor={'hsl(var(--primary))'}
-          showInfo={false}
-        />
+      <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+        <div
+          className="bg-primary h-full rounded-full transition-all duration-300"
+          style={{ width: `${Math.round(syncProgress)}%` }}
+        ></div>
+      </div>
 
-        <Text type="secondary" style={{ fontSize: '12px' }}>
-          {offlineStatus.pendingOperations > 0
-            ? `${offlineStatus.pendingOperations} operations pending`
-            : 'Synchronizing with server...'
-          }
-        </Text>
-      </Space>
+      <div className="text-[11px] text-muted-foreground">
+        {offlineStatus.pendingOperations > 0
+          ? `${offlineStatus.pendingOperations} operations pending`
+          : 'Synchronizing with server...'}
+      </div>
     </div>
   );
 }
@@ -196,32 +171,24 @@ export function OfflineNotification() {
   useEffect(() => {
     if (!isOnline) {
       const now = Date.now();
-      // Only show notification once every 5 minutes when offline
       if (now - lastOfflineNotification > 300000) {
-        notification.warning({
-          message: 'Offline Mode Active',
+        toast.warning('Offline Mode Active', {
           description: 'You can continue working. Data will sync automatically when online.',
-          duration: 0, // Don't auto-close
-          btn: (
-            <Button
-              size="small"
-              onClick={() => {
-                forceSync();
-                notification.destroy();
-              }}
-            >
-              Try Sync Now
-            </Button>
-          ),
-          key: 'offline-notification'
+          duration: Infinity,
+          id: 'offline-notification',
+          action: {
+            label: 'Try Sync Now',
+            onClick: () => {
+              forceSync();
+            },
+          },
         });
         setLastOfflineNotification(now);
       }
     } else {
-      // Clear offline notification when back online
-      notification.destroy('offline-notification');
+      toast.dismiss('offline-notification');
     }
   }, [isOnline, forceSync, lastOfflineNotification]);
 
-  return null; // This component only manages notifications
+  return null;
 }

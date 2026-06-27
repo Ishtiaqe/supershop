@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { message } from 'antd';
+import { toast } from 'sonner';
 
 export interface CreditCustomer {
   customerName: string;
@@ -40,7 +40,6 @@ export function useCreditSummary() {
     queryKey: ['credit-summary'],
     queryFn: async () => {
       const res = await api.get('/credits/summary');
-      // Backend returns { data: { totalOutstanding, customersWithDues } }
       return res.data?.data ?? res.data;
     },
   });
@@ -51,7 +50,6 @@ export function useCreditCustomers() {
     queryKey: ['credit-customers'],
     queryFn: async () => {
       const res = await api.get('/credits');
-      // Backend returns { data: CreditCustomer[] }
       return res.data?.data ?? res.data ?? [];
     },
   });
@@ -62,7 +60,6 @@ export function useCreditsByPhone(phone: string | null) {
     queryKey: ['credits-by-phone', phone],
     queryFn: async () => {
       const res = await api.get(`/credits/${phone}`);
-      // Backend returns { data: { customerName, customerPhone, sales: CreditSale[] } }
       const payload = res.data?.data ?? res.data;
       return payload?.sales ?? payload ?? [];
     },
@@ -79,11 +76,11 @@ export function useRecordPayment() {
       qc.invalidateQueries({ queryKey: ['credit-customers'] });
       qc.invalidateQueries({ queryKey: ['credits-by-phone'] });
       qc.invalidateQueries({ queryKey: ['credit-summary'] });
-      message.success('Payment recorded successfully');
+      toast.success('Payment recorded successfully');
     },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      message.error(axiosErr?.response?.data?.message ?? 'Failed to record payment');
+      toast.error(axiosErr?.response?.data?.message ?? 'Failed to record payment');
     },
   });
 }

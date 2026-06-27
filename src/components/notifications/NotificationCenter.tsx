@@ -1,9 +1,32 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, Switch, List, message } from "antd";
-import { BellOutlined } from "@ant-design/icons";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { Bell } from "lucide-react";
 import api from "@/lib/api";
+
+function Switch({ checked, onChange, disabled }: { checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+        checked ? 'bg-primary' : 'bg-muted-foreground/30'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out ${
+          checked ? 'translate-x-5' : 'translate-x-0'
+        }`}
+      />
+    </button>
+  );
+}
 
 export default function NotificationCenter() {
   const [enabled, setEnabled] = useState(false);
@@ -31,7 +54,7 @@ export default function NotificationCenter() {
           ),
         });
         await api.post("/notifications/subscribe", subscription);
-        message.success("Notifications enabled");
+        toast.success("Notifications enabled");
         setEnabled(true);
       } else {
         const registration = await navigator.serviceWorker.ready;
@@ -39,44 +62,40 @@ export default function NotificationCenter() {
         if (subscription) {
           await subscription.unsubscribe();
           // Optionally call backend to remove subscription from DB
-          message.success("Notifications disabled");
+          toast.success("Notifications disabled");
           setEnabled(false);
         }
       }
     } catch (error) {
       console.error(error);
-      message.error("Failed to update notification settings");
+      toast.error("Failed to update notification settings");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Card
-      title={
-        <span>
-          <BellOutlined className="mr-2" /> Notification Settings
-        </span>
-      }
-      className="shadow-sm"
-    >
-      <List>
-        <List.Item
-          actions={[
-            <Switch
-              key="notification-switch"
-              checked={enabled}
-              onChange={handleToggle}
-              loading={loading}
-            />,
-          ]}
-        >
-          <List.Item.Meta
-            title="Push Notifications"
-            description="Receive alerts for low stock and expiring items on this device."
+    <Card className="shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-lg font-bold flex items-center gap-2">
+          <Bell className="h-5 w-5 text-primary" /> Notification Settings
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+          <div className="space-y-0.5">
+            <h4 className="text-sm font-semibold">Push Notifications</h4>
+            <p className="text-sm text-muted-foreground">
+              Receive alerts for low stock and expiring items on this device.
+            </p>
+          </div>
+          <Switch
+            checked={enabled}
+            onChange={handleToggle}
+            disabled={loading}
           />
-        </List.Item>
-      </List>
+        </div>
+      </CardContent>
     </Card>
   );
 }

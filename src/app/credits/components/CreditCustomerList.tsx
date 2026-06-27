@@ -1,80 +1,86 @@
 'use client';
+
 import { useState } from 'react';
-import { Table, Tag } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useCreditCustomers, CreditCustomer } from '../hooks/useCreditsHooks';
+import { useCreditCustomers, type CreditCustomer } from '../hooks/useCreditsHooks';
 import CreditDetailDrawer from './CreditDetailDrawer';
+
+// Import shadcn UI components
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
 
 export default function CreditCustomerList() {
   const { data: customers = [], isLoading } = useCreditCustomers();
   const [selected, setSelected] = useState<CreditCustomer | null>(null);
 
-  const columns: ColumnsType<CreditCustomer> = [
-    {
-      title: 'Customer Name',
-      dataIndex: 'customerName',
-      key: 'customerName',
-      render: (name: string) => name || 'Unknown',
-    },
-    { title: 'Phone', dataIndex: 'customerPhone', key: 'customerPhone' },
-    {
-      title: 'Total Due',
-      dataIndex: 'totalDue',
-      key: 'totalDue',
-      render: (due: number) => (
-        <Tag color="red">৳{(due ?? 0).toFixed(2)}</Tag>
-      ),
-    },
-    {
-      title: '# Sales',
-      dataIndex: 'salesCount',
-      key: 'salesCount',
-      align: 'center',
-    },
-    {
-      title: 'Oldest Due',
-      dataIndex: 'oldestDueDate',
-      key: 'oldestDueDate',
-      render: (d: string | null) =>
-        d ? dayjs(d).format('DD MMM YYYY') : '—',
-    },
-    {
-      title: 'Last Payment',
-      dataIndex: 'lastPaymentDate',
-      key: 'lastPaymentDate',
-      render: (d: string | null) =>
-        d ? dayjs(d).format('DD MMM YYYY') : '—',
-    },
-  ];
-
   return (
     <>
-      <Table<CreditCustomer>
-        columns={columns}
-        dataSource={customers}
-        loading={isLoading}
-        // customerPhone may be null/empty; fall back to index-based key for those rows
-        rowKey={(c) =>
-          c.customerPhone && c.customerPhone.trim()
-            ? c.customerPhone
-            : `credit-${customers.indexOf(c)}`
-        }
-        pagination={false}
-        locale={{ emptyText: 'No customers with outstanding dues' }}
-        onRow={(record) => ({
-          onClick: () => setSelected(record),
-          style: { cursor: 'pointer' },
-        })}
-        footer={
-          customers.length > 0
-            ? () =>
-                `${customers.length} customer${
-                  customers.length !== 1 ? 's' : ''
-                } with dues`
-            : undefined
-        }
-      />
+      <div className="rounded-md border overflow-hidden bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Customer Name</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Total Due</TableHead>
+              <TableHead className="text-center"># Sales</TableHead>
+              <TableHead>Oldest Due</TableHead>
+              <TableHead>Last Payment</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                </TableCell>
+              </TableRow>
+            ) : customers.length > 0 ? (
+              customers.map((c, idx) => {
+                const key = c.customerPhone && c.customerPhone.trim()
+                  ? c.customerPhone
+                  : `credit-${idx}`;
+
+                return (
+                  <TableRow
+                    key={key}
+                    onClick={() => setSelected(c)}
+                    className="cursor-pointer hover:bg-muted/50"
+                  >
+                    <TableCell className="font-semibold">{c.customerName || 'Unknown'}</TableCell>
+                    <TableCell>{c.customerPhone || '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant="destructive">
+                        ৳{(c.totalDue ?? 0).toFixed(2)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">{c.salesCount}</TableCell>
+                    <TableCell>{c.oldestDueDate ? dayjs(c.oldestDueDate).format('DD MMM YYYY') : '—'}</TableCell>
+                    <TableCell>{c.lastPaymentDate ? dayjs(c.lastPaymentDate).format('DD MMM YYYY') : '—'}</TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground text-sm">
+                  No customers with outstanding dues.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        {customers.length > 0 && (
+          <div className="p-3 text-xs text-muted-foreground bg-muted/10 border-t border-border">
+            {customers.length} customer{customers.length !== 1 ? 's' : ''} with dues
+          </div>
+        )}
+      </div>
       <CreditDetailDrawer
         phone={selected?.customerPhone ?? null}
         customerName={selected?.customerName ?? ''}

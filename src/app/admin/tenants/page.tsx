@@ -2,9 +2,23 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
-import { Table, Form, Input, Button, Alert, Card, Divider, Modal } from "antd";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import type { Tenant } from "@/types";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
 
 export default function AdminTenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -15,7 +29,12 @@ export default function AdminTenantsPage() {
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerFullName, setOwnerFullName] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
+
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editStreet, setEditStreet] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editZone, setEditZone] = useState("");
   const [editLoading, setEditLoading] = useState(false);
 
   const { user } = useAuth();
@@ -23,6 +42,15 @@ export default function AdminTenantsPage() {
   useEffect(() => {
     fetchTenants();
   }, []);
+
+  useEffect(() => {
+    if (editingTenant) {
+      setEditName(editingTenant.name || "");
+      setEditStreet(editingTenant.addressStreet || "");
+      setEditCity(editingTenant.addressCity || "");
+      setEditZone(editingTenant.addressZone || "");
+    }
+  }, [editingTenant]);
 
   async function fetchTenants() {
     setLoading(true);
@@ -38,220 +66,225 @@ export default function AdminTenantsPage() {
     }
   }
 
-  async function handleCreateTenant(values: {
-    tenantName?: string;
-    ownerEmail?: string;
-    ownerFullName?: string;
-    ownerPassword?: string;
-  }) {
-    // Ant Design `Form` calls onFinish with values, not an event. Accept values and
-    // map them to the local state for controlled inputs.
+  const handleCreateTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
-    const {
-      tenantName,
-      ownerEmail: ownerEmailVal,
-      ownerFullName: ownerFullNameVal,
-      ownerPassword: ownerPasswordVal,
-    } = values || {};
-    // If the handler is called as a direct event for some reason, guard against it.
-    if (
-      typeof (values as unknown as { preventDefault?: () => void })
-        ?.preventDefault === "function"
-    ) {
-      (values as unknown as { preventDefault?: () => void }).preventDefault?.();
-    }
-    // Use provided values or fallback to existing state
-    const nameToUse = tenantName ?? name;
-    const emailToUse = ownerEmailVal ?? ownerEmail;
-    const fullNameToUse = ownerFullNameVal ?? ownerFullName;
-    const passwordToUse = ownerPasswordVal ?? ownerPassword;
-
     try {
-      // Create owner user (OWNER role). Only super-admin should reach here.
+      // Create owner user (OWNER role)
       const { data: created } = await api.post("/auth/register", {
-        email: emailToUse,
-        password: passwordToUse,
-        fullName: fullNameToUse,
+        email: ownerEmail,
+        password: ownerPassword,
+        fullName: ownerFullName,
         role: "OWNER",
       });
 
       // Create tenant with ownerId
-      await api.post("/tenants", { name: nameToUse, ownerId: created.id });
+      await api.post("/tenants", { name, ownerId: created.id });
 
       setName("");
       setOwnerEmail("");
       setOwnerFullName("");
       setOwnerPassword("");
-
-      // Refresh list
+      toast.success("Tenant created successfully!");
       fetchTenants();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
-      const message = e?.response?.data?.message || "Failed to create tenant";
-      setError(message);
+      setError(e?.response?.data?.message || "Failed to create tenant");
     }
-  }
+  };
+
+  const handleUpdateTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTenant) return;
+    setEditLoading(true);
+    setError(null);
+    try {
+      await api.patch(`/tenants/${editingTenant.id}`, {
+        name: editName,
+        addressStreet: editStreet,
+        addressCity: editCity,
+        addressZone: editZone,
+      });
+      setEditingTenant(null);
+      fetchTenants();
+      toast.success("Tenant updated successfully");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setError(e?.response?.data?.message || "Failed to update tenant");
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   if (!user || user.role !== "SUPER_ADMIN") {
-    return <div className="p-6">Access denied — Super Admins only</div>;
+    return <div className="p-6 text-destructive font-semibold">Access denied — Super Admins only</div>;
   }
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto" }}>
-      <Card title="Tenants (Super Admin)" variant="outlined">
-        {error && <Alert type="error" message={error} className="mb-4" />}
-
-        <Table
-          dataSource={tenants}
-          rowKey={(r) => r.id}
-          loading={loading}
-          pagination={{ 
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} tenants`
-          }}
-          className="mb-6"
-        >
-
-            <Table.Column title="Tenant" dataIndex="name" key="name" />
-            <Table.Column title="ID" dataIndex="id" key="id" />
-            <Table.Column
-              title="Actions"
-              key="actions"
-              render={(_text, record: Tenant) => (
-                <Button type="link" onClick={() => setEditingTenant(record)}>
-                  Edit
-                </Button>
-              )}
-            />
-          </Table>
-
-        <Form
-
-          layout="vertical"
-          onFinish={handleCreateTenant}
-          className="space-y-3"
-        >
-          <Form.Item
-            label="Tenant name"
-            name="tenantName"
-            rules={[{ required: true, message: "Please enter a tenant name" }]}
-          >
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </Form.Item>
-
-          <Divider>Owner details</Divider>
-
-          <Form.Item
-            label="Owner Email"
-            name="ownerEmail"
-            rules={[{ required: true, type: "email" }]}
-          >
-            <Input
-              value={ownerEmail}
-              onChange={(e) => setOwnerEmail(e.target.value)}
-              required
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Owner Full Name"
-            name="ownerFullName"
-            rules={[{ required: true }]}
-          >
-            <Input
-              value={ownerFullName}
-              onChange={(e) => setOwnerFullName(e.target.value)}
-              required
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Owner Password"
-            name="ownerPassword"
-            rules={[{ required: true, min: 8 }]}
-          >
-            <Input.Password
-              value={ownerPassword}
-              onChange={(e) => setOwnerPassword(e.target.value)}
-              required
-              minLength={8}
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit">
-              Create Tenant
-            </Button>
-          </Form.Item>
-        </Form>
-        <Modal
-          title={editingTenant ? `Edit ${editingTenant.name}` : "Edit tenant"}
-          open={!!editingTenant}
-          onCancel={() => setEditingTenant(null)}
-          footer={null}
-        >
-          {editingTenant && (
-            <Form
-              layout="vertical"
-              initialValues={{
-                name: editingTenant.name,
-                addressStreet: editingTenant.addressStreet || "",
-                addressCity: editingTenant.addressCity || "",
-                addressZone: editingTenant.addressZone || "",
-              }}
-              onFinish={async (vals: Record<string, unknown>) => {
-                setEditLoading(true);
-                setError(null);
-                try {
-                  await api.patch(`/tenants/${editingTenant.id}`, vals);
-                  setEditingTenant(null);
-                  fetchTenants();
-                } catch (err: unknown) {
-                  const e = err as {
-                    response?: { data?: { message?: string } };
-                  };
-                  setError(
-                    e?.response?.data?.message || "Failed to update tenant",
-                  );
-                } finally {
-                  setEditLoading(false);
-                }
-              }}
-            >
-              <Form.Item
-                name="name"
-                label="Tenant name"
-                rules={[{ required: true }]}
-              >
-                <Input />
-              </Form.Item>
-
-              <Form.Item name="addressStreet" label="Street">
-                <Input />
-              </Form.Item>
-
-              <Form.Item name="addressCity" label="City">
-                <Input />
-              </Form.Item>
-
-              <Form.Item name="addressZone" label="Zone">
-                <Input />
-              </Form.Item>
-
-              <Form.Item>
-                <Button type="primary" htmlType="submit" loading={editLoading}>
-                  Save
-                </Button>
-              </Form.Item>
-            </Form>
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">Tenants (Super Admin)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
-        </Modal>
+
+          <div className="rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tenant</TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    </TableCell>
+                  </TableRow>
+                ) : tenants.length > 0 ? (
+                  tenants.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-medium">{record.name}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{record.id}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={() => setEditingTenant(record)}>
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                      No tenants registered.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="border-t border-border pt-6">
+            <h3 className="text-lg font-bold mb-4">Create New Tenant</h3>
+            <form onSubmit={handleCreateTenant} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">Tenant Name</label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. My Pharmacy"
+                  required
+                />
+              </div>
+
+              <div className="border-t border-border my-6 pt-4">
+                <h4 className="text-sm font-bold mb-3">Owner details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground">Owner Email</label>
+                    <Input
+                      type="email"
+                      value={ownerEmail}
+                      onChange={(e) => setOwnerEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground">Owner Full Name</label>
+                    <Input
+                      value={ownerFullName}
+                      onChange={(e) => setOwnerFullName(e.target.value)}
+                      placeholder="John Doe"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground">Owner Password</label>
+                    <Input
+                      type="password"
+                      value={ownerPassword}
+                      onChange={(e) => setOwnerPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      minLength={8}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button type="submit">
+                Create Tenant
+              </Button>
+            </form>
+          </div>
+        </CardContent>
       </Card>
+
+      <Dialog open={!!editingTenant} onOpenChange={(open) => !open && setEditingTenant(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit {editingTenant?.name}</DialogTitle>
+          </DialogHeader>
+          {editingTenant && (
+            <form onSubmit={handleUpdateTenant} className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">Tenant Name</label>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">Street</label>
+                <Input
+                  value={editStreet}
+                  onChange={(e) => setEditStreet(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">City</label>
+                <Input
+                  value={editCity}
+                  onChange={(e) => setEditCity(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">Zone</label>
+                <Input
+                  value={editZone}
+                  onChange={(e) => setEditZone(e.target.value)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setEditingTenant(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={editLoading}>
+                  {editLoading ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
