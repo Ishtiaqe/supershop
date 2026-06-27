@@ -121,12 +121,12 @@ export default function AdminTenantsPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Tenants (Super Admin)</CardTitle>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <Card className="shadow-sm border-border/60">
+        <CardHeader className="pb-4 p-5 border-b border-border/60">
+          <CardTitle className="text-lg font-semibold">Tenants (Super Admin)</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="p-5 space-y-6">
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -135,8 +135,12 @@ export default function AdminTenantsPage() {
             </Alert>
           )}
 
-          <div className="rounded-md border overflow-hidden">
-            <Table>
+          <Card className="shadow-sm border-border/60 overflow-hidden">
+            <CardHeader className="pb-4 p-5 border-b border-border/60">
+              <CardTitle className="text-lg font-semibold">Registered Tenants</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Tenant</TableHead>
@@ -172,7 +176,8 @@ export default function AdminTenantsPage() {
                 )}
               </TableBody>
             </Table>
-          </div>
+            </CardContent>
+          </Card>
 
           <div className="border-t border-border pt-6">
             <h3 className="text-lg font-bold mb-4">Create New Tenant</h3>

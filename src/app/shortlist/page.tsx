@@ -245,8 +245,8 @@ export default function ShortListPage() {
 
 
       {/* Controls */}
-      <Card className="shadow-sm">
-        <CardContent className="pt-6 space-y-6">
+      <Card className="shadow-sm border-border/60">
+        <CardContent className="p-5 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Add to Shortlist Search */}
             <div className="md:col-span-2 relative">
@@ -366,23 +366,20 @@ export default function ShortListPage() {
           Error loading short list
         </div>
       ) : (
-        <Card className="shadow-sm" ref={shortlistTableRef}>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-bold flex items-center justify-between flex-wrap gap-2">
+        <Card className="shadow-sm border-border/60" ref={shortlistTableRef}>
+          <CardHeader className="pb-4 p-5 border-b border-border/60">
+            <CardTitle className="text-lg font-semibold flex items-center justify-between flex-wrap gap-2">
               <span>Shortlist Items ({shortlistItems.length})</span>
-            </CardTitle>
-            <div className="pt-2">
               <Input
                 value={shortlistSearchTerm}
                 onChange={(e) => setShortlistSearchTerm(e.target.value)}
                 placeholder="Search shortlist by item name, SKU, or product..."
                 className="max-w-md"
               />
-            </div>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Item Name</TableHead>
@@ -466,7 +463,6 @@ export default function ShortListPage() {
                   )}
                 </TableBody>
               </Table>
-            </div>
           </CardContent>
         </Card>
       )}

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableHeader,
@@ -208,28 +209,27 @@ export default function CatalogPage() {
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div className="flex flex-wrap gap-4 items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {catalogItems.length} products in catalog
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <Button onClick={() => handleOpenModal()} className="flex items-center gap-1 shrink-0">
+          <Plus className="w-4 h-4" />
+          Add to Catalog
+        </Button>
+      </div>
+
+      <div className="space-y-6">
+        <Card className="shadow-sm border-border/60">
+          <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border/60 pb-4 p-5">
+            <CardTitle className="text-lg font-semibold">Products</CardTitle>
             <Input
               placeholder="Search catalog..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full sm:w-[250px]"
+              className="w-full md:w-80"
             />
-            <Button onClick={() => handleOpenModal()} className="flex items-center gap-1 shrink-0">
-              <Plus className="w-4 h-4" />
-              Add to Catalog
-            </Button>
-          </div>
-        </div>
-
-        <div className="rounded-md border overflow-hidden bg-card">
-          <Table>
+          </CardHeader>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Product</TableHead>
@@ -318,7 +318,8 @@ export default function CatalogPage() {
               )}
             </TableBody>
           </Table>
-        </div>
+          </CardContent>
+        </Card>
 
         <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleCloseModal()}>
           <DialogContent className="sm:max-w-[500px]">

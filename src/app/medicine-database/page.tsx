@@ -4,6 +4,7 @@ import { useState, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableHeader,
@@ -51,22 +52,22 @@ export default function MedicineDatabasePage() {
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Medicine Database</h1>
-        <p className="text-muted-foreground">Search and view details of medicine brands, generics, dosage instructions, and side effects</p>
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       </div>
 
-      <div className="space-y-4">
-        <Input
-          placeholder="Search medicines..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
-        />
-
-        <div className="rounded-md border overflow-hidden">
-          <Table>
+      <Card className="shadow-sm border-border/60 overflow-hidden">
+          <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 pb-4 p-5 border-b border-border/60">
+            <CardTitle className="text-lg font-semibold">Medicines</CardTitle>
+            <Input
+              placeholder="Search medicines..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full md:w-80"
+            />
+          </CardHeader>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10"></TableHead>
@@ -181,8 +182,8 @@ export default function MedicineDatabasePage() {
               </div>
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

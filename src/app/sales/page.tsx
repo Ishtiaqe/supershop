@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableHeader,
@@ -151,51 +152,52 @@ export default function SalesPage() {
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      </div>
 
-      <div className="space-y-6 max-w-full md:max-w-7xl mx-auto w-full">
-        <div className="flex flex-wrap gap-3 items-center justify-between">
-          <div className="flex-1 min-w-[200px]">
-            <Input
-              placeholder="Search by receipt or customer..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="w-full"
-            />
-          </div>
-          <div className="flex items-center gap-2 min-w-[280px]">
-            <Input
-              type="date"
-              value={startDateStr}
-              onChange={(e) => setStartDateStr(e.target.value)}
-              className="w-full"
-            />
-            <span className="text-muted-foreground text-sm">to</span>
-            <Input
-              type="date"
-              value={endDateStr}
-              onChange={(e) => setEndDateStr(e.target.value)}
-              className="w-full"
-            />
-          </div>
-          <div className="min-w-[180px]">
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              value={paymentFilter || ""}
-              onChange={(e) => setPaymentFilter(e.target.value || undefined)}
-            >
-              <option value="">All Payment Methods</option>
-              <option value="CASH">Cash</option>
-              <option value="CARD">Card</option>
-              <option value="MOBILE_PAYMENT">Mobile Payment</option>
-              <option value="OTHER">Other</option>
-              <option value="CREDIT">Credit (Due)</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="rounded-md border overflow-hidden bg-card">
-          <Table>
+      <div className="space-y-6">
+        <Card className="shadow-sm border-border/60">
+          <CardHeader className="flex flex-col lg:flex-row gap-4 p-5 pb-4 border-b border-border/60">
+            <CardTitle className="text-lg font-semibold">Transactions</CardTitle>
+            <div className="flex flex-wrap flex-1 gap-3 items-center justify-end">
+              <Input
+                placeholder="Search by receipt or customer..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="w-full sm:w-[220px]"
+              />
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={startDateStr}
+                  onChange={(e) => setStartDateStr(e.target.value)}
+                  className="w-[140px]"
+                />
+                <span className="text-muted-foreground text-sm">to</span>
+                <Input
+                  type="date"
+                  value={endDateStr}
+                  onChange={(e) => setEndDateStr(e.target.value)}
+                  className="w-[140px]"
+                />
+              </div>
+              <select
+                className="flex h-10 w-full sm:w-[180px] rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={paymentFilter || ""}
+                onChange={(e) => setPaymentFilter(e.target.value || undefined)}
+              >
+                <option value="">All Payment Methods</option>
+                <option value="CASH">Cash</option>
+                <option value="CARD">Card</option>
+                <option value="MOBILE_PAYMENT">Mobile Payment</option>
+                <option value="OTHER">Other</option>
+                <option value="CREDIT">Credit (Due)</option>
+              </select>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Receipt Number</TableHead>
@@ -299,7 +301,8 @@ export default function SalesPage() {
               )}
             </TableBody>
           </Table>
-        </div>
+          </CardContent>
+        </Card>
 
         {totalPages > 1 && (
           <div className="flex justify-between items-center">

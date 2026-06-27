@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableHeader,
@@ -128,7 +129,6 @@ export default function BrandsPage() {
   return (
     <div className="space-y-6">
 
-
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div className="text-sm text-muted-foreground">
@@ -140,8 +140,12 @@ export default function BrandsPage() {
           </Button>
         </div>
 
-        <div className="rounded-md border overflow-hidden bg-card">
-          <Table>
+        <Card className="shadow-sm border-border/60 overflow-hidden">
+          <CardHeader className="pb-4 p-5 border-b border-border/60">
+            <CardTitle className="text-lg font-semibold">Brands</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
@@ -214,7 +218,8 @@ export default function BrandsPage() {
               )}
             </TableBody>
           </Table>
-        </div>
+          </CardContent>
+        </Card>
 
         <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleCloseModal()}>
           <DialogContent className="sm:max-w-[425px]">

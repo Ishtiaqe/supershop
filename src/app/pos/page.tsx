@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableHeader,
@@ -411,11 +412,17 @@ export default function POSPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left/Middle: Select, Quantity, Add to Cart */}
-        <div className="md:col-span-2 border rounded-xl p-5 bg-card shadow-sm space-y-4">
+        <Card className="md:col-span-2 shadow-sm border-border/60">
+          <CardHeader className="pb-4 p-5">
+            <CardTitle className="text-lg font-semibold">Add Item</CardTitle>
+          </CardHeader>
+          <CardContent className="p-5 pt-0 space-y-4">
           {itemsError && (
             <Alert variant="destructive">
               <AlertDescription>
@@ -516,12 +523,15 @@ export default function POSPage() {
           >
             Add to cart
           </Button>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Right: Customer Info */}
-        <div className="border rounded-xl p-5 bg-card shadow-sm space-y-4">
-          <h3 className="font-semibold text-base text-foreground">Customer Info (Optional)</h3>
-          <div className="space-y-3">
+        <Card className="shadow-sm border-border/60">
+          <CardHeader className="pb-4 p-5">
+            <CardTitle className="text-lg font-semibold">Customer Info (Optional)</CardTitle>
+          </CardHeader>
+          <CardContent className="p-5 pt-0 space-y-4">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Customer Name</label>
               <Input
@@ -544,13 +554,17 @@ export default function POSPage() {
                 }}
               />
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Cart Items Table */}
-      <div className="border rounded-xl bg-card shadow-sm overflow-hidden">
-        <Table>
+      <Card className="shadow-sm border-border/60 overflow-hidden">
+        <CardHeader className="pb-4 p-5 border-b border-border/60">
+          <CardTitle className="text-lg font-semibold">Cart Items</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Item</TableHead>
@@ -638,10 +652,12 @@ export default function POSPage() {
             )}
           </TableBody>
         </Table>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Checkout and Complete Sale */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border rounded-xl p-5 bg-card shadow-sm">
+      <Card className="shadow-sm border-border/60">
+        <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div className="space-y-4 flex-1">
           <div className="text-xl font-bold text-foreground">
             Total: ৳{total.toFixed(2)}
@@ -692,7 +708,8 @@ export default function POSPage() {
         >
           {saleMutation.isPending ? "Processing Sale..." : "Complete Sale"}
         </Button>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -73,8 +73,9 @@ export default function DataManagementPage() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Data Management</h1>
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      </div>
 
       <Alert variant="destructive" className="bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20">
         <AlertTriangle className="h-5 w-5 !text-amber-500" />
@@ -102,8 +103,8 @@ export default function DataManagementPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : backupStatus.data ? (
-        <Card className="shadow-sm">
-          <CardContent className="pt-6">
+        <Card className="shadow-sm border-border/60">
+          <CardContent className="p-5">
             <div className="flex items-start gap-3">
               <CheckCircle className="text-green-500 h-6 w-6 shrink-0 mt-0.5" />
               <div>
@@ -125,13 +126,11 @@ export default function DataManagementPage() {
         </Card>
       ) : null}
 
-      <div className="border-t border-border my-6"></div>
-
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">Export Full Backup</CardTitle>
+      <Card className="shadow-sm border-border/60">
+        <CardHeader className="pb-4 p-5">
+          <CardTitle className="text-lg font-semibold">Export Full Backup</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-5 pt-0 space-y-4">
           <p className="text-muted-foreground text-sm">
             Download a complete backup of all your data in SQL format.
           </p>
@@ -156,11 +155,11 @@ export default function DataManagementPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">Restore From Backup</CardTitle>
+      <Card className="shadow-sm border-border/60">
+        <CardHeader className="pb-4 p-5">
+          <CardTitle className="text-lg font-semibold">Restore From Backup</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-5 pt-0 space-y-4">
           <p className="text-sm text-destructive font-medium">
             ⚠️ Warning: Restoring will replace all current data. Always backup first!
           </p>
@@ -211,11 +210,11 @@ export default function DataManagementPage() {
 
       {user?.role === "SUPER_ADMIN" && <UserDataExport />}
 
-      <Card className="bg-primary/5 border border-primary/10 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-bold">Backup Best Practices</CardTitle>
+      <Card className="shadow-sm border-border/60 bg-primary/5 border-primary/10">
+        <CardHeader className="pb-4 p-5">
+          <CardTitle className="text-lg font-semibold">Backup Best Practices</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-5 pt-0">
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-muted-foreground">
             <li className="flex items-center gap-2">✓ Export backups regularly</li>
             <li className="flex items-center gap-2">✓ Store backups in a secure, separate location</li>

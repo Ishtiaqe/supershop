@@ -442,16 +442,17 @@ export default function InventoryPage() {
   );
 
   return (
-    <div className="w-full space-y-6">
-
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      </div>
 
       <div className="space-y-6">
         {/* Add Form Card */}
-        <Card className="shadow-sm">
-          <CardHeader>
+        <Card className="shadow-sm border-border/60">
+          <CardHeader className="pb-4 p-5">
             <CardTitle className="text-lg font-semibold">Add Inventory Item</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-5 pt-0">
             <form onSubmit={addForm.handleSubmit(submitAdd)} className="space-y-4">
               {/* Item Name (AutoComplete) */}
               <div className="space-y-2">
@@ -609,8 +610,8 @@ export default function InventoryPage() {
         </Card>
 
         {/* Inventory Table Card */}
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border pb-4">
+        <Card className="shadow-sm border-border/60">
+          <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border/60 pb-4 p-5">
             <CardTitle className="text-lg font-semibold">Inventory Items</CardTitle>
             <Input
               placeholder="Search by name, SKU, or generic name..."

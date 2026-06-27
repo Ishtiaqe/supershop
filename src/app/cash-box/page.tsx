@@ -5,6 +5,7 @@ import { Plus, Check, X, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableHeader,
@@ -79,13 +80,9 @@ export default function CashBoxPage() {
   const totalPages = Math.max(1, Math.ceil((entriesData?.total ?? 0) / pageSize));
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Cash Box</h1>
-          <p className="text-muted-foreground text-sm">Monitor and manage cash flows</p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Button className="flex items-center gap-2" onClick={() => setIsAddModalOpen(true)}>
           <Plus className="h-4 w-4" />
           Add Movement
@@ -94,34 +91,35 @@ export default function CashBoxPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-6 rounded-xl border bg-card text-card-foreground shadow-sm border-l-4 border-l-green-500">
-          <p className="text-sm font-semibold text-green-600 dark:text-green-500">
-            💰 Cash In (period)
-          </p>
-          <p className="text-2xl font-bold text-green-600 dark:text-green-500 mt-2">
-            {summaryLoading ? "…" : formatBDT(summary?.cashIn ?? 0)}
-          </p>
-        </div>
-        <div className="p-6 rounded-xl border bg-card text-card-foreground shadow-sm border-l-4 border-l-destructive">
-          <p className="text-sm font-semibold text-destructive">
-            💸 Cash Out (period)
-          </p>
-          <p className="text-2xl font-bold text-destructive mt-2">
-            {summaryLoading ? "…" : formatBDT(summary?.cashOut ?? 0)}
-          </p>
-        </div>
-        <div className="p-6 rounded-xl border bg-card text-card-foreground shadow-sm border-l-4 border-l-primary">
-          <p className="text-sm font-semibold text-primary">
-            🏦 Current Balance (all-time)
-          </p>
-          <p className={`text-2xl font-bold mt-2 ${balanceColor}`}>
-            {summaryLoading ? "…" : formatBDT(summary?.currentBalance ?? 0)}
-          </p>
-        </div>
+        <Card className="shadow-sm border-border/60 border-l-4 border-l-green-500">
+          <CardContent className="p-5">
+            <p className="text-sm text-muted-foreground font-semibold">Cash In (period)</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-500 mt-1">
+              {summaryLoading ? "…" : formatBDT(summary?.cashIn ?? 0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-border/60 border-l-4 border-l-destructive">
+          <CardContent className="p-5">
+            <p className="text-sm text-muted-foreground font-semibold">Cash Out (period)</p>
+            <p className="text-2xl font-bold text-destructive mt-1">
+              {summaryLoading ? "…" : formatBDT(summary?.cashOut ?? 0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-border/60 border-l-4 border-l-primary">
+          <CardContent className="p-5">
+            <p className="text-sm text-muted-foreground font-semibold">Current Balance (all-time)</p>
+            <p className={`text-2xl font-bold mt-1 ${balanceColor}`}>
+              {summaryLoading ? "…" : formatBDT(summary?.currentBalance ?? 0)}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 flex-wrap bg-muted/30 p-4 rounded-lg border border-border">
+      <Card className="shadow-sm border-border/60">
+        <CardContent className="p-5 flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-semibold text-muted-foreground">From:</span>
@@ -178,11 +176,15 @@ export default function CashBoxPage() {
             This Month
           </Button>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Table */}
-      <div className="rounded-md border overflow-hidden bg-card text-card-foreground shadow-sm">
-        <div className="overflow-x-auto">
+      <Card className="shadow-sm border-border/60 overflow-hidden">
+        <CardHeader className="pb-4 p-5 border-b border-border/60">
+          <CardTitle className="text-lg font-semibold">Cash Movements</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -203,7 +205,11 @@ export default function CashBoxPage() {
                 </TableRow>
               ) : entries.length > 0 ? (
                 entries.map((record) => {
-                  const cfg = ENTRY_TYPE_CONFIG[record.entryType];
+                  const cfg = ENTRY_TYPE_CONFIG[record.entryType] ?? {
+                    label: record.entryType,
+                    badgeClass: "bg-gray-500/10 text-gray-600 border-gray-500/20",
+                    sign: "+" as const,
+                  };
                   const amountColor =
                     cfg.sign === "+" ? "text-green-600 dark:text-green-500 font-semibold" : "text-destructive font-semibold";
                   const isManual =
@@ -284,7 +290,6 @@ export default function CashBoxPage() {
               )}
             </TableBody>
           </Table>
-        </div>
 
         {/* Pagination footer */}
         <div className="flex items-center justify-between p-4 border-t bg-muted/20">
@@ -313,7 +318,8 @@ export default function CashBoxPage() {
             </Button>
           </div>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <AddEntryModal
         isOpen={isAddModalOpen}

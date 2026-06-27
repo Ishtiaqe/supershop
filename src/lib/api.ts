@@ -9,7 +9,7 @@ const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID()
   }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0
     const v = c === 'x' ? r : (r & 0x3 | 0x8)
     return v.toString(16)
@@ -125,7 +125,7 @@ const sanitizeUpdate = (sanitizeFn: (d: any) => any, data: any) => {
 // Global request handler routing to Supabase or offline client
 async function handleRequest(method: string, url: string, requestData?: any): Promise<any> {
   const isOnline = networkDetector.isOnline()
-  
+
   // If offline, delegate entirely to offlineApi (IndexedDB)
   if (!isOnline) {
     console.warn(`[Offline] Routing ${method} ${url} to IndexedDB`)
@@ -135,8 +135,6 @@ async function handleRequest(method: string, url: string, requestData?: any): Pr
   const cleanUrl = url.split('?')[0]
   const parts = cleanUrl.split('/').filter(Boolean)
   const { tenantId, userId } = getLocalStorageData()
-
-  console.log(`[Serverless-API] ${method} ${cleanUrl}`, { parts, requestData })
 
   try {
     // --- GET REQUESTS ---
@@ -243,7 +241,20 @@ async function handleRequest(method: string, url: string, requestData?: any): Pr
         return formatResponse(data)
       }
 
-      // 4. /inventory
+      // 4. /catalog/:id
+      if (parts[0] === 'catalog' && parts[1]) {
+        const variantId = parts[1]
+        const { data, error } = await supabase
+          .from('product_variants')
+          .select('id, productId, variantName, sku, retailPrice, product:products(id, name, description, productType, genericName, manufacturerName, brand:brands(*), category:categories(*))')
+          .eq('id', variantId)
+          .eq('tenantId', tenantId)
+          .single()
+        if (error) throw error
+        return formatResponse(data)
+      }
+
+      // 5. /inventory
       if (cleanUrl === '/inventory') {
         const urlParams = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '')
         const q = urlParams.get('q') || ''
@@ -266,10 +277,10 @@ async function handleRequest(method: string, url: string, requestData?: any): Pr
               const manufacturerName = (item.variant?.product?.manufacturerName || '').toLowerCase()
 
               return itemName.includes(lowerQ) ||
-                     sku.includes(lowerQ) ||
-                     productName.includes(lowerQ) ||
-                     genericName.includes(lowerQ) ||
-                     manufacturerName.includes(lowerQ)
+                sku.includes(lowerQ) ||
+                productName.includes(lowerQ) ||
+                genericName.includes(lowerQ) ||
+                manufacturerName.includes(lowerQ)
             })
             .sort((a: any, b: any) => {
               const getScore = (item: any) => {
@@ -589,7 +600,7 @@ async function handleRequest(method: string, url: string, requestData?: any): Pr
             const discountPercent = item.discount || 0
             const effectivePrice = item.unitPrice * (1 - discountPercent / 100)
             const profit = effectivePrice - inventory.purchasePrice
-            
+
             calculatedTotalAmount += effectivePrice * item.quantity
             calculatedTotalProfit += profit * item.quantity
           }
@@ -782,7 +793,7 @@ async function handleRequest(method: string, url: string, requestData?: any): Pr
             query = query.eq('itemName', derivedItemName)
           }
           const { data: existing } = await query
-          
+
           let maxSeq = 0
           for (const item of (existing || [])) {
             const parts = (item.batchNo || '').split('-')
@@ -801,7 +812,7 @@ async function handleRequest(method: string, url: string, requestData?: any): Pr
             .eq('tenantId', tenantId)
             .eq('variantId', variantId)
             .eq('batchNo', batchNo)
-          
+
           const targetItem = (existingItems || []).find((item: any) => {
             const itemExpiry = item.expiryDate ? new Date(item.expiryDate).toISOString().split('T')[0] : null
             const newExpiry = expiryDate ? new Date(expiryDate).toISOString().split('T')[0] : null
@@ -1169,8 +1180,8 @@ const api = {
     return handleRequest('DELETE', url)
   },
   interceptors: {
-    request: { use: () => {} },
-    response: { use: () => {} }
+    request: { use: () => { } },
+    response: { use: () => { } }
   }
 }
 

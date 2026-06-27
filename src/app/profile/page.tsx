@@ -134,12 +134,12 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-2xl mx-auto">
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">Profile Settings</CardTitle>
+    <div className="max-w-2xl mx-auto">
+      <Card className="shadow-sm border-border/60">
+        <CardHeader className="pb-4 p-5">
+          <CardTitle className="text-lg font-semibold">Profile Settings</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-5 pt-0">
           <Tabs defaultValue="profile" className="space-y-6">
             <TabsList className="grid grid-cols-2 w-full max-w-[400px]">
               <TabsTrigger value="profile">Profile Details</TabsTrigger>

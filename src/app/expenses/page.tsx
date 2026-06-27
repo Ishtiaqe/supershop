@@ -47,12 +47,8 @@ export default function ExpensesPage() {
   };
 
   return (
-    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Expenses</h1>
-          <p className="text-sm text-muted-foreground">Track and categorize shop expenses</p>
-        </div>
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsCategoriesModalOpen(true)} className="flex items-center gap-1">
             <Settings className="w-4 h-4" />
@@ -66,8 +62,8 @@ export default function ExpensesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="shadow-sm border-l-4 border-l-destructive">
-          <CardContent className="pt-6">
+        <Card className="shadow-sm border-border/60 border-l-4 border-l-destructive">
+          <CardContent className="p-5">
             <div className="text-sm text-muted-foreground font-semibold">Total Expenses</div>
             <div className="text-2xl font-bold text-destructive mt-1">
               {isLoadingSummary ? "..." : formatCurrency(summaryData?.totalAmount || 0)}
@@ -75,8 +71,8 @@ export default function ExpensesPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-l-4 border-l-yellow-500">
-          <CardContent className="pt-6">
+        <Card className="shadow-sm border-border/60 border-l-4 border-l-yellow-500">
+          <CardContent className="p-5">
             <div className="text-sm text-muted-foreground font-semibold">Top Category</div>
             <div className="text-2xl font-bold truncate text-yellow-600 dark:text-yellow-500 mt-1">
               {isLoadingSummary
@@ -93,8 +89,8 @@ export default function ExpensesPage() {
       </div>
 
       {/* Filters */}
-      <Card className="shadow-sm">
-        <CardContent className="pt-6">
+      <Card className="shadow-sm border-border/60">
+        <CardContent className="p-5">
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex flex-col gap-1.5 w-full sm:w-auto">
               <label className="text-xs font-semibold text-muted-foreground">Start Date</label>
@@ -132,8 +128,12 @@ export default function ExpensesPage() {
       </Card>
 
       {/* Data Table */}
-      <div className="rounded-md border overflow-hidden bg-card">
-        <Table>
+      <Card className="shadow-sm border-border/60 overflow-hidden">
+        <CardHeader className="pb-4 p-5 border-b border-border/60">
+          <CardTitle className="text-lg font-semibold">Expense Records</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
@@ -209,7 +209,8 @@ export default function ExpensesPage() {
             </div>
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Modals */}
       <ExpenseModal
