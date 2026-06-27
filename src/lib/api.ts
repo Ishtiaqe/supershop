@@ -8,6 +8,37 @@ const networkDetector = NetworkDetector.getInstance()
 
 registerAllRoutes(router)
 
+const GET_CACHE_PREFIX = 'api_get_cache:'
+const GET_CACHE_TTL = 30 * 1000
+const SKIP_CACHE_PATTERNS = ['/users/me', '/auth/', '/backup/']
+
+function getCachedGet(url: string): any | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(GET_CACHE_PREFIX + url)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (Date.now() - parsed.ts > GET_CACHE_TTL) {
+      localStorage.removeItem(GET_CACHE_PREFIX + url)
+      return null
+    }
+    return parsed.data
+  } catch {
+    return null
+  }
+}
+
+function setCachedGet(url: string, data: any): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(GET_CACHE_PREFIX + url, JSON.stringify({ data, ts: Date.now() }))
+  } catch {}
+}
+
+function shouldSkipCache(url: string): boolean {
+  return SKIP_CACHE_PATTERNS.some(pattern => url.includes(pattern))
+}
+
 async function handleRequest(method: string, url: string, requestData?: any): Promise<any> {
   const isOnline = networkDetector.isOnline()
 
@@ -21,8 +52,19 @@ async function handleRequest(method: string, url: string, requestData?: any): Pr
   const query = new URLSearchParams(normalizedUrl.includes('?') ? normalizedUrl.split('?')[1] : '')
   const { tenantId, userId } = getLocalStorageData()
 
+  if (method === 'GET' && !shouldSkipCache(cleanUrl)) {
+    const cached = getCachedGet(normalizedUrl)
+    if (cached) {
+      return cached
+    }
+  }
+
   try {
-    return await router.dispatch(method, cleanUrl, url, query, requestData, { tenantId, userId })
+    const result = await router.dispatch(method, cleanUrl, url, query, requestData, { tenantId, userId })
+    if (method === 'GET' && !shouldSkipCache(cleanUrl)) {
+      setCachedGet(normalizedUrl, result)
+    }
+    return result
   } catch (error: any) {
     console.error(`[Serverless-API Error] ${method} ${url}:`, error)
     const status = error.status || 500

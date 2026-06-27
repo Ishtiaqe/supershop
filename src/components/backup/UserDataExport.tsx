@@ -95,12 +95,13 @@ export default function UserDataExportComponent() {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label htmlFor="user-search-email" className="block text-sm font-medium mb-2">
               Search User by Email
             </label>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <Input
+                id="user-search-email"
                 placeholder="Enter user email..."
                 value={searchEmail}
                 onChange={(e) => setSearchEmail(e.target.value)}

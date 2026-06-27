@@ -7,4 +7,12 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.warn('Missing Supabase environment variables. Auth will not work.')
 }
 
-export const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '')
+export const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '', {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    storageKey: 'sb-auth-token',
+  },
+})

@@ -183,8 +183,9 @@ export default function AdminTenantsPage() {
             <h3 className="text-lg font-bold mb-4">Create New Tenant</h3>
             <form onSubmit={handleCreateTenant} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Tenant Name</label>
+                <label htmlFor="create-tenant-name" className="text-xs font-semibold text-muted-foreground">Tenant Name</label>
                 <Input
+                  id="create-tenant-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. My Pharmacy"
@@ -196,8 +197,9 @@ export default function AdminTenantsPage() {
                 <h4 className="text-sm font-bold mb-3">Owner details</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground">Owner Email</label>
+                    <label htmlFor="create-owner-email" className="text-xs font-semibold text-muted-foreground">Owner Email</label>
                     <Input
+                      id="create-owner-email"
                       type="email"
                       value={ownerEmail}
                       onChange={(e) => setOwnerEmail(e.target.value)}
@@ -207,8 +209,9 @@ export default function AdminTenantsPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground">Owner Full Name</label>
+                    <label htmlFor="create-owner-name" className="text-xs font-semibold text-muted-foreground">Owner Full Name</label>
                     <Input
+                      id="create-owner-name"
                       value={ownerFullName}
                       onChange={(e) => setOwnerFullName(e.target.value)}
                       placeholder="John Doe"
@@ -217,8 +220,9 @@ export default function AdminTenantsPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground">Owner Password</label>
+                    <label htmlFor="create-owner-password" className="text-xs font-semibold text-muted-foreground">Owner Password</label>
                     <Input
+                      id="create-owner-password"
                       type="password"
                       value={ownerPassword}
                       onChange={(e) => setOwnerPassword(e.target.value)}
@@ -246,8 +250,9 @@ export default function AdminTenantsPage() {
           {editingTenant && (
             <form onSubmit={handleUpdateTenant} className="space-y-4 pt-2">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Tenant Name</label>
+                <label htmlFor="edit-tenant-name" className="text-xs font-semibold text-muted-foreground">Tenant Name</label>
                 <Input
+                  id="edit-tenant-name"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   required
@@ -255,24 +260,27 @@ export default function AdminTenantsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Street</label>
+                <label htmlFor="edit-street" className="text-xs font-semibold text-muted-foreground">Street</label>
                 <Input
+                  id="edit-street"
                   value={editStreet}
                   onChange={(e) => setEditStreet(e.target.value)}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">City</label>
+                <label htmlFor="edit-city" className="text-xs font-semibold text-muted-foreground">City</label>
                 <Input
+                  id="edit-city"
                   value={editCity}
                   onChange={(e) => setEditCity(e.target.value)}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Zone</label>
+                <label htmlFor="edit-zone" className="text-xs font-semibold text-muted-foreground">Zone</label>
                 <Input
+                  id="edit-zone"
                   value={editZone}
                   onChange={(e) => setEditZone(e.target.value)}
                 />

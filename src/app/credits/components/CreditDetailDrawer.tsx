@@ -109,12 +109,13 @@ export default function CreditDetailDrawer({ phone, customerName, onClose }: Pro
                       {paymentForm?.saleId === sale.id ? (
                         <div className="flex flex-wrap gap-3 items-end">
                           <div className="space-y-1">
-                            <label className="text-xs font-semibold text-foreground">Amount (৳)</label>
+                            <label htmlFor={`payment-amount-${sale.id}`} className="text-xs font-semibold text-foreground">Amount (৳)</label>
                             <Input
                               type="number"
                               min="0.01"
                               max={sale.dueAmount ?? 0}
                               step="0.01"
+                              id={`payment-amount-${sale.id}`}
                               value={paymentForm.amount}
                               onChange={(e) =>
                                 setPaymentForm((prev) =>
@@ -125,8 +126,9 @@ export default function CreditDetailDrawer({ phone, customerName, onClose }: Pro
                             />
                           </div>
                           <div className="space-y-1 flex-1 min-w-[160px]">
-                            <label className="text-xs font-semibold text-foreground">Note (optional)</label>
+                            <label htmlFor={`payment-note-${sale.id}`} className="text-xs font-semibold text-foreground">Note (optional)</label>
                             <Input
+                              id={`payment-note-${sale.id}`}
                               value={paymentForm.note}
                               onChange={(e) =>
                                 setPaymentForm((prev) =>

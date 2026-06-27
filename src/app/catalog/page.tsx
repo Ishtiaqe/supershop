@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash, Pill } from "lucide-react";
 import api from "@/lib/api";
+import { useCachedQuery } from "@/hooks/useCachedQuery";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -64,12 +65,15 @@ const catalogSchema = z.object({
 
 type CatalogFormData = z.infer<typeof catalogSchema>;
 
+const PAGE_SIZE = 20;
+
 export default function CatalogPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const form = useForm<CatalogFormData>({
     resolver: zodResolver(catalogSchema) as Resolver<CatalogFormData>,
@@ -87,10 +91,11 @@ export default function CatalogPage() {
 
   const watchedProductType = form.watch("productType");
 
-  const { data: catalogItems = [], isLoading } = useQuery<CatalogItem[]>({
-    queryKey: ["catalog"],
-    queryFn: () => api.get("/catalog").then((res) => res.data),
-  });
+  const { data: catalogItems = [], isLoading } = useCachedQuery<CatalogItem[]>(
+    ["catalog"],
+    () => api.get("/catalog").then((res) => res.data),
+    { cacheKey: "cache:catalog", staleTime: 5 * 60 * 1000 }
+  );
 
   const filteredCatalogItems = useMemo(() => {
     if (!search) return catalogItems;
@@ -104,6 +109,18 @@ export default function CatalogPage() {
         item.manufacturerName?.toLowerCase().includes(s)
     );
   }, [catalogItems, search]);
+
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const { paginatedItems, totalPages } = useMemo(() => {
+    const total = filteredCatalogItems.length;
+    const pages = Math.ceil(total / PAGE_SIZE);
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const paginated = filteredCatalogItems.slice(start, start + PAGE_SIZE);
+    return { paginatedItems: paginated, totalPages: pages };
+  }, [filteredCatalogItems, currentPage]);
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => api.post("/catalog", data),
@@ -222,6 +239,7 @@ export default function CatalogPage() {
           <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border/60 pb-4 p-5">
             <CardTitle className="text-lg font-semibold">Products</CardTitle>
             <Input
+              id="catalog-search"
               placeholder="Search catalog..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -247,8 +265,8 @@ export default function CatalogPage() {
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
                   </TableCell>
                 </TableRow>
-              ) : filteredCatalogItems.length > 0 ? (
-                filteredCatalogItems.map((record) => (
+              ) : paginatedItems.length > 0 ? (
+                paginatedItems.map((record) => (
                   <TableRow key={record.variantId}>
                     <TableCell>
                       <div>
@@ -319,6 +337,31 @@ export default function CatalogPage() {
             </TableBody>
           </Table>
           </CardContent>
+          {totalPages > 1 && (
+            <div className="flex justify-between items-center p-4 border-t border-border/60">
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
 
         <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleCloseModal()}>

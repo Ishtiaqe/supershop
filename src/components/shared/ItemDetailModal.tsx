@@ -162,6 +162,7 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                                         type="number"
                                         min={0}
                                         step="0.01"
+                                        id={`batch-cost-edit-${record.id}`}
                                         className="w-full max-w-[100px] h-8 px-2 py-1 text-xs"
                                         value={editForm.purchasePrice ?? record.purchasePrice}
                                         onChange={(e) =>
@@ -184,6 +185,7 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                                         type="number"
                                         min={0}
                                         step="0.01"
+                                        id={`batch-price-edit-${record.id}`}
                                         className="w-full max-w-[100px] h-8 px-2 py-1 text-xs"
                                         value={editForm.retailPrice ?? record.retailPrice}
                                         onChange={(e) =>

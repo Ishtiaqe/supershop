@@ -49,14 +49,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const [mode, setMode] = useState<ThemeMode>("system");
+  const [mode, setMode] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") return "system";
+    const storedTheme = localStorage.getItem("theme") as ThemeMode | null;
+    if (storedTheme === "light" || storedTheme === "dark" || storedTheme === "system") {
+      return storedTheme;
+    }
+    return "system";
+  });
   const [systemDark, setSystemDark] = useState(false);
 
   useEffect(() => {
-    const storedTheme = localStorage.getItem("theme") as ThemeMode | null;
-    if (storedTheme === "light" || storedTheme === "dark" || storedTheme === "system") {
-      setMode(storedTheme);
-    }
     setSystemDark(window.matchMedia("(prefers-color-scheme: dark)").matches);
   }, []);
 

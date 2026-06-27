@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import type { User } from '@/types';
 import api from '@/lib/api';
 import { supabase } from '@/lib/supabase';
+import { authStorage } from '@/lib/auth-storage';
 
 // Import shadcn UI components
 import { Button } from '@/components/ui/button';
@@ -44,8 +45,8 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const u = localStorage.getItem('user');
-    if (u) setUser(JSON.parse(u));
+    const u = authStorage.getUser();
+    if (u) setUser(u as User);
   }, []);
 
   const profileForm = useForm<ProfileFormData>({
@@ -100,7 +101,7 @@ export default function ProfilePage() {
       } : dbData;
 
       startTransition(() => {
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        authStorage.setUser(updatedUser as Record<string, unknown>);
         setUser(updatedUser);
       });
 

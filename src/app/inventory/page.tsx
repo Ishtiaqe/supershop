@@ -472,7 +472,7 @@ export default function InventoryPage() {
             <form onSubmit={addForm.handleSubmit(submitAdd)} className="space-y-4">
               {/* Item Name (AutoComplete) */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
+                <label htmlFor="add-item-name" className="text-sm font-medium text-foreground">
                   Item Name (Search catalog or enter new)
                 </label>
                 <Controller
@@ -483,6 +483,7 @@ export default function InventoryPage() {
                       <Input
                         {...field}
                         ref={itemNameRef}
+                        id="add-item-name"
                         placeholder="Type to search catalog or enter new product name"
                         onChange={(e) => {
                           field.onChange(e.target.value);
@@ -531,11 +532,12 @@ export default function InventoryPage() {
                   control={addForm.control}
                   render={({ field, fieldState: { error } }) => (
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Quantity</label>
+                      <label htmlFor="add-quantity" className="text-sm font-medium text-foreground">Quantity</label>
                       <Input
                         type="number"
                         placeholder="0"
                         min={1}
+                        id="add-quantity"
                         {...field}
                         onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                       />
@@ -549,12 +551,13 @@ export default function InventoryPage() {
                   control={addForm.control}
                   render={({ field, fieldState: { error } }) => (
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Purchase/unit (৳)</label>
+                      <label htmlFor="add-purchase-price" className="text-sm font-medium text-foreground">Purchase/unit (৳)</label>
                       <Input
                         type="number"
                         placeholder="0.00"
                         min={0}
                         step="0.01"
+                        id="add-purchase-price"
                         {...field}
                         onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                       />
@@ -568,12 +571,13 @@ export default function InventoryPage() {
                   control={addForm.control}
                   render={({ field, fieldState: { error } }) => (
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">MRP/unit (৳)</label>
+                      <label htmlFor="add-mrp" className="text-sm font-medium text-foreground">MRP/unit (৳)</label>
                       <Input
                         type="number"
                         placeholder="0.00"
                         min={0}
                         step="0.01"
+                        id="add-mrp"
                         {...field}
                         onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                       />
@@ -584,10 +588,11 @@ export default function InventoryPage() {
 
                 {computedMaxDiscountValue > 0 && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Max Discount %</label>
+                    <label htmlFor="add-max-discount" className="text-sm font-medium text-muted-foreground">Max Discount %</label>
                     <Input
                       type="text"
                       disabled
+                      id="add-max-discount"
                       value={`${computedMaxDiscountValue}%`}
                     />
                   </div>
@@ -600,8 +605,9 @@ export default function InventoryPage() {
                 control={addForm.control}
                 render={({ field, fieldState: { error } }) => (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Fund Source</label>
+                    <label htmlFor="add-fund-source" className="text-sm font-medium text-foreground">Fund Source</label>
                     <select
+                      id="add-fund-source"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       {...field}
                     >
@@ -630,6 +636,7 @@ export default function InventoryPage() {
           <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border/60 pb-4 p-5">
             <CardTitle className="text-lg font-semibold">Inventory Items</CardTitle>
             <Input
+              id="inventory-search"
               placeholder="Search by name, SKU, or generic name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -733,9 +740,10 @@ export default function InventoryPage() {
                 control={editForm.control}
                 render={({ field, fieldState: { error } }) => (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Item Name</label>
+                    <label htmlFor="edit-item-name" className="text-sm font-medium text-foreground">Item Name</label>
                     <Input
                       {...field}
+                      id="edit-item-name"
                       placeholder="Item name"
                       disabled={!!editFormState.variantId}
                     />
@@ -749,10 +757,11 @@ export default function InventoryPage() {
                 control={editForm.control}
                 render={({ field, fieldState: { error } }) => (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Quantity</label>
+                    <label htmlFor="edit-quantity" className="text-sm font-medium text-foreground">Quantity</label>
                     <Input
                       type="number"
                       min={1}
+                      id="edit-quantity"
                       {...field}
                       onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                     />
@@ -766,11 +775,12 @@ export default function InventoryPage() {
                 control={editForm.control}
                 render={({ field, fieldState: { error } }) => (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Purchase/unit (৳)</label>
+                    <label htmlFor="edit-purchase-price" className="text-sm font-medium text-foreground">Purchase/unit (৳)</label>
                     <Input
                       type="number"
                       min={0}
                       step="0.01"
+                      id="edit-purchase-price"
                       {...field}
                       onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                     />
@@ -784,11 +794,12 @@ export default function InventoryPage() {
                 control={editForm.control}
                 render={({ field, fieldState: { error } }) => (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">MRP/unit (৳)</label>
+                    <label htmlFor="edit-mrp" className="text-sm font-medium text-foreground">MRP/unit (৳)</label>
                     <Input
                       type="number"
                       min={0}
                       step="0.01"
+                      id="edit-mrp"
                       {...field}
                       onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                     />

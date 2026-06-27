@@ -438,9 +438,10 @@ export default function POSPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
             <div className="sm:col-span-2 space-y-2 relative">
-              <label className="text-sm font-medium text-foreground">Select Item</label>
+              <label htmlFor="pos-select-item" className="text-sm font-medium text-foreground">Select Item</label>
               <Input
                 ref={inputRef}
+                id="pos-select-item"
                 placeholder="Type to search inventory or SKU..."
                 value={selectedItemName || search}
                 onChange={(e) => {
@@ -499,9 +500,10 @@ export default function POSPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Quantity</label>
+              <label htmlFor="pos-quantity" className="text-sm font-medium text-foreground">Quantity</label>
               <Input
                 ref={quantityRef}
+                id="pos-quantity"
                 type="number"
                 min={1}
                 value={qty ?? ""}
@@ -533,8 +535,9 @@ export default function POSPage() {
           </CardHeader>
           <CardContent className="p-5 pt-0 space-y-4">
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Customer Name</label>
+              <label htmlFor="pos-customer-name" className="text-xs text-muted-foreground">Customer Name</label>
               <Input
+                id="pos-customer-name"
                 placeholder="Enter customer name"
                 value={customerName}
                 onChange={(e) => {
@@ -544,8 +547,9 @@ export default function POSPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Customer Phone</label>
+              <label htmlFor="pos-customer-phone" className="text-xs text-muted-foreground">Customer Phone</label>
               <Input
+                id="pos-customer-phone"
                 placeholder="Enter phone number"
                 value={customerPhone}
                 onChange={(e) => {
@@ -592,6 +596,7 @@ export default function POSPage() {
                       <Input
                         type="number"
                         min={1}
+                        id={`cart-qty-${record.key}`}
                         value={record.quantity}
                         onChange={(e) => {
                           const newQty = parseInt(e.target.value) || 1;
@@ -613,6 +618,7 @@ export default function POSPage() {
                           type="number"
                           min={0}
                           max={maxAllowed}
+                          id={`cart-discount-${record.key}`}
                           value={record.discount}
                           onChange={(e) => {
                             const newDiscount = Math.min(parseFloat(e.target.value) || 0, maxAllowed);
@@ -682,10 +688,11 @@ export default function POSPage() {
 
           {isCreditSale && (
             <div className="space-y-2 max-w-xs">
-              <label className="text-xs font-semibold text-foreground">
+              <label htmlFor="pos-cash-received" className="text-xs font-semibold text-foreground">
                 Cash Received (৳)
               </label>
               <Input
+                id="pos-cash-received"
                 type="number"
                 min={0}
                 max={total}

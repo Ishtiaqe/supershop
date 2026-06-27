@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import api from '@/lib/api';
+import { authStorage } from '@/lib/auth-storage';
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function AuthCallback() {
@@ -15,13 +16,13 @@ export default function AuthCallback() {
     if (token && refreshToken) {
       (async () => {
         try {
-          localStorage.setItem('accessToken', token);
-          localStorage.setItem('refreshToken', refreshToken);
+          authStorage.setAccessToken(token);
+          authStorage.setRefreshToken(refreshToken);
 
           try {
             const userResp = await api.get('/users/me');
             if (userResp?.data) {
-              localStorage.setItem('user', JSON.stringify(userResp.data));
+              authStorage.setUser(userResp.data);
             }
           } catch {
             // Non-fatal: user fetched on next load

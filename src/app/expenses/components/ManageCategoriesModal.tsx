@@ -72,7 +72,8 @@ export function ManageCategoriesModal({ isOpen, onClose }: ManageCategoriesModal
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="flex items-center gap-2">
-            <Input 
+            <Input
+              id="new-category-name"
               placeholder="New category name..." 
               value={newCatName}
               onChange={(e) => setNewCatName(e.target.value)}
@@ -99,6 +100,7 @@ export function ManageCategoriesModal({ isOpen, onClose }: ManageCategoriesModal
                   <div className="flex-1 mr-4">
                     {editingCatId === cat.id ? (
                       <Input
+                        id={`edit-category-name-${cat.id}`}
                         value={editingCatName}
                         onChange={(e) => setEditingCatName(e.target.value)}
                         onKeyDown={(e) => {

@@ -7,6 +7,7 @@
 const AUTH_KEYS = {
   ACCESS_TOKEN: 'accessToken',
   REFRESH_TOKEN: 'refreshToken',
+  TOKEN_EXPIRES_AT: 'tokenExpiresAt',
   USER: 'user',
   TENANT: 'tenant',
 } as const
@@ -88,6 +89,51 @@ export const authStorage = {
   },
 
   /**
+   * Get the token expiry timestamp (ms since epoch)
+   */
+  getExpiresAt: (): number | null => {
+    const storage = getLocalStorage()
+    const raw = storage?.getItem(AUTH_KEYS.TOKEN_EXPIRES_AT)
+    return raw ? Number(raw) : null
+  },
+
+  /**
+   * Set the token expiry timestamp (ms since epoch)
+   */
+  setExpiresAt: (expiresAt: number): void => {
+    const storage = getLocalStorage()
+    if (storage) storage.setItem(AUTH_KEYS.TOKEN_EXPIRES_AT, String(expiresAt))
+  },
+
+  /**
+   * Check if user is authenticated (has access token)
+   */
+  isAuthenticated: (): boolean => {
+    return authStorage.getAccessToken() !== null
+  },
+
+  /**
+   * Check if the access token is expired or about to expire
+   * Returns true if token should be refreshed (within 5 min of expiry)
+   */
+  shouldRefreshToken: (): boolean => {
+    const expiresAt = authStorage.getExpiresAt()
+    if (!expiresAt) return false
+    const now = Date.now()
+    const fiveMinutes = 5 * 60 * 1000
+    return now > (expiresAt - fiveMinutes)
+  },
+
+  /**
+   * Check if the access token is fully expired
+   */
+  isTokenExpired: (): boolean => {
+    const expiresAt = authStorage.getExpiresAt()
+    if (!expiresAt) return false
+    return Date.now() > expiresAt
+  },
+
+  /**
    * Clear all authentication data
    */
   clearAuth: (): void => {
@@ -95,16 +141,10 @@ export const authStorage = {
     if (storage) {
       storage.removeItem(AUTH_KEYS.ACCESS_TOKEN)
       storage.removeItem(AUTH_KEYS.REFRESH_TOKEN)
+      storage.removeItem(AUTH_KEYS.TOKEN_EXPIRES_AT)
       storage.removeItem(AUTH_KEYS.USER)
       storage.removeItem(AUTH_KEYS.TENANT)
     }
-  },
-
-  /**
-   * Check if user is authenticated
-   */
-  isAuthenticated: (): boolean => {
-    return authStorage.getAccessToken() !== null
   },
 }
 

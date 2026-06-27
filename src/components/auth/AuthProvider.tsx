@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useCallback } from 'react'
 import api from '@/lib/api'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
+import { authStorage } from '@/lib/auth-storage'
 
 export type AuthContextType = {
   user: any | null
@@ -25,12 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize from localStorage for instant auth check
   const [cachedProfile, setCachedProfile] = React.useState<any | null>(() => {
-    try {
-      const userJson = localStorage.getItem('user')
-      return userJson ? JSON.parse(userJson) : null
-    } catch {
-      return null
-    }
+    return authStorage.getUser()
   })
 
   // Loading is only true if we have no cached profile AND Supabase is still loading
@@ -48,10 +44,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // If Supabase confirms no user, clear the profile
         if (!supabaseUser) {
           setCachedProfile(null)
-          try {
-            localStorage.removeItem('user')
-            localStorage.removeItem('tenant')
-          } catch {}
+          authStorage.setUser(null as any)
+          authStorage.setTenant(null as any)
           return
         }
 
@@ -88,21 +82,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
           setCachedProfile(fallbackProfile)
-          try {
-            localStorage.setItem('user', JSON.stringify(fallbackProfile))
-            localStorage.setItem('tenant', JSON.stringify(fallbackProfile.tenant))
-          } catch {}
+          authStorage.setUser(fallbackProfile)
+          authStorage.setTenant(fallbackProfile.tenant)
           return
         }
 
         if (data) {
           setCachedProfile(data)
-          try {
-            localStorage.setItem('user', JSON.stringify(data))
-            if (data.tenant) {
-              localStorage.setItem('tenant', JSON.stringify(data.tenant))
-            }
-          } catch {}
+          authStorage.setUser(data)
+          if (data.tenant) {
+            authStorage.setTenant(data.tenant)
+          }
         }
       } catch (e) {
         console.warn('Failed to fetch user profile:', e)
@@ -171,13 +161,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Supabase logout failed:', e)
     }
 
-    // Clear local storage
+    // Clear auth data via centralized module
     try {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('user')
-      localStorage.removeItem('tenant')
+      authStorage.clearAuth()
       // Also clear any Supabase session storage
-      localStorage.removeItem('sb-session')
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('sb-')) {
           localStorage.removeItem(key)

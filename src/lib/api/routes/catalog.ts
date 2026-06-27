@@ -30,20 +30,19 @@ const searchCatalog: RouteHandler = async ({ tenantId, query }) => {
   const { data: variants, error } = await queryBuilder.limit(50)
   if (error) throw error
 
-  const variantIds = (variants || []).map((v: any) => v.id).filter(Boolean)
+  const variantIdSet = new Set((variants || []).map((v: any) => v.id).filter(Boolean))
   const latestInventoryByVariant: Record<string, { purchasePrice: number; retailPrice: number }> = {}
-  if (variantIds.length > 0) {
+  if (variantIdSet.size > 0) {
     const { data: inventoryItems } = await supabase
       .from('inventory_items')
       .select('variantId, purchasePrice, retailPrice, createdAt')
       .eq('tenantId', tenantId)
-      .in('variantId', variantIds)
       .order('createdAt', { ascending: false })
       .limit(1000)
 
     for (const item of (inventoryItems || [])) {
       const key = item.variantId
-      if (key && !latestInventoryByVariant[key]) {
+      if (key && variantIdSet.has(key) && !latestInventoryByVariant[key]) {
         latestInventoryByVariant[key] = {
           purchasePrice: item.purchasePrice || 0,
           retailPrice: item.retailPrice || 0
@@ -107,21 +106,20 @@ const getCatalog: RouteHandler = async ({ tenantId }) => {
     .eq('tenantId', tenantId)
   if (error) throw error
 
-  const variantIds = (variants || []).map((v: any) => v.id).filter(Boolean)
+  const variantIdSet = new Set((variants || []).map((v: any) => v.id).filter(Boolean))
   const latestInventoryByVariant: Record<string, { purchasePrice: number; retailPrice: number }> = {}
   const stockByVariant: Record<string, number> = {}
-  if (variantIds.length > 0) {
+  if (variantIdSet.size > 0) {
     const { data: inventoryItems } = await supabase
       .from('inventory_items')
       .select('variantId, purchasePrice, retailPrice, quantity, createdAt')
       .eq('tenantId', tenantId)
-      .in('variantId', variantIds)
       .order('createdAt', { ascending: false })
       .limit(1000)
 
     for (const item of (inventoryItems || [])) {
       const key = item.variantId
-      if (key) {
+      if (key && variantIdSet.has(key)) {
         stockByVariant[key] = (stockByVariant[key] || 0) + (item.quantity || 0)
         if (!latestInventoryByVariant[key]) {
           latestInventoryByVariant[key] = {

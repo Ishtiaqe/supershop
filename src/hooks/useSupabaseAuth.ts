@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Session, User, AuthError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { authStorage } from '@/lib/auth-storage'
 
 interface AuthState {
   session: Session | null
@@ -57,9 +58,15 @@ export function useSupabaseAuth() {
         // Update stored tokens if session is valid
         if (session?.access_token) {
           try {
-            localStorage.setItem('accessToken', session.access_token)
+            authStorage.setAccessToken(session.access_token)
+            if (session.refresh_token) {
+              authStorage.setRefreshToken(session.refresh_token)
+            }
+            if (session.expires_at) {
+              authStorage.setExpiresAt(session.expires_at * 1000)
+            }
           } catch (e) {
-            console.warn('Failed to store access token:', e)
+            console.warn('Failed to store auth tokens:', e)
           }
         }
       }
@@ -67,6 +74,43 @@ export function useSupabaseAuth() {
 
     return () => {
       subscription?.unsubscribe()
+    }
+  }, [])
+
+  // Proactive token refresh — checks every 60s, refreshes if within 5 min of expiry
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    const checkAndRefresh = async () => {
+      if (!authStorage.isAuthenticated()) return
+      if (!authStorage.shouldRefreshToken()) return
+
+      try {
+        const { data, error } = await supabase.auth.refreshSession()
+        if (error) {
+          console.warn('Proactive token refresh failed:', error.message)
+          return
+        }
+        if (data.session?.access_token) {
+          authStorage.setAccessToken(data.session.access_token)
+          if (data.session.refresh_token) {
+            authStorage.setRefreshToken(data.session.refresh_token)
+          }
+          if (data.session.expires_at) {
+            authStorage.setExpiresAt(data.session.expires_at * 1000)
+          }
+        }
+      } catch (e) {
+        console.warn('Token refresh error:', e)
+      }
+    }
+
+    refreshTimerRef.current = setInterval(checkAndRefresh, 60 * 1000)
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current)
+      }
     }
   }, [])
 
@@ -83,9 +127,15 @@ export function useSupabaseAuth() {
           throw error
         }
 
-        // Store access token in localStorage for API requests
+        // Store all tokens via centralized auth storage
         if (data.session?.access_token) {
-          localStorage.setItem('accessToken', data.session.access_token)
+          authStorage.setAccessToken(data.session.access_token)
+          if (data.session.refresh_token) {
+            authStorage.setRefreshToken(data.session.refresh_token)
+          }
+          if (data.session.expires_at) {
+            authStorage.setExpiresAt(data.session.expires_at * 1000)
+          }
         }
 
         setState({

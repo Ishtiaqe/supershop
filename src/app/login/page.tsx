@@ -91,19 +91,17 @@ export default function LoginPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-foreground font-medium">Email</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                      <FormControl>
                         <Input
-                          id="login-email"
-                          aria-label="Email address"
                           placeholder="Enter your email"
                           autoComplete="email"
                           className="pl-10 h-12 rounded-lg"
                           {...field}
                         />
-                      </div>
-                    </FormControl>
+                      </FormControl>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -115,20 +113,18 @@ export default function LoginPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-foreground font-medium">Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                      <FormControl>
                         <Input
-                          id="login-password"
                           type="password"
-                          aria-label="Password"
                           placeholder="Enter your password"
                           autoComplete="current-password"
                           className="pl-10 h-12 rounded-lg"
                           {...field}
                         />
-                      </div>
-                    </FormControl>
+                      </FormControl>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -162,6 +162,7 @@ export default function SalesPage() {
             <CardTitle className="text-lg font-semibold">Transactions</CardTitle>
             <div className="flex flex-wrap flex-1 gap-3 items-center justify-end">
               <Input
+                id="sales-search"
                 placeholder="Search by receipt or customer..."
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
@@ -170,6 +171,7 @@ export default function SalesPage() {
               <div className="flex items-center gap-2">
                 <Input
                   type="date"
+                  id="sales-start-date"
                   value={startDateStr}
                   onChange={(e) => setStartDateStr(e.target.value)}
                   className="w-[140px]"
@@ -177,12 +179,14 @@ export default function SalesPage() {
                 <span className="text-muted-foreground text-sm">to</span>
                 <Input
                   type="date"
+                  id="sales-end-date"
                   value={endDateStr}
                   onChange={(e) => setEndDateStr(e.target.value)}
                   className="w-[140px]"
                 />
               </div>
               <select
+                id="sales-payment-filter"
                 className="flex h-10 w-full sm:w-[180px] rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 value={paymentFilter || ""}
                 onChange={(e) => setPaymentFilter(e.target.value || undefined)}

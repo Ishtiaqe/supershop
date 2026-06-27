@@ -93,8 +93,9 @@ export default function ExpensesPage() {
         <CardContent className="p-5">
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex flex-col gap-1.5 w-full sm:w-auto">
-              <label className="text-xs font-semibold text-muted-foreground">Start Date</label>
+              <label htmlFor="expense-start-date" className="text-xs font-semibold text-muted-foreground">Start Date</label>
               <input
+                id="expense-start-date"
                 type="date"
                 value={filters.startDate || ""}
                 onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value || undefined, page: 1 }))}
@@ -102,8 +103,9 @@ export default function ExpensesPage() {
               />
             </div>
             <div className="flex flex-col gap-1.5 w-full sm:w-auto">
-              <label className="text-xs font-semibold text-muted-foreground">End Date</label>
+              <label htmlFor="expense-end-date" className="text-xs font-semibold text-muted-foreground">End Date</label>
               <input
+                id="expense-end-date"
                 type="date"
                 value={filters.endDate || ""}
                 onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value || undefined, page: 1 }))}
@@ -111,8 +113,9 @@ export default function ExpensesPage() {
               />
             </div>
             <div className="flex flex-col gap-1.5 w-full sm:w-auto">
-              <label className="text-xs font-semibold text-muted-foreground">Category</label>
+              <label htmlFor="expense-category" className="text-xs font-semibold text-muted-foreground">Category</label>
               <select
+                id="expense-category"
                 value={filters.categoryId || "all"}
                 onChange={(e) => setFilters(prev => ({ ...prev, categoryId: e.target.value === "all" ? undefined : e.target.value, page: 1 }))}
                 className="flex h-10 w-full sm:w-[200px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"

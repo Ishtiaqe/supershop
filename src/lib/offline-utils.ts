@@ -1,4 +1,4 @@
-import { OfflineAuthState, CachedApiResponse } from '@/types/offline';
+import { OfflineAuthState } from '@/types/offline';
 
 /**
  * Advanced network detection with multiple fallback methods
@@ -74,16 +74,16 @@ export class StorageManager {
   }
 
   static async cleanupOldData(): Promise<void> {
-    // Clean up old cached API responses
+    // Clean up expired api_get_cache: entries and stale cache: reference data
+    const now = Date.now();
     const cacheKeys = Object.keys(localStorage).filter(key =>
-      key.startsWith('api_cache_')
+      key.startsWith('api_get_cache:') || key.startsWith('cache:')
     );
 
-    const now = Date.now();
     cacheKeys.forEach(key => {
       try {
-        const data = JSON.parse(localStorage.getItem(key) || '{}') as CachedApiResponse;
-        if (data.expiresAt && data.expiresAt < now) {
+        const data = JSON.parse(localStorage.getItem(key) || '{}');
+        if (data.ts && now - data.ts > (data.ttl || 10 * 60 * 1000)) {
           localStorage.removeItem(key);
         }
       } catch {

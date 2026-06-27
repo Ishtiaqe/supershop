@@ -250,11 +250,12 @@ export default function ShortListPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Add to Shortlist Search */}
             <div className="md:col-span-2 relative">
-              <label className="block text-xs font-semibold text-muted-foreground mb-2">
+              <label htmlFor="shortlist-add-item" className="block text-xs font-semibold text-muted-foreground mb-2">
                 Add Item to Shortlist
               </label>
               <div className="relative">
                 <Input
+                  id="shortlist-add-item"
                   placeholder="Search inventory items..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -307,8 +308,9 @@ export default function ShortListPage() {
 
             {/* Sort By */}
             <div className="flex flex-col">
-              <label className="block text-xs font-semibold text-muted-foreground mb-2">Sort By</label>
+              <label htmlFor="shortlist-sort-by" className="block text-xs font-semibold text-muted-foreground mb-2">Sort By</label>
               <select
+                id="shortlist-sort-by"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -371,6 +373,7 @@ export default function ShortListPage() {
             <CardTitle className="text-lg font-semibold flex items-center justify-between flex-wrap gap-2">
               <span>Shortlist Items ({shortlistItems.length})</span>
               <Input
+                id="shortlist-filter-search"
                 value={shortlistSearchTerm}
                 onChange={(e) => setShortlistSearchTerm(e.target.value)}
                 placeholder="Search shortlist by item name, SKU, or product..."

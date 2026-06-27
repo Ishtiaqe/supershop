@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { useCachedQuery } from '@/hooks/useCachedQuery';
 
 // --- Types ---
 export interface ExpenseCategory {
@@ -42,13 +43,14 @@ export interface ExpenseFilters {
 // --- Category Hooks ---
 
 export const useCategories = () => {
-  return useQuery({
-    queryKey: ['expense-categories'],
-    queryFn: async () => {
+  return useCachedQuery<ExpenseCategory[]>(
+    ['expense-categories'],
+    async () => {
       const { data } = await api.get<ExpenseCategory[]>('/expenses/categories');
       return data;
     },
-  });
+    { cacheKey: 'cache:expense-categories', staleTime: 10 * 60 * 1000 }
+  );
 };
 
 export const useCreateCategory = () => {

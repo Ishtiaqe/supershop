@@ -2,7 +2,7 @@ import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { offlineDb } from './offline-db';
 import { offlineQueue } from './offline-queue';
 import { NetworkDetector } from './offline-utils';
-import { OfflineAuth } from './offline-utils';
+import { authStorage } from './auth-storage';
 import { InventoryItem, Sale } from '../types';
 
 interface ApiResponse<T = unknown> {
@@ -216,9 +216,9 @@ class OfflineApiClient {
   }
 
   private getTenantId(): string {
-    // Get tenant ID from localStorage or auth state
-    const authState = OfflineAuth.getAuthState();
-    return (authState?.tenant?.id as string) || 'default-tenant';
+    // Get tenant ID from centralized auth storage
+    const tenant = authStorage.getTenant();
+    return (tenant?.id as string) || 'default-tenant';
   }
 
   private generateTempId(): string {

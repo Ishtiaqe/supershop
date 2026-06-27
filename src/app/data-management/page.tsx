@@ -179,6 +179,7 @@ export default function DataManagementPage() {
           <div>
             <input
               type="file"
+              id="import-backup-file"
               ref={fileInputRef}
               onChange={handleImportBackup}
               accept=".sql,.sql.gz"

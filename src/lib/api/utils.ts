@@ -1,3 +1,5 @@
+import { authStorage } from '@/lib/auth-storage'
+
 export const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID()
@@ -14,8 +16,8 @@ export const getLocalStorageData = () => {
     return { tenantId: 'default-tenant', userId: 'default-user' }
   }
   try {
-    const tenant = JSON.parse(localStorage.getItem('tenant') || '{}')
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const tenant = authStorage.getTenant() || {}
+    const user = authStorage.getUser() || {}
     return {
       tenantId: tenant.id || 'default-tenant',
       userId: user.id || 'default-user'

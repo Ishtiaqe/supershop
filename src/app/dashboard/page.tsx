@@ -320,6 +320,7 @@ export default function DashboardPage() {
 
   const periodSelect = (
     <select
+      id="dashboard-period"
       value={period}
       onChange={(e) => setPeriod(e.target.value)}
       className="flex h-10 w-40 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"

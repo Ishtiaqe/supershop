@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash } from "lucide-react";
 import api from "@/lib/api";
+import { useCachedQuery } from "@/hooks/useCachedQuery";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -60,10 +61,11 @@ export default function CategoriesPage() {
     },
   });
 
-  const { data: categories = [], isLoading } = useQuery<Category[]>({
-    queryKey: ["categories"],
-    queryFn: () => api.get("/catalog/categories").then((res) => res.data),
-  });
+  const { data: categories = [], isLoading } = useCachedQuery<Category[]>(
+    ["categories"],
+    () => api.get("/catalog/categories").then((res) => res.data),
+    { cacheKey: "cache:categories", staleTime: 10 * 60 * 1000 }
+  );
 
   const createMutation = useMutation({
     mutationFn: (name: string) => api.post("/catalog/categories", { name }),

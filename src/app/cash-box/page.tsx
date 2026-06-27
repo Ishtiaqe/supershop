@@ -125,6 +125,7 @@ export default function CashBoxPage() {
           <span className="text-sm font-semibold text-muted-foreground">From:</span>
           <Input
             type="date"
+            id="cashbox-start-date"
             value={startDate}
             onChange={(e) => {
               setDateRange([e.target.value, endDate]);
@@ -138,6 +139,7 @@ export default function CashBoxPage() {
           <span className="text-sm font-semibold text-muted-foreground">To:</span>
           <Input
             type="date"
+            id="cashbox-end-date"
             value={endDate}
             onChange={(e) => {
               setDateRange([startDate, e.target.value]);

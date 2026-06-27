@@ -60,6 +60,7 @@ export default function MedicineDatabasePage() {
           <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 pb-4 p-5 border-b border-border/60">
             <CardTitle className="text-lg font-semibold">Medicines</CardTitle>
             <Input
+              id="medicine-search"
               placeholder="Search medicines..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
