@@ -21,18 +21,37 @@ export function useAuth(): AuthContextType {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { user: supabaseUser, logout: supabaseLogout, supabase } = useSupabaseAuth()
+  const { user: supabaseUser, logout: supabaseLogout, supabase, loading: supabaseLoading } = useSupabaseAuth()
 
-  // Fetch and cache user profile from Supabase (includes tenant info)
-  const [cachedProfile, setCachedProfile] = React.useState<any | null>(null)
-  const [loading, setLoading] = React.useState(true)
+  // Initialize from localStorage for instant auth check
+  const [cachedProfile, setCachedProfile] = React.useState<any | null>(() => {
+    try {
+      const userJson = localStorage.getItem('user')
+      return userJson ? JSON.parse(userJson) : null
+    } catch {
+      return null
+    }
+  })
+
+  // Loading is only true if we have no cached profile AND Supabase is still loading
+  // If we have a cached profile, we consider auth as "loaded" instantly
+  const loading = !cachedProfile && supabaseLoading
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        // Wait for Supabase auth check to complete
+        if (supabaseLoading) {
+          return
+        }
+
+        // If Supabase confirms no user, clear the profile
         if (!supabaseUser) {
           setCachedProfile(null)
-          setLoading(false)
+          try {
+            localStorage.removeItem('user')
+            localStorage.removeItem('tenant')
+          } catch {}
           return
         }
 
@@ -88,13 +107,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.warn('Failed to fetch user profile:', e)
         setCachedProfile(null)
-      } finally {
-        setLoading(false)
       }
     }
 
     fetchProfile()
-  }, [supabaseUser, supabase])
+  }, [supabaseUser, supabase, supabaseLoading])
 
   // Simplified refresh: Supabase handles token refresh automatically
   const refresh = useCallback(async (): Promise<any> => {

@@ -328,7 +328,7 @@ export default function SalesPage() {
         )}
 
         <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleCloseModal()}>
-          <DialogContent className="max-w-6xl max-h-[100vh] overflow-y-auto" aria-describedby="sale-details-description">
+          <DialogContent className="max-w-6xl max-h-[100vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 Transaction Details - {saleDetails?.receiptNumber || ""}
