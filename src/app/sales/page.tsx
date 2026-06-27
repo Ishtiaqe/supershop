@@ -52,7 +52,9 @@ export default function SalesPage() {
     undefined
   );
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const deferredSearchText = useDeferredValue(searchText);
+  const PAGE_SIZE = 10;
 
   const { data: saleDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ["sale-details", selectedSaleId],
@@ -95,7 +97,12 @@ export default function SalesPage() {
 
   const normalizedSearch = deferredSearchText.trim().toLowerCase();
 
-  const { filteredSales } = useMemo(() => {
+  // Reset to first page when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [normalizedSearch, startDateStr, endDateStr, paymentFilter]);
+
+  const { filteredSales, totalPages } = useMemo(() => {
     const rows: Sale[] = [];
 
     for (const sale of sales as Sale[]) {
@@ -128,10 +135,16 @@ export default function SalesPage() {
       rows.push(sale);
     }
 
+    const total = rows.length;
+    const pages = Math.ceil(total / PAGE_SIZE);
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const paginated = rows.slice(start, start + PAGE_SIZE);
+
     return {
-      filteredSales: rows,
+      filteredSales: paginated,
+      totalPages: pages,
     };
-  }, [sales, normalizedSearch, startDateStr, endDateStr, paymentFilter]);
+  }, [sales, normalizedSearch, startDateStr, endDateStr, paymentFilter, currentPage]);
 
   if (!user || (user.role !== "OWNER" && user.role !== "EMPLOYEE")) {
     return <div className="p-6">Access denied — Owners and employees only</div>;
@@ -288,8 +301,34 @@ export default function SalesPage() {
           </Table>
         </div>
 
+        {totalPages > 1 && (
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+
         <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleCloseModal()}>
-          <DialogContent className="max-w-4xl max-h-[100vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[100vh] overflow-y-auto" aria-describedby="sale-details-description">
             <DialogHeader>
               <DialogTitle>
                 Transaction Details - {saleDetails?.receiptNumber || ""}
@@ -410,7 +449,7 @@ export default function SalesPage() {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-6 text-muted-foreground text-sm">No details available</div>
+              <div className="text-center py-6 text-muted-foreground text-sm" id="sale-details-description">No details available</div>
             )}
             {saleDetails && user?.role === "OWNER" && (
               <DialogFooter>

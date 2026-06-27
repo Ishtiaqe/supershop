@@ -315,6 +315,19 @@ async function handleRequest(method: string, url: string, requestData?: any): Pr
         return formatResponse(data)
       }
 
+      // 5b. /sales/:id
+      if (parts[0] === 'sales' && parts[1] && !['analytics', 'summary'].includes(parts[1])) {
+        const saleId = parts[1]
+        const { data: sale, error } = await supabase
+          .from('sales')
+          .select('*, items:sale_items(*, inventory:inventory_items(*, variant:product_variants(*, product:products(*)))), employee:users(*)')
+          .eq('id', saleId)
+          .eq('tenantId', tenantId)
+          .single()
+        if (error) throw error
+        return formatResponse(sale)
+      }
+
       // 6. /expenses/categories
       if (cleanUrl === '/expenses/categories') {
         const { data, error } = await supabase
