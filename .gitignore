@@ -38,3 +38,10 @@ next-env.d.ts
 android
 dist/*
 /docs/
+.playwright-mcp/
+
+# playwright test artifacts
+*-page.png
+*-snapshot.md
+modal-*.png
+sales-page-*.png
