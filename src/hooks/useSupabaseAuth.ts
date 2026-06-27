@@ -20,6 +20,7 @@ export function useSupabaseAuth() {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        // Get initial session — triggers refresh if refresh token is valid
         const { data: { session }, error } = await supabase.auth.getSession()
         setState({
           session,
@@ -38,15 +39,29 @@ export function useSupabaseAuth() {
 
     initAuth()
 
-    // Listen for auth state changes
+    // Listen for auth state changes and token refresh
+    // Supabase automatically handles refresh token flow through onAuthStateChange
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // 'SIGNED_IN' — user signed in or session restored/refreshed
+        // 'SIGNED_OUT' — user signed out
+        // 'TOKEN_REFRESHED' — tokens were automatically refreshed
+        // 'USER_UPDATED' — user profile changed
         setState((prev) => ({
           ...prev,
           session,
           user: session?.user ?? null,
           error: null,
         }))
+
+        // Update stored tokens if session is valid
+        if (session?.access_token) {
+          try {
+            localStorage.setItem('accessToken', session.access_token)
+          } catch (e) {
+            console.warn('Failed to store access token:', e)
+          }
+        }
       }
     )
 
