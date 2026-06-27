@@ -14,8 +14,6 @@ import {
   LogOut,
   User,
   Menu as MenuIcon,
-  ChevronsLeft,
-  ChevronsRight,
 } from "lucide-react";
 import NotificationSetup from "@/components/notifications/NotificationSetup";
 
@@ -57,9 +55,7 @@ const AppSidebar = ({
   <div className="flex flex-col h-full bg-background">
     <div className="flex items-center justify-between px-4 py-4 gap-2">
       <div className="flex items-center gap-2 overflow-hidden">
-        <div className="flex items-center justify-center bg-primary text-primary-foreground font-bold rounded-lg w-8.5 h-8.5 flex-shrink-0 text-sm">
-          S
-        </div>
+
         {!collapsed && (
           <span className="font-bold text-lg text-foreground tracking-tight truncate">
             SuperShop
@@ -74,7 +70,7 @@ const AppSidebar = ({
           className="h-8 w-8 text-muted-foreground hover:text-foreground hidden md:flex"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
+          <MenuIcon className="w-4 h-4" />
         </Button>
       )}
     </div>
