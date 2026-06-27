@@ -85,6 +85,7 @@ export default function POSPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const quantityRef = useRef<HTMLInputElement>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const [customerName, setCustomerName] = useState("");
@@ -442,6 +443,13 @@ export default function POSPage() {
                   setIsDropdownOpen(true);
                 }}
                 onFocus={() => setIsDropdownOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Tab") {
+                    e.preventDefault();
+                    setIsDropdownOpen(false);
+                    quantityRef.current?.focus();
+                  }
+                }}
               />
 
               {isDropdownOpen && (
@@ -486,6 +494,7 @@ export default function POSPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Quantity</label>
               <Input
+                ref={quantityRef}
                 type="number"
                 min={1}
                 value={qty ?? ""}
