@@ -188,6 +188,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [drawerCollapse, setDrawerCollapsed] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -272,11 +273,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       {!isMobile && (
         <aside
           className={`glass border-r border-border/50 sticky top-0 h-screen z-50 flex flex-col transition-all duration-300 ${
-            drawerCollapse ? "w-16" : "w-60"
+            drawerCollapse && !isHovered ? "w-16" : "w-60"
           }`}
+          onMouseEnter={() => drawerCollapse && setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         >
           <AppSidebar
-            collapsed={drawerCollapse}
+            collapsed={drawerCollapse && !isHovered}
             isMobile={isMobile}
             setMobileOpen={setMobileOpen}
             setCollapsed={setDrawerCollapsed}

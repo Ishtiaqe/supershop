@@ -264,7 +264,7 @@ async function handleRequest(method: string, url: string, requestData?: any): Pr
               const productName = (item.variant?.product?.name || '').toLowerCase()
               const genericName = (item.variant?.product?.genericName || '').toLowerCase()
               const manufacturerName = (item.variant?.product?.manufacturerName || '').toLowerCase()
-              
+
               return itemName.includes(lowerQ) ||
                      sku.includes(lowerQ) ||
                      productName.includes(lowerQ) ||

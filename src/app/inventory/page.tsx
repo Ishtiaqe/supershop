@@ -421,7 +421,8 @@ export default function InventoryPage() {
           : item.variant.variantName
         }`
         : item.itemName || "";
-      return name.toLowerCase().includes(s);
+      const itemName = item.itemName || "";
+      return name.toLowerCase().includes(s) || itemName.toLowerCase().includes(s);
     });
   }, [dataSource, search]);
 
@@ -608,7 +609,7 @@ export default function InventoryPage() {
           <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border pb-4">
             <CardTitle className="text-lg font-semibold">Inventory Items</CardTitle>
             <Input
-              placeholder="Search by product name..."
+              placeholder="Search by name, SKU, or generic name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full md:w-80"
