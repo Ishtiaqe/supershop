@@ -4,10 +4,15 @@ import { RouteHandler } from '../types'
 
 const getInventory: RouteHandler = async ({ tenantId, query }) => {
   const q = query.get('q') || ''
-  const { data, error } = await supabase
+  const variantId = query.get('variantId') || ''
+  let dbQuery = supabase
     .from('inventory_items')
     .select('*, variant:product_variants(*, product:products(*))')
     .eq('tenantId', tenantId)
+  if (variantId) {
+    dbQuery = dbQuery.eq('variantId', variantId)
+  }
+  const { data, error } = await dbQuery
   if (error) throw error
 
   let filtered = data || []

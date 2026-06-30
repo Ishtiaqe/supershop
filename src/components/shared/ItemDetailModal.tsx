@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import api from '@/lib/api';
 
 // Import shadcn UI components
@@ -38,6 +38,8 @@ interface Batch {
   batchNo: string | null;
   expiryDate: string | null;
   mfgDate: string | null;
+  lastRestockDate?: string | null;
+  createdAt?: string | null;
   fundSource?: string;
 }
 
@@ -76,6 +78,19 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
   };
 
   const product = catalogItem?.product;
+
+  const sortedBatches = useMemo(() => {
+    return [...(batches as Batch[])].sort((a, b) => {
+      const aDate = new Date(a.lastRestockDate || a.createdAt || 0).getTime();
+      const bDate = new Date(b.lastRestockDate || b.createdAt || 0).getTime();
+      return bDate - aDate;
+    });
+  }, [batches]);
+
+  const formatBatchDate = (batch: Batch) => {
+    const dateStr = batch.lastRestockDate || batch.createdAt;
+    return dateStr ? new Date(dateStr).toLocaleDateString() : '—';
+  };
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -139,20 +154,24 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                       <Table className="min-w-full table-fixed">
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-[20%]">Batch No</TableHead>
-                            <TableHead className="w-[20%]">Purchase Price</TableHead>
-                            <TableHead className="w-[20%]">Retail Price</TableHead>
+                            <TableHead className="w-[15%]">Batch No</TableHead>
+                            <TableHead className="w-[15%]">Date</TableHead>
+                            <TableHead className="w-[15%]">Purchase Price</TableHead>
+                            <TableHead className="w-[15%]">Retail Price</TableHead>
                             <TableHead className="w-[10%] text-right">Qty</TableHead>
                             <TableHead className="w-[15%]">Expiry</TableHead>
                             <TableHead className="w-[15%] text-right">Action</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {(batches as Batch[]).length > 0 ? (
-                            (batches as Batch[]).map((record) => (
+                          {sortedBatches.length > 0 ? (
+                            sortedBatches.map((record) => (
                               <TableRow key={record.id}>
                                 <TableCell className="font-medium truncate">
                                   {record.batchNo || '—'}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                  {formatBatchDate(record)}
                                 </TableCell>
                                 <TableCell>
                                   {editingBatchId === record.id ? (
@@ -244,7 +263,7 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                             ))
                           ) : (
                             <TableRow>
-                              <TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-sm">
+                              <TableCell colSpan={7} className="text-center py-6 text-muted-foreground text-sm">
                                 No batches found.
                               </TableCell>
                             </TableRow>

@@ -43,10 +43,13 @@ class OfflineApiClient {
 
     // Handle different entity types
     const entityType = this.getEntityTypeFromUrl(url || '');
+    const queryString = url?.includes('?') ? url.split('?')[1] : '';
+    const offlineQuery = new URLSearchParams(queryString);
+    const variantId = offlineQuery.get('variantId');
 
     switch (entityType) {
       case 'inventory':
-        return this.handleInventoryRequest<T>(method, data, tenantId);
+        return this.handleInventoryRequest<T>(method, data, tenantId, variantId);
       case 'sales-history':
         return this.handleSalesRequest<T>(method, data, tenantId);
       case 'products':
@@ -76,10 +79,13 @@ class OfflineApiClient {
     }
   }
 
-  private async handleInventoryRequest<T>(method: string | undefined, data: unknown, tenantId: string): Promise<ApiResponse<T>> {
+  private async handleInventoryRequest<T>(method: string | undefined, data: unknown, tenantId: string, variantId?: string | null): Promise<ApiResponse<T>> {
     switch (method?.toLowerCase()) {
       case 'get':
-        const inventory = await offlineDb.getAllInventory(tenantId);
+        let inventory = await offlineDb.getAllInventory(tenantId);
+        if (variantId) {
+          inventory = inventory.filter((item) => item.variantId === variantId);
+        }
         return {
           data: { data: inventory, total: inventory.length } as T,
           status: 200,
