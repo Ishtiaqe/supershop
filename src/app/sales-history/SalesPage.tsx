@@ -30,11 +30,11 @@ import {
 } from "@/components/ui/dialog";
 
 function fetchSales() {
-  return api.get("/sales").then((rowData) => rowData.data);
+  return api.get("/sales-history").then((rowData) => rowData.data);
 }
 
 function fetchSaleDetails(saleId: string) {
-  return api.get(`/sales/${saleId}`).then((res) => res.data);
+  return api.get(`/sales-history/${saleId}`).then((res) => res.data);
 }
 
 export default function SalesPage() {
@@ -85,7 +85,7 @@ export default function SalesPage() {
   };
 
   const voidMutation = useMutation({
-    mutationFn: (saleId: string) => api.delete(`/sales/${saleId}`),
+    mutationFn: (saleId: string) => api.delete(`/sales-history/${saleId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       toast.success("Sale voided successfully");

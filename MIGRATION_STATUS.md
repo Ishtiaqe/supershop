@@ -183,7 +183,7 @@ Cloud Run NestJS Backend (validate JWT, serve business logic)
 **Setup Required (3 steps):**
 1. Get `VITE_SUPABASE_ANON_KEY` from Supabase Dashboard → Settings → API
 2. Paste into `.env.local` (already has URL)
-3. Create test user in Supabase Auth (email: owner@shop1.com, password: Owner123!)
+3. Create test user in Supabase Auth (email: owner@shop1.com, password: NFdfp@JP@N75P3J)
 
 **Testing:**
 - ✅ Login form submits to Supabase

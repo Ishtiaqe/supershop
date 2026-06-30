@@ -61,7 +61,7 @@ export default function TenantSetupPage() {
       });
 
       await new Promise((resolve) => setTimeout(resolve, 0));
-      setTimeout(() => navigate('/sales'), 1000);
+      setTimeout(() => navigate('/sales-history'), 1000);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setError(e?.response?.data?.message || 'Failed to setup tenant');

@@ -3,28 +3,28 @@ import { lazy, Suspense } from 'react';
 import Shell from '@/components/shell/Shell';
 
 // Critical path — loaded eagerly
-import LoginPage from '@/app/login/page';
-import RootPage from '@/app/page';
-import OfflinePage from '@/app/offline/page';
-import AuthCallbackPage from '@/app/auth/callback/page';
+import LoginPage from '@/app/login/LoginPage';
+import RootPage from '@/app/HomePage';
+import OfflinePage from '@/app/offline/OfflinePage';
+import AuthCallbackPage from '@/app/auth/callback/AuthCallbackPage';
 
 // App pages — code split
-const DashboardPage = lazy(() => import('@/app/dashboard/page'));
-const PosPage = lazy(() => import('@/app/pos/page'));
-const SalesPage = lazy(() => import('@/app/sales/page'));
-const InventoryPage = lazy(() => import('@/app/inventory/page'));
-const CatalogPage = lazy(() => import('@/app/catalog/page'));
-const CategoriesPage = lazy(() => import('@/app/categories/page'));
-const BrandsPage = lazy(() => import('@/app/brands/page'));
-const ExpensesPage = lazy(() => import('@/app/expenses/page'));
-const CashBoxPage = lazy(() => import('@/app/cash-box/page'));
-const ShortlistPage = lazy(() => import('@/app/shortlist/page'));
-const CreditsPage = lazy(() => import('@/app/credits/page'));
-const MedicinePage = lazy(() => import('@/app/medicine-database/page'));
-const DataManagementPage = lazy(() => import('@/app/data-management/page'));
-const ProfilePage = lazy(() => import('@/app/profile/page'));
-const TenantSetupPage = lazy(() => import('@/app/tenant/setup/page'));
-const AdminTenantsPage = lazy(() => import('@/app/admin/tenants/page'));
+const DashboardPage = lazy(() => import('@/app/dashboard/DashboardPage'));
+const PosPage = lazy(() => import('@/app/pos/POSPage'));
+const SalesPage = lazy(() => import('@/app/sales-history/SalesPage'));
+const InventoryPage = lazy(() => import('@/app/inventory/InventoryPage'));
+const CatalogPage = lazy(() => import('@/app/catalog/CatalogPage'));
+const CategoriesPage = lazy(() => import('@/app/categories/CategoriesPage'));
+const BrandsPage = lazy(() => import('@/app/brands/BrandsPage'));
+const ExpensesPage = lazy(() => import('@/app/expenses/ExpensesPage'));
+const CashBoxPage = lazy(() => import('@/app/cash-box/CashBoxPage'));
+const ShortlistPage = lazy(() => import('@/app/shortlist/ShortListPage'));
+const CreditsPage = lazy(() => import('@/app/credits/CreditsPage'));
+const MedicinePage = lazy(() => import('@/app/medicine-database/MedicineDatabasePage'));
+const DataManagementPage = lazy(() => import('@/app/data-management/DataManagementPage'));
+const ProfilePage = lazy(() => import('@/app/profile/ProfilePage'));
+const TenantSetupPage = lazy(() => import('@/app/tenant/setup/TenantSetupPage'));
+const AdminTenantsPage = lazy(() => import('@/app/admin/tenants/AdminTenantsPage'));
 
 function PageLoader() {
   return (
@@ -54,7 +54,7 @@ export const router = createBrowserRouter([
       { path: '/', element: <RootPage /> },
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/pos', element: <PosPage /> },
-      { path: '/sales', element: <SalesPage /> },
+      { path: '/sales-history', element: <SalesPage /> },
       { path: '/inventory', element: <InventoryPage /> },
       { path: '/catalog', element: <CatalogPage /> },
       { path: '/categories', element: <CategoriesPage /> },

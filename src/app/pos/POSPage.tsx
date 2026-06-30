@@ -235,7 +235,7 @@ export default function POSPage() {
       paymentMethod?: string;
       amountPaid?: number;
       dueAmount?: number;
-    }) => api.post("/sales", payload).then((r) => r.data),
+    }) => api.post("/sales-history", payload).then((r) => r.data),
     onSuccess() {
       queryClient.invalidateQueries({
         queryKey: ["inventory", debouncedSearch],

@@ -11,7 +11,7 @@ declare global {
 }
 
 function normalizeRoute(pathname: string): string {
-  if (pathname.startsWith("/sales")) return "/sales";
+  if (pathname.startsWith("/sales-history")) return "/sales-history";
   if (pathname.startsWith("/dashboard")) return "/dashboard";
   if (pathname.startsWith("/pos")) return "/pos";
   return pathname;

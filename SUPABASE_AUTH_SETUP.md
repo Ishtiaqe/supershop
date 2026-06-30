@@ -65,7 +65,7 @@ INSERT INTO auth.users (
 ) VALUES (
   gen_random_uuid(),
   'owner@shop1.com',
-  crypt('Owner123!', gen_salt('bf')),
+  crypt('NFdfp@JP@N75P3J', gen_salt('bf')),
   now(),
   now(),
   now()
@@ -168,7 +168,7 @@ npm run dev
 
 ### 2. Log in with test credentials
 - Email: `owner@shop1.com`
-- Password: `Owner123!`
+- Password: `NFdfp@JP@N75P3J`
 - Expected: Login succeeds → redirects to `/pos`
 
 ### 3. Verify token is stored

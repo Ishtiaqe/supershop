@@ -128,7 +128,7 @@ export class OfflineSync {
 
     try {
       // Fetch server data since last sync
-      const response = await api.get(`/sales?tenantId=${tenantId}&since=${lastSync}`);
+      const response = await api.get(`/sales-history?tenantId=${tenantId}&since=${lastSync}`);
       const serverData = response.data;
 
       // Get local data
@@ -284,7 +284,7 @@ export class OfflineSync {
 
       // Fetch recent sales (last 30 days)
       const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-      const salesResponse = await api.get(`/sales?tenantId=${tenantId}&since=${thirtyDaysAgo}`);
+      const salesResponse = await api.get(`/sales-history?tenantId=${tenantId}&since=${thirtyDaysAgo}`);
       const sales = salesResponse.data.data || salesResponse.data;
       await offlineDb.bulkPutSales(sales.map((sale: Sale) => ({
         ...sale,

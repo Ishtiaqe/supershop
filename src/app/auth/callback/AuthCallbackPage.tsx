@@ -28,7 +28,7 @@ export default function AuthCallback() {
             // Non-fatal: user fetched on next load
           }
 
-          navigate('/sales');
+          navigate('/sales-history');
         } catch {
           navigate('/login?error=auth_failed');
         }

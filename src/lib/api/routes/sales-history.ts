@@ -127,9 +127,9 @@ const createSaleHandler: RouteHandler = async ({ tenantId, userId, requestData }
 }
 
 export function registerSalesRoutes(router: { register: (method: string, pattern: string, handler: RouteHandler) => void }) {
-  router.register('GET', '/sales/analytics/summary', getSalesAnalyticsSummary)
-  router.register('GET', '/sales/analytics/graphs', getSalesAnalyticsGraphs)
-  router.register('GET', '/sales', getSales)
-  router.register('GET', '/sales/:id', getSaleById)
-  router.register('POST', '/sales', createSaleHandler)
+  router.register('GET', '/sales-history/analytics/summary', getSalesAnalyticsSummary)
+  router.register('GET', '/sales-history/analytics/graphs', getSalesAnalyticsGraphs)
+  router.register('GET', '/sales-history', getSales)
+  router.register('GET', '/sales-history/:id', getSaleById)
+  router.register('POST', '/sales-history', createSaleHandler)
 }

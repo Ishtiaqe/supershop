@@ -1,7 +1,7 @@
 import { registerUserRoutes } from './users'
 import { registerCatalogRoutes } from './catalog'
 import { registerInventoryRoutes } from './inventory'
-import { registerSalesRoutes } from './sales'
+import { registerSalesRoutes } from './sales-history'
 import { registerExpensesRoutes } from './expenses'
 import { registerCashBoxRoutes } from './cashBox'
 import { registerCreditsRoutes } from './credits'

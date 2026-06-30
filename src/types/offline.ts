@@ -2,7 +2,7 @@
 export interface OfflineQueueItem {
   id: string;
   operation: 'CREATE' | 'UPDATE' | 'DELETE';
-  entityType: 'user' | 'tenant' | 'product' | 'variant' | 'inventory' | 'sale' | 'saleItem';
+  entityType: 'user' | 'tenant' | 'product' | 'variant' | 'inventory' | 'sale' | 'saleItem' | 'sales-history';
   entityId: string;
   data: Record<string, unknown>;
   timestamp: number;

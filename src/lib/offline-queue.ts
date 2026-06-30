@@ -119,7 +119,7 @@ export class OfflineQueue {
   private getEndpoint(entityType: string): string {
     switch (entityType) {
       case 'inventory': return '/inventory';
-      case 'sale': return '/sales';
+      case 'sales-history': return '/sales-history';
       case 'product': return '/catalog/products';
       case 'customer': return '/customers';
       case 'variant': return '/catalog/variants';

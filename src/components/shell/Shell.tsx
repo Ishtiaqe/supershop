@@ -20,7 +20,7 @@ import NotificationSetup from "@/components/notifications/NotificationSetup";
 const PATH_LABELS: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/pos": "Sales Portal",
-  "/sales": "Sales History",
+  "/sales-history": "Sales History",
   "/inventory": "Inventory",
   "/catalog": "Catalog",
   "/medicine-database": "Medicine Database",

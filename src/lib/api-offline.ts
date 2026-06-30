@@ -47,7 +47,7 @@ class OfflineApiClient {
     switch (entityType) {
       case 'inventory':
         return this.handleInventoryRequest<T>(method, data, tenantId);
-      case 'sales':
+      case 'sales-history':
         return this.handleSalesRequest<T>(method, data, tenantId);
       case 'products':
         return this.handleProductRequest<T>(method, data, tenantId);
@@ -157,7 +157,7 @@ class OfflineApiClient {
           _syncStatus: 'pending' as const
         };
         await offlineDb.putSale(newSale);
-        await offlineQueue.add('CREATE', 'sale', newSale.id, newSale as unknown as Record<string, unknown>, tenantId);
+        await offlineQueue.add('CREATE', 'sales-history', newSale.id, newSale as unknown as Record<string, unknown>, tenantId);
         return {
           data: newSale as T,
           status: 201,
@@ -209,7 +209,7 @@ class OfflineApiClient {
 
   private getEntityTypeFromUrl(url: string): string {
     if (url.includes('/inventory')) return 'inventory';
-    if (url.includes('/sales')) return 'sales';
+    if (url.includes('/sales-history')) return 'sales-history';
     if (url.includes('/products')) return 'products';
     if (url.includes('/medicine')) return 'medicine';
     return 'unknown';

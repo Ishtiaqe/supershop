@@ -36,7 +36,7 @@ export const navigationConfig: NavigationItem[] = [
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {
-    key: "/sales",
+    key: "/sales-history",
     icon: BarChart3,
     label: "Sales History",
     roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],

@@ -46,7 +46,7 @@ function DashboardSummary({ period }: { period: string }) {
   const label = periodLabel(period);
   const { data, isLoading } = useQuery<DashboardSummaryType>({
     queryKey: ["dashboard-summary", period],
-    queryFn: () => api.get(`/sales/analytics/summary?period=${period}`).then((r) => r.data),
+    queryFn: () => api.get(`/sales-history/analytics/summary?period=${period}`).then((r) => r.data),
     refetchOnWindowFocus: false,
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
@@ -125,7 +125,7 @@ interface GraphDataPoint {
 }
 
 async function fetchGraphData(period: string): Promise<GraphDataPoint[]> {
-  const response = await api.get(`/sales/analytics/graphs?period=${period}`);
+  const response = await api.get(`/sales-history/analytics/graphs?period=${period}`);
   return response.data;
 }
 
