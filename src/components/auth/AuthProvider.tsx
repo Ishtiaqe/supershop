@@ -28,10 +28,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [cachedProfile, setCachedProfile] = React.useState<any | null>(() => {
     return authStorage.getUser()
   })
+  const [profileLoading, setProfileLoading] = React.useState(false)
 
-  // Loading is only true if we have no cached profile AND Supabase is still loading
-  // If we have a cached profile, we consider auth as "loaded" instantly
-  const loading = !cachedProfile && supabaseLoading
+  // Loading is true while Supabase auth is initializing OR while we are resolving
+  // the full profile for an authenticated Supabase user. This prevents auth guards
+  // from redirecting to /login during the gap between "Supabase user confirmed"
+  // and "cached profile populated".
+  const loading = supabaseLoading || profileLoading || (!cachedProfile && !!supabaseUser)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -41,13 +44,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // If Supabase confirms no user, clear the profile
+        // If Supabase confirms no user, clear the profile only when we had a
+        // cached profile (i.e. an actual sign-out). This avoids wiping the cached
+        // user during transient errors or race conditions on reload.
         if (!supabaseUser) {
-          setCachedProfile(null)
-          authStorage.setUser(null as any)
-          authStorage.setTenant(null as any)
+          if (cachedProfile) {
+            setCachedProfile(null)
+            authStorage.setUser(null as any)
+            authStorage.setTenant(null as any)
+          }
           return
         }
+
+        setProfileLoading(true)
 
         // Fetch full profile from Supabase directly using email (to handle user ID mismatches)
         let queryResult = await supabase
@@ -96,12 +105,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (e) {
         console.warn('Failed to fetch user profile:', e)
-        setCachedProfile(null)
+        // Keep the cached profile if we already have one; do not log the user out
+        // just because a profile refresh failed.
+        if (!cachedProfile) {
+          setCachedProfile(null)
+        }
+      } finally {
+        setProfileLoading(false)
       }
     }
 
     fetchProfile()
-  }, [supabaseUser, supabase, supabaseLoading])
+  }, [supabaseUser, supabase, supabaseLoading, cachedProfile])
 
   // Simplified refresh: Supabase handles token refresh automatically
   const refresh = useCallback(async (): Promise<any> => {
@@ -177,10 +192,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear cached profile
     setCachedProfile(null)
 
-    // Redirect to login using window.location for hard refresh
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login'
-    }
+    // The Shell's auth guard will redirect to /login once it sees the user is
+    // gone. Avoiding a hard reload here prevents a double navigation and keeps
+    // the logout experience fast.
   }, [supabaseLogout])
 
   const login = useCallback((userData: any) => {

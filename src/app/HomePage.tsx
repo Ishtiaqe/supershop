@@ -2,28 +2,24 @@
 
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 export default function Home() {
   const navigate = useNavigate();
+  const { user, loading } = useSupabaseAuth();
 
   useEffect(() => {
-    (async function checkSession() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          // Try to restore the last page from sessionStorage, fallback to /pos
-          const lastPath = sessionStorage.getItem("lastPath");
-          const defaultPath = lastPath && lastPath !== "/" ? lastPath : "/pos";
-          navigate(defaultPath, { replace: true });
-          return;
-        }
-      } catch (err) {
-        console.warn("Session check failed:", err);
-      }
+    if (loading) return;
+
+    if (user) {
+      // Try to restore the last page from sessionStorage, fallback to /pos
+      const lastPath = sessionStorage.getItem("lastPath");
+      const defaultPath = lastPath && lastPath !== "/" ? lastPath : "/pos";
+      navigate(defaultPath, { replace: true });
+    } else {
       navigate("/login", { replace: true });
-    })();
-  }, [navigate]);
+    }
+  }, [user, loading, navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

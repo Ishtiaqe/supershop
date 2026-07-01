@@ -20,21 +20,36 @@ export function useSupabaseAuth() {
 
   useEffect(() => {
     const initAuth = async () => {
-      try {
-        // Get initial session — triggers refresh if refresh token is valid
-        const { data: { session }, error } = await supabase.auth.getSession()
-        setState({
-          session,
-          user: session?.user ?? null,
-          loading: false,
-          error: error ?? null,
-        })
-      } catch (err: any) {
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: err,
-        }))
+      const maxAttempts = 2
+      let attempt = 0
+      while (attempt < maxAttempts) {
+        attempt++
+        try {
+          // Get initial session — triggers refresh if refresh token is valid
+          const { data: { session }, error } = await supabase.auth.getSession()
+          if (error) throw error
+          setState({
+            session,
+            user: session?.user ?? null,
+            loading: false,
+            error: null,
+          })
+          return
+        } catch (err: any) {
+          if (attempt >= maxAttempts) {
+            console.warn('Failed to restore session after retries:', err)
+            setState({
+              session: null,
+              user: null,
+              loading: false,
+              error: err,
+            })
+            return
+          }
+          // Wait briefly before retrying; this helps when a service worker
+          // reload or deploy races with the token refresh network request.
+          await new Promise((resolve) => setTimeout(resolve, 500))
+        }
       }
     }
 

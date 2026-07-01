@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
         strategies: 'injectManifest',
         srcDir: 'src',
         filename: 'sw.js',
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         // Use existing public/manifest.json — Vite copies it to dist automatically
         manifest: false,
         injectManifest: {
