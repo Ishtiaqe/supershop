@@ -35,6 +35,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Eye } from "lucide-react";
 
 interface CatalogItem {
   variantId: string;
@@ -458,11 +459,9 @@ export default function InventoryPage() {
   );
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      </div>
+    <div className="space-y-2">
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Add Form Card */}
         <Card className="shadow-sm border-border/60">
           <CardHeader className="pb-4 p-5">
@@ -574,9 +573,8 @@ export default function InventoryPage() {
                       <label htmlFor="add-mrp" className="text-sm font-medium text-foreground">MRP/unit (৳)</label>
                       <Input
                         type="number"
-                        placeholder="0.00"
                         min={0}
-                        step="0.01"
+                        step="0.1"
                         id="add-mrp"
                         {...field}
                         onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
@@ -651,6 +649,7 @@ export default function InventoryPage() {
                   <TableHead className="text-right">Total Stock</TableHead>
                   <TableHead className="text-right">Purchase Price</TableHead>
                   <TableHead className="text-right">MRP/Unit</TableHead>
+                  {/* <TableHead className="text-right w-[100px]">Actions</TableHead> */}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -667,13 +666,19 @@ export default function InventoryPage() {
                       onClick={() => openRow(item)}
                       className="cursor-pointer hover:bg-muted/50"
                     >
-                      <TableCell className="font-medium">
-                        {item.variant
-                          ? `${item.variant.product.name}${item.variant.variantName === "Standard"
-                            ? ""
-                            : ` - ${item.variant.variantName}`
-                          }`
-                          : item.itemName || "Unnamed item"}
+                      <TableCell>
+                        <div>
+                          <div className="font-semibold text-foreground">
+                            {item.variant
+                              ? item.variant.product.name
+                              : item.itemName || "Unnamed item"}
+                          </div>
+                          {item.variant && item.variant.variantName !== "Standard" && (
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {item.variant.variantName}
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge variant={item.totalQuantity < 5 ? "destructive" : "secondary"}>
@@ -682,6 +687,18 @@ export default function InventoryPage() {
                       </TableCell>
                       <TableCell className="text-right">৳{item.latestPurchasePrice}</TableCell>
                       <TableCell className="text-right">৳{item.latestRetailPrice}</TableCell>
+                      {/* <TableCell className="text-right">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openRow(item);
+                          }}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </TableCell> */}
                     </TableRow>
                   ))
                 ) : (

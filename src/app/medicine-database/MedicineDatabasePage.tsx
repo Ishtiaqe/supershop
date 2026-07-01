@@ -52,9 +52,7 @@ export default function MedicineDatabasePage() {
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      </div>
+    <div className="space-y-4">
 
       <Card className="shadow-sm border-border/60 overflow-hidden">
           <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 pb-4 p-5 border-b border-border/60">

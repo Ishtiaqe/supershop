@@ -47,7 +47,7 @@ export default function ExpensesPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsCategoriesModalOpen(true)} className="flex items-center gap-1">

@@ -4,14 +4,24 @@ import React, { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Download,
   Upload,
   CheckCircle,
-  AlertTriangle,
+  Trash2,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import api from "@/lib/api";
 import { useAuth } from "@/components/auth/AuthProvider";
 import UserDataExport from "@/components/backup/UserDataExport";
 import { useBackupManagement } from "@/hooks/useBackupApi";
@@ -22,6 +32,7 @@ export default function DataManagementPage() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [deleting, setDeleting] = useState(false);
 
   const { backupStatus, backupExport, backupImport } = useBackupManagement();
   const statusLoading = backupStatus.isLoading;
@@ -72,31 +83,22 @@ export default function DataManagementPage() {
     }
   };
 
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      </div>
+  const handleDeleteAllData = async () => {
+    if (!user) { toast.error("Please log in"); return; }
+    setDeleting(true);
+    try {
+      await api.delete("/backup/data");
+      toast.success("All data deleted successfully.");
+      setTimeout(() => window.location.reload(), 1500);
+    } catch {
+      toast.error("Failed to delete data. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
-      <Alert variant="destructive" className="bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20">
-        <AlertTriangle className="h-5 w-5 !text-amber-500" />
-        <AlertTitle className="font-bold">Data Safety Important</AlertTitle>
-        <AlertDescription className="text-amber-700 dark:text-amber-400 mt-2">
-          <p>Regular backups protect your data from loss. Always backup before:</p>
-          <ul className="list-disc ml-5 mt-2 space-y-1">
-            <li>Major system updates or migrations</li>
-            <li>Database schema changes</li>
-            <li>Bulk data operations</li>
-            <li>System maintenance</li>
-          </ul>
-          <p className="mt-2 font-medium">
-            See our{" "}
-            <Link to="/docs/data-safety" className="underline hover:text-amber-800 dark:hover:text-amber-300">
-              Data Safety Guidelines
-            </Link>{" "}
-            for more information.
-          </p>
-        </AlertDescription>
-      </Alert>
+  return (
+    <div className="space-y-4">
 
       {statusLoading ? (
         <div className="flex justify-center py-6">
@@ -211,19 +213,53 @@ export default function DataManagementPage() {
 
       {user?.role === "SUPER_ADMIN" && <UserDataExport />}
 
-      <Card className="shadow-sm border-border/60 bg-primary/5 border-primary/10">
+      <Card className="shadow-sm border-destructive/30">
         <CardHeader className="pb-4 p-5">
-          <CardTitle className="text-lg font-semibold">Backup Best Practices</CardTitle>
+          <CardTitle className="text-lg font-semibold text-destructive">Danger Zone</CardTitle>
         </CardHeader>
-        <CardContent className="p-5 pt-0">
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-muted-foreground">
-            <li className="flex items-center gap-2">✓ Export backups regularly</li>
-            <li className="flex items-center gap-2">✓ Store backups in a secure, separate location</li>
-            <li className="flex items-center gap-2">✓ Test restore procedures periodically</li>
-            <li className="flex items-center gap-2">✓ Backup before system updates</li>
-            <li className="flex items-center gap-2">✓ Keep at least 3 versions of backups</li>
-            <li className="flex items-center gap-2">✓ Document your backup schedule</li>
-          </ul>
+        <CardContent className="p-5 pt-0 space-y-4">
+          <p className="text-muted-foreground text-sm">
+            Permanently delete all shop data. This cannot be undone.
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                size="lg"
+                disabled={deleting}
+                className="flex items-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-5 w-5" />
+                    Delete All Data
+                  </>
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete all products, inventory, sales, expenses, and other shop data for your tenant. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAllData}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Yes, delete everything
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
     </div>

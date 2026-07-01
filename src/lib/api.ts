@@ -10,7 +10,7 @@ registerAllRoutes(router)
 
 const GET_CACHE_PREFIX = 'api_get_cache:'
 const GET_CACHE_TTL = 30 * 1000
-const SKIP_CACHE_PATTERNS = ['/users/me', '/auth/', '/backup/']
+const SKIP_CACHE_PATTERNS = ['/users/me', '/auth/', '/backup/', '/export/pdf']
 
 function getCachedGet(url: string): any | null {
   if (typeof window === 'undefined') return null

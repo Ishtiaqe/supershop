@@ -14,9 +14,7 @@ export default function CreditsPage() {
   const { data: summary, isLoading: summaryLoading } = useCreditSummary();
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      </div>
+    <div className="space-y-4">
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -7,10 +7,16 @@ import { registerCashBoxRoutes } from './cashBox'
 import { registerCreditsRoutes } from './credits'
 import { registerShortlistRoutes } from './shortlist'
 import { registerBackupRoutes } from './backup'
+import { registerAuthRoutes } from './auth'
+import { registerTenantRoutes } from './tenants'
+import { registerNotificationRoutes } from './notifications'
+import { registerExportRoutes } from './export'
 import { RouteHandler } from '../types'
 
 export function registerAllRoutes(router: { register: (method: string, pattern: string, handler: RouteHandler) => void }) {
+  registerAuthRoutes(router)
   registerUserRoutes(router)
+  registerTenantRoutes(router)
   registerCatalogRoutes(router)
   registerInventoryRoutes(router)
   registerSalesRoutes(router)
@@ -19,4 +25,6 @@ export function registerAllRoutes(router: { register: (method: string, pattern: 
   registerCreditsRoutes(router)
   registerShortlistRoutes(router)
   registerBackupRoutes(router)
+  registerNotificationRoutes(router)
+  registerExportRoutes(router)
 }

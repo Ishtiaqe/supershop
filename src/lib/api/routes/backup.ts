@@ -18,10 +18,22 @@ async function createBackup(tenantId: string) {
     }
   }
 
+  const getSaleItems = async () => {
+    const { data: sales } = await supabase.from('sales').select('id').eq('tenantId', tenantId)
+    const saleIds = (sales || []).map((s: any) => s.id)
+    if (saleIds.length === 0) return []
+    const { data, error } = await supabase.from('sale_items').select('*').in('saleId', saleIds)
+    if (error) {
+      console.error('Backup error for sale_items:', error)
+      return []
+    }
+    return data || []
+  }
+
   const [brands, categories, suppliers, products, product_variants, inventory_items, users, sales, sale_items, expense_categories, expenses, cash_box_entries, short_list, credit_payments] = await Promise.all([
     getAll('brands'), getAll('categories'), getAll('suppliers'), getAll('products'),
     getAll('product_variants'), getAll('inventory_items'), getAll('users'), getAll('sales'),
-    getAll('sale_items'), getAll('expense_categories'), getAll('expenses'), getAll('cash_box_entries'),
+    getSaleItems(), getAll('expense_categories'), getAll('expenses'), getAll('cash_box_entries'),
     getAll('short_list'), getAll('credit_payments')
   ])
 
@@ -83,6 +95,9 @@ async function createUserBackup(userId: string, tenantId: string) {
 
 async function restoreBackup(backup: any, tenantId: string) {
   if (!backup || typeof backup !== 'object') throw new Error('Invalid backup')
+  if (backup.tenantId && backup.tenantId !== tenantId) {
+    throw new Error('This backup belongs to a different shop and cannot be restored here')
+  }
 
   const sanitizeRows = (rows: any) => (Array.isArray(rows) ? rows : []).map((row: any) => ({
     ...row,
@@ -102,10 +117,17 @@ async function restoreBackup(backup: any, tenantId: string) {
   await upsert('suppliers', backup.suppliers)
   await upsert('products', backup.products)
   await upsert('product_variants', backup.product_variants)
-  await upsert('users', backup.users)
+  // Users are intentionally excluded from restore to prevent cross-tenant account migration
   await upsert('inventory_items', backup.inventory_items)
   await upsert('sales', backup.sales)
-  await upsert('sale_items', backup.sale_items)
+
+  // sale_items has no tenantId or updatedAt column, so restore as-is
+  const saleItems = Array.isArray(backup.sale_items) ? backup.sale_items : []
+  if (saleItems.length > 0) {
+    const { error } = await supabase.from('sale_items').upsert(saleItems, { onConflict: 'id' })
+    if (error) throw error
+  }
+
   await upsert('expense_categories', backup.expense_categories)
   await upsert('expenses', backup.expenses)
   await upsert('cash_box_entries', backup.cash_box_entries)
@@ -140,7 +162,7 @@ const exportBackup: RouteHandler = async ({ tenantId }) => {
       backupSize: blob.size
     }))
   }
-  return blob
+  return formatResponse(blob)
 }
 
 const exportUserBackup: RouteHandler = async ({ tenantId, params }) => {
@@ -148,7 +170,7 @@ const exportUserBackup: RouteHandler = async ({ tenantId, params }) => {
   const backup = await createUserBackup(targetUserId, tenantId)
   const json = JSON.stringify(backup, null, 2)
   const blob = new Blob([json], { type: 'application/json' })
-  return blob
+  return formatResponse(blob)
 }
 
 const importBackup: RouteHandler = async ({ tenantId, requestData }) => {
@@ -161,9 +183,45 @@ const importBackup: RouteHandler = async ({ tenantId, requestData }) => {
   return formatResponse({ success: true })
 }
 
+const deleteBackupData: RouteHandler = async ({ tenantId }) => {
+  const { data: sales } = await supabase.from('sales').select('id').eq('tenantId', tenantId)
+  const saleIds = (sales || []).map((s: any) => s.id)
+  if (saleIds.length > 0) {
+    await (supabase as any).from('sale_items').delete().in('saleId', saleIds)
+  }
+
+  const tables = [
+    'credit_payments',
+    'short_list',
+    'sales',
+    'cash_box_entries',
+    'expenses',
+    'inventory_items',
+    'product_variants',
+    'products',
+    'categories',
+    'brands',
+    'expense_categories'
+  ]
+
+  const deleted: Record<string, number> = {}
+  for (const table of tables) {
+    const { data, error } = await (supabase as any).from(table).delete().eq('tenantId', tenantId).select()
+    if (error) {
+      console.error(`Error deleting ${table}:`, error)
+      deleted[table] = 0
+    } else {
+      deleted[table] = data?.length || 0
+    }
+  }
+
+  return formatResponse({ success: true, deleted })
+}
+
 export function registerBackupRoutes(router: { register: (method: string, pattern: string, handler: RouteHandler) => void }) {
   router.register('GET', '/backup/status', getBackupStatus)
   router.register('GET', '/backup/export', exportBackup)
   router.register('GET', '/backup/export-user/:userId', exportUserBackup)
   router.register('POST', '/backup/import', importBackup)
+  router.register('DELETE', '/backup/data', deleteBackupData)
 }

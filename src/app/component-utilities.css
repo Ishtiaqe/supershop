@@ -20,24 +20,24 @@
   animation: gradient-shift 15s ease infinite;
 }
 
-/* ───── Plain opaque cards (glass removed) ─────
+/* ───── Plain opaque surfaces ─────
  * Solid surfaces with simple elevation. No translucency, no blur, no tint.
  */
-.glass {
+.surface {
   @apply border-b;
   background: hsl(var(--card));
   border-color: hsl(var(--border));
   box-shadow: var(--elevation-1);
 }
 
-.glass-card {
+.surface-card {
   @apply relative rounded-2xl border;
   background: hsl(var(--card));
   border-color: hsl(var(--border));
   box-shadow: var(--elevation-2);
 }
 
-.glass-panel {
+.surface-panel {
   @apply relative rounded-xl border;
   background: hsl(var(--card));
   border-color: hsl(var(--border));

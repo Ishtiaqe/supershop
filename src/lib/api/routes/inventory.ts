@@ -314,8 +314,48 @@ const deleteInventory: RouteHandler = async ({ params }) => {
   return formatResponse({ success: true })
 }
 
+const getLowStock: RouteHandler = async ({ tenantId, query }) => {
+  const threshold = Number(query.get('threshold') || 20)
+  const { data, error } = await supabase
+    .from('inventory_items')
+    .select('*, variant:product_variants(*, product:products(*))')
+    .eq('tenantId', tenantId)
+    .lte('quantity', threshold)
+  if (error) throw error
+  return formatResponse(data || [])
+}
+
+const getExpiring: RouteHandler = async ({ tenantId, query }) => {
+  const days = Number(query.get('days') || 30)
+  const futureDate = new Date()
+  futureDate.setDate(futureDate.getDate() + days)
+  const today = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('inventory_items')
+    .select('*, variant:product_variants(*, product:products(*))')
+    .eq('tenantId', tenantId)
+    .lte('expiryDate', futureDate.toISOString())
+    .gte('expiryDate', today)
+  if (error) throw error
+  return formatResponse(data || [])
+}
+
+const getExpired: RouteHandler = async ({ tenantId }) => {
+  const today = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('inventory_items')
+    .select('*, variant:product_variants(*, product:products(*))')
+    .eq('tenantId', tenantId)
+    .lt('expiryDate', today)
+  if (error) throw error
+  return formatResponse(data || [])
+}
+
 export function registerInventoryRoutes(router: { register: (method: string, pattern: string, handler: RouteHandler) => void }) {
   router.register('GET', '/inventory', getInventory)
+  router.register('GET', '/inventory/alerts/low-stock', getLowStock)
+  router.register('GET', '/inventory/alerts/expiring', getExpiring)
+  router.register('GET', '/inventory/alerts/expired', getExpired)
   router.register('POST', '/inventory', createInventory)
   router.register('PUT', '/inventory', updateInventory)
   router.register('PUT', '/inventory/:id', updateInventory)

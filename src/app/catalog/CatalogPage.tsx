@@ -226,7 +226,7 @@ export default function CatalogPage() {
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Button onClick={() => handleOpenModal()} className="flex items-center gap-1 shrink-0">
           <Plus className="w-4 h-4" />

@@ -80,12 +80,12 @@ export default function CashBoxPage() {
   const totalPages = Math.max(1, Math.ceil((entriesData?.total ?? 0) / pageSize));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Button className="flex items-center gap-2" onClick={() => setIsAddModalOpen(true)}>
           <Plus className="h-4 w-4" />
-          Add Movement
+          Add Transaction
         </Button>
       </div>
 

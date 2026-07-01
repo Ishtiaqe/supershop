@@ -269,7 +269,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       {/* Sidebar for Desktop */}
       {!isMobile && (
         <aside
-          className={`glass border-r border-border/50 sticky top-0 h-screen z-50 flex flex-col transition-all duration-300 ${
+          className={`surface border-r border-border sticky top-0 h-screen z-50 flex flex-col transition-all duration-300 ${
             drawerCollapse && !isHovered ? "w-16" : "w-60"
           }`}
           onMouseEnter={() => drawerCollapse && setIsHovered(true)}
@@ -321,7 +321,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="glass sticky top-0 z-40 h-16 flex items-center justify-between border-b border-border/50 px-6 bg-background/80 backdrop-blur-md">
+        <header className="surface border-border sticky top-0 z-40 h-16 flex items-center justify-between px-6 bg-background">
           <div className="flex items-center gap-2">
             {isMobile && (
               <Button

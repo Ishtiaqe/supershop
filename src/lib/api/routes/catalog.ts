@@ -276,6 +276,104 @@ const deleteCatalog: RouteHandler = async ({ tenantId, params }) => {
   return formatResponse({ success: true })
 }
 
+const getCategories: RouteHandler = async ({ tenantId }) => {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*, _count:products(count)')
+    .eq('tenantId', tenantId)
+    .order('name', { ascending: true })
+  if (error) throw error
+  return formatResponse(data || [])
+}
+
+const createCategory: RouteHandler = async ({ tenantId, requestData }) => {
+  const { data, error } = await supabase
+    .from('categories')
+    .insert({
+      id: generateUUID(),
+      tenantId,
+      name: requestData.name,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return formatResponse(data)
+}
+
+const updateCategory: RouteHandler = async ({ params, requestData }) => {
+  const { data, error } = await supabase
+    .from('categories')
+    .update({ name: requestData.name, updatedAt: new Date().toISOString() })
+    .eq('id', params.id)
+    .select()
+    .single()
+  if (error) throw error
+  return formatResponse(data)
+}
+
+const deleteCategory: RouteHandler = async ({ tenantId, params }) => {
+  const { count } = await supabase
+    .from('products')
+    .select('*', { count: 'exact', head: true })
+    .eq('categoryId', params.id)
+    .eq('tenantId', tenantId)
+  if (count && count > 0) throw new Error(`Cannot delete category with ${count} products. Reassign products first.`)
+  const { error } = await supabase.from('categories').delete().eq('id', params.id)
+  if (error) throw error
+  return formatResponse({ success: true })
+}
+
+const getBrands: RouteHandler = async ({ tenantId }) => {
+  const { data, error } = await supabase
+    .from('brands')
+    .select('*, _count:products(count)')
+    .eq('tenantId', tenantId)
+    .order('name', { ascending: true })
+  if (error) throw error
+  return formatResponse(data || [])
+}
+
+const createBrand: RouteHandler = async ({ tenantId, requestData }) => {
+  const { data, error } = await supabase
+    .from('brands')
+    .insert({
+      id: generateUUID(),
+      tenantId,
+      name: requestData.name,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return formatResponse(data)
+}
+
+const updateBrand: RouteHandler = async ({ params, requestData }) => {
+  const { data, error } = await supabase
+    .from('brands')
+    .update({ name: requestData.name, updatedAt: new Date().toISOString() })
+    .eq('id', params.id)
+    .select()
+    .single()
+  if (error) throw error
+  return formatResponse(data)
+}
+
+const deleteBrand: RouteHandler = async ({ tenantId, params }) => {
+  const { count } = await supabase
+    .from('products')
+    .select('*', { count: 'exact', head: true })
+    .eq('brandId', params.id)
+    .eq('tenantId', tenantId)
+  if (count && count > 0) throw new Error(`Cannot delete brand with ${count} products. Reassign products first.`)
+  const { error } = await supabase.from('brands').delete().eq('id', params.id)
+  if (error) throw error
+  return formatResponse({ success: true })
+}
+
 export function registerCatalogRoutes(router: { register: (method: string, pattern: string, handler: RouteHandler) => void }) {
   router.register('GET', '/catalog/search', searchCatalog)
   router.register('GET', '/catalog/products', getProducts)
@@ -284,4 +382,12 @@ export function registerCatalogRoutes(router: { register: (method: string, patte
   router.register('POST', '/catalog', createCatalog)
   router.register('PUT', '/catalog/:id', updateCatalog)
   router.register('DELETE', '/catalog/:id', deleteCatalog)
+  router.register('GET', '/catalog/categories', getCategories)
+  router.register('POST', '/catalog/categories', createCategory)
+  router.register('PUT', '/catalog/categories/:id', updateCategory)
+  router.register('DELETE', '/catalog/categories/:id', deleteCategory)
+  router.register('GET', '/catalog/brands', getBrands)
+  router.register('POST', '/catalog/brands', createBrand)
+  router.register('PUT', '/catalog/brands/:id', updateBrand)
+  router.register('DELETE', '/catalog/brands/:id', deleteBrand)
 }

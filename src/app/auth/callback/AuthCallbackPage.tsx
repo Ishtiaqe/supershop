@@ -39,8 +39,8 @@ export default function AuthCallback() {
   }, [searchParams, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
-      <div className="text-center bg-card/90 backdrop-blur-xl p-12 rounded-2xl shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="text-center bg-card p-12 rounded-2xl shadow-2xl">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
         <p className="mt-6 text-foreground text-lg font-medium">Completing sign in...</p>
         <p className="mt-2 text-muted-foreground text-sm">Please wait</p>
