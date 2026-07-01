@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Database, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useOffline } from '@/hooks/useOffline';
 
 // Import shadcn UI components
@@ -63,6 +64,7 @@ export function StorageMonitor() {
     setIsCleaning(true);
     try {
       await clearStorage();
+      toast.success('Storage cleared');
       const usage = await getStorageUsage();
       if (usage) {
         const percentage = (usage.used / usage.available) * 100;
@@ -73,7 +75,12 @@ export function StorageMonitor() {
         });
       }
     } catch (error) {
-      console.error('Cleanup failed:', error);
+      // clearStorage refuses when unsynced operations (real sales/inventory
+      // writes) would be lost — surface that instead of silently no-op'ing.
+      toast.error('Could not clear storage', {
+        description: (error as Error).message,
+        duration: 8000
+      });
     } finally {
       setIsCleaning(false);
     }
@@ -154,8 +161,9 @@ export function StorageMonitor() {
             <div className="space-y-3">
               <h4 className="font-semibold text-sm text-foreground">Cleanup Actions</h4>
               <p className="text-xs text-muted-foreground">
-                Clearing storage will remove cached data, offline queue, and temporary files.
-                Your core data will remain intact.
+                Clearing storage removes cached data and temporary files. Any sales
+                or inventory changes still waiting to sync must be synced or
+                resolved first — this won&apos;t proceed while unsynced data exists.
               </p>
 
               <div className="space-y-2 divide-y divide-border text-sm">

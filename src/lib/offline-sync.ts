@@ -3,6 +3,7 @@ import { InventoryItem, Sale } from '@/types';
 import { offlineDb } from './offline-db';
 import { offlineQueue } from './offline-queue';
 import { NetworkDetector } from './offline-utils';
+import { authStorage } from './auth-storage';
 import api from './api';
 
 export class OfflineSync {
@@ -101,11 +102,16 @@ export class OfflineSync {
   }
 
   private async syncInventory(tenantId: string, metadata: SyncMetadata): Promise<void> {
-    const lastSync = metadata.lastSyncTimestamp;
+    // lastSyncTimestamp is a JS epoch-ms number; 0 means "never synced" and
+    // must be omitted rather than sent as a filter — the server expects an
+    // ISO timestamp string, and Postgres rejects the literal "0".
+    const sinceParam = metadata.lastSyncTimestamp
+      ? `&since=${encodeURIComponent(new Date(metadata.lastSyncTimestamp).toISOString())}`
+      : '';
 
     try {
       // Fetch server data since last sync
-      const response = await api.get(`/inventory?tenantId=${tenantId}&since=${lastSync}`);
+      const response = await api.get(`/inventory?tenantId=${tenantId}${sinceParam}`);
       const serverData = response.data;
 
       // Get local data
@@ -124,11 +130,13 @@ export class OfflineSync {
   }
 
   private async syncSales(tenantId: string, metadata: SyncMetadata): Promise<void> {
-    const lastSync = metadata.lastSyncTimestamp;
+    const sinceParam = metadata.lastSyncTimestamp
+      ? `&since=${encodeURIComponent(new Date(metadata.lastSyncTimestamp).toISOString())}`
+      : '';
 
     try {
       // Fetch server data since last sync
-      const response = await api.get(`/sales-history?tenantId=${tenantId}&since=${lastSync}`);
+      const response = await api.get(`/sales-history?tenantId=${tenantId}${sinceParam}`);
       const serverData = response.data;
 
       // Get local data
@@ -227,9 +235,8 @@ export class OfflineSync {
   }
 
   private async getAllTenantIds(): Promise<string[]> {
-    // This would typically come from the auth context
-    // For now, return a default tenant
-    return ['default-tenant'];
+    const tenant = authStorage.getTenant();
+    return tenant?.id ? [tenant.id] : [];
   }
 
   private emitEvent(event: BackgroundSyncEvent): void {
@@ -283,8 +290,8 @@ export class OfflineSync {
       })));
 
       // Fetch recent sales (last 30 days)
-      const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-      const salesResponse = await api.get(`/sales-history?tenantId=${tenantId}&since=${thirtyDaysAgo}`);
+      const thirtyDaysAgo = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)).toISOString();
+      const salesResponse = await api.get(`/sales-history?tenantId=${tenantId}&since=${encodeURIComponent(thirtyDaysAgo)}`);
       const sales = salesResponse.data.data || salesResponse.data;
       await offlineDb.bulkPutSales(sales.map((sale: Sale) => ({
         ...sale,

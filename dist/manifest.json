@@ -7,6 +7,7 @@
   "background_color": "#ffffff",
   "theme_color": "#1890ff",
   "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "finance"],
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -17,6 +18,22 @@
       "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Sale",
+      "short_name": "POS",
+      "description": "Open the sales portal",
+      "url": "/pos",
+      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Sales History",
+      "short_name": "Sales",
+      "description": "View recent sales",
+      "url": "/sales-history",
+      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
     }
   ]
 }

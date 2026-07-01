@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { generateUUID, formatResponse } from '../utils'
+import { sendShortlistAddedNotification } from './notificationService'
 
 export async function createSale(requestData: any, tenantId: string, userId: string) {
   let calculatedTotalAmount = 0
@@ -75,7 +76,7 @@ export async function createSale(requestData: any, tenantId: string, userId: str
   for (const item of requestData.items) {
     const { data: invItem } = await supabase
       .from('inventory_items')
-      .select('quantity')
+      .select('quantity, lastRestockQty, itemName')
       .eq('id', item.inventoryId)
       .single()
     if (invItem) {
@@ -84,6 +85,33 @@ export async function createSale(requestData: any, tenantId: string, userId: str
         .from('inventory_items')
         .update({ quantity: newQty, updatedAt: new Date().toISOString() })
         .eq('id', item.inventoryId)
+
+      // Check 50% rule: if quantity drops to 50% or less of lastRestockQty, add to shortlist
+      if (invItem.lastRestockQty && newQty > 0 && newQty <= invItem.lastRestockQty * 0.5) {
+        const { data: existing } = await supabase
+          .from('short_list')
+          .select('id')
+          .eq('inventoryId', item.inventoryId)
+          .eq('tenantId', tenantId)
+          .single()
+
+        if (!existing) {
+          await supabase.from('short_list').insert({
+            id: generateUUID(),
+            tenantId,
+            inventoryId: item.inventoryId,
+            isSlowItem: false,
+            reason: '50% rule',
+            addedAt: new Date().toISOString(),
+            addedBy: userId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          })
+
+          // Send push notification
+          await sendShortlistAddedNotification(tenantId, invItem.itemName || 'Unknown item', newQty)
+        }
+      }
     }
   }
 

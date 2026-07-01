@@ -62,3 +62,49 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* ───── Mobile PWA utilities ───── */
+@layer utilities {
+  .safe-area-inset {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .min-h-screen-safe {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+}
+
+/* ───── Mobile touch/readability overrides ───── */
+@media (max-width: 768px) {
+  html {
+    --font-size-base: 16px;
+  }
+
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea,
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text scaling on orientation change in iOS Safari */
+  body {
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+  }
+}

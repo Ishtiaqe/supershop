@@ -19,6 +19,7 @@ import type { Tenant } from "@/types";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
+import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 
 export default function AdminTenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -139,43 +140,75 @@ export default function AdminTenantsPage() {
             <CardHeader className="pb-4 p-5 border-b border-border/60">
               <CardTitle className="text-lg font-semibold">Registered Tenants</CardTitle>
             </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
-              <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tenant</TableHead>
-                  <TableHead>ID</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <CardContent className="p-0">
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tenant</TableHead>
+                      <TableHead>ID</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                        </TableCell>
+                      </TableRow>
+                    ) : tenants.length > 0 ? (
+                      tenants.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell className="font-medium">{record.name}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs">{record.id}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={() => setEditingTenant(record)}>
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                          No tenants registered.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="md:hidden p-4 space-y-3">
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center py-8">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                    </TableCell>
-                  </TableRow>
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                  </div>
                 ) : tenants.length > 0 ? (
                   tenants.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell className="font-medium">{record.name}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{record.id}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => setEditingTenant(record)}>
+                    <MobileTableCard key={record.id}>
+                      <div className="font-semibold text-sm">{record.name}</div>
+                      <MobileTableCardRow
+                        label="ID"
+                        value={<span className="text-xs text-muted-foreground">{record.id}</span>}
+                      />
+                      <div className="pt-2 border-t border-border mt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setEditingTenant(record)}
+                        >
                           Edit
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                    </MobileTableCard>
                   ))
                 ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                      No tenants registered.
-                    </TableCell>
-                  </TableRow>
+                  <div className="text-center py-8 text-muted-foreground">No tenants registered.</div>
                 )}
-              </TableBody>
-            </Table>
+              </div>
             </CardContent>
           </Card>
 

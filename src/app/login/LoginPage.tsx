@@ -70,8 +70,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md px-6">
+    <main className="min-h-screen flex items-center justify-center bg-background px-4 pt-safe pb-safe">
+      <div className="w-full max-w-md">
         <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">

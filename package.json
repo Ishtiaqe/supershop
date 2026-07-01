@@ -1,7 +1,7 @@
 {
   "name": "supershop-frontend",
   "version": "1.0.0",
-  "description": "SuperShop Management Dashboard",
+  "description": "SuperShop Management App",
   "private": true,
   "type": "module",
   "engines": {

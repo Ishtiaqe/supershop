@@ -14,6 +14,7 @@ import { debounce } from "lodash";
 import dayjs from "dayjs";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useItemDetail } from "@/components/providers/ItemDetailContext";
+import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 
 // Import shadcn UI components
 import { Button } from "@/components/ui/button";
@@ -631,7 +632,7 @@ export default function InventoryPage() {
 
         {/* Inventory Table Card */}
         <Card className="shadow-sm border-border/60">
-          <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-border/60 pb-4 p-5">
+          <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/60 pb-4 p-5">
             <CardTitle className="text-lg font-semibold">Inventory Items</CardTitle>
             <Input
               id="inventory-search"
@@ -641,75 +642,112 @@ export default function InventoryPage() {
               className="w-full md:w-80"
             />
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item Name</TableHead>
-                  <TableHead className="text-right">Total Stock</TableHead>
-                  <TableHead className="text-right">Purchase Price</TableHead>
-                  <TableHead className="text-right">MRP/Unit</TableHead>
-                  {/* <TableHead className="text-right w-[100px]">Actions</TableHead> */}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
+          <CardContent className="p-0">
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                    </TableCell>
+                    <TableHead>Item Name</TableHead>
+                    <TableHead className="text-right">Total Stock</TableHead>
+                    <TableHead className="text-right">Purchase Price</TableHead>
+                    <TableHead className="text-right">MRP/Unit</TableHead>
                   </TableRow>
-                ) : filteredDataSource.length > 0 ? (
-                  filteredDataSource.map((item) => (
-                    <TableRow
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredDataSource.length > 0 ? (
+                    filteredDataSource.map((item) => (
+                      <TableRow
+                        key={item.key}
+                        onClick={() => openRow(item)}
+                        className="cursor-pointer hover:bg-muted/50"
+                      >
+                        <TableCell>
+                          <div>
+                            <div className="font-semibold text-foreground">
+                              {item.variant
+                                ? item.variant.product.name
+                                : item.itemName || "Unnamed item"}
+                            </div>
+                            {item.variant && item.variant.variantName !== "Standard" && (
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                {item.variant.variantName}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant={item.totalQuantity < 5 ? "destructive" : "secondary"}>
+                            {item.totalQuantity}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">৳{item.latestPurchasePrice}</TableCell>
+                        <TableCell className="text-right">৳{item.latestRetailPrice}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No inventory items found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="md:hidden p-4 space-y-3">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                </div>
+              ) : filteredDataSource.length > 0 ? (
+                filteredDataSource.map((item) => {
+                  const itemName = item.variant
+                    ? item.variant.product.name
+                    : item.itemName || "Unnamed item";
+                  const variantName = item.variant?.variantName !== "Standard"
+                    ? item.variant?.variantName
+                    : undefined;
+                  const stockLow = item.totalQuantity < 5;
+
+                  return (
+                    <MobileTableCard
                       key={item.key}
                       onClick={() => openRow(item)}
-                      className="cursor-pointer hover:bg-muted/50"
                     >
-                      <TableCell>
-                        <div>
-                          <div className="font-semibold text-foreground">
-                            {item.variant
-                              ? item.variant.product.name
-                              : item.itemName || "Unnamed item"}
-                          </div>
-                          {item.variant && item.variant.variantName !== "Standard" && (
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {item.variant.variantName}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant={item.totalQuantity < 5 ? "destructive" : "secondary"}>
-                          {item.totalQuantity}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">৳{item.latestPurchasePrice}</TableCell>
-                      <TableCell className="text-right">৳{item.latestRetailPrice}</TableCell>
-                      {/* <TableCell className="text-right">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openRow(item);
-                          }}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </TableCell> */}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      No inventory items found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                      <div className="font-semibold text-sm">{itemName}</div>
+                      {variantName && (
+                        <div className="text-xs text-muted-foreground mb-2">{variantName}</div>
+                      )}
+                      <MobileTableCardRow
+                        label="Stock"
+                        value={
+                          <Badge variant={stockLow ? "destructive" : "secondary"}>
+                            {item.totalQuantity}
+                          </Badge>
+                        }
+                      />
+                      <MobileTableCardRow
+                        label="Purchase Price"
+                        value={`৳${item.latestPurchasePrice}`}
+                      />
+                      <MobileTableCardRow
+                        label="MRP/Unit"
+                        value={`৳${item.latestRetailPrice}`}
+                      />
+                    </MobileTableCard>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">No inventory items found.</div>
+              )}
+            </div>
           </CardContent>
         </Card>
 

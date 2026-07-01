@@ -184,11 +184,11 @@ function DashboardCharts({ period }: { period: string }) {
               <CardTitle className="text-lg font-bold">Sales Trend</CardTitle>
             </CardHeader>
             <CardContent className="p-5 pt-0">
-              <div className="h-[300px] w-full">
+              <div className="h-[250px] sm:h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={data}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                   >
                     <defs>
                       <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
@@ -251,11 +251,11 @@ function DashboardCharts({ period }: { period: string }) {
               <CardTitle className="text-lg font-bold">Profit Trend</CardTitle>
             </CardHeader>
             <CardContent className="p-5 pt-0">
-              <div className="h-[300px] w-full">
+              <div className="h-[250px] sm:h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={data}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                   >
                     <defs>
                       <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
@@ -323,7 +323,7 @@ export default function DashboardPage() {
       id="dashboard-period"
       value={period}
       onChange={(e) => setPeriod(e.target.value)}
-      className="flex h-10 w-40 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex h-10 w-full sm:w-40 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <option value="7d">Last 7 Days</option>
       <option value="30d">Last 30 Days</option>

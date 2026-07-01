@@ -35,6 +35,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 
 interface CatalogItem {
   variantId: string;
@@ -246,31 +247,110 @@ export default function CatalogPage() {
               className="w-full md:w-80"
             />
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Variant</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead className="text-right">Price</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
-                <TableHead className="text-right w-[150px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <CardContent className="p-0">
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Variant</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">Stock</TableHead>
+                    <TableHead className="text-right w-[150px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                      </TableCell>
+                    </TableRow>
+                  ) : paginatedItems.length > 0 ? (
+                    paginatedItems.map((record) => (
+                      <TableRow key={record.variantId}>
+                        <TableCell>
+                          <div>
+                            <div className="font-semibold text-foreground">{record.productName}</div>
+                            {record.productType === "MEDICINE" && record.genericName && (
+                              <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Pill className="w-3.5 h-3.5 text-blue-500" />
+                                {record.genericName}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{record.variantName}</TableCell>
+                        <TableCell className="font-mono text-xs">{record.sku}</TableCell>
+                        <TableCell className="text-right">৳{record.retailPrice.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-medium">{record.currentStock ?? 0}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2 items-center">
+                            {deletingId === record.variantId ? (
+                              <div className="flex gap-1.5">
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => deleteMutation.mutate(record.variantId)}
+                                  disabled={deleteMutation.isPending}
+                                >
+                                  Confirm
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setDeletingId(null)}
+                                  disabled={deleteMutation.isPending}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleOpenModal(record)}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeletingId(record.variantId)}
+                                >
+                                  <Trash className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No products found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="md:hidden p-4 space-y-3">
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                </div>
               ) : paginatedItems.length > 0 ? (
                 paginatedItems.map((record) => (
-                  <TableRow key={record.variantId}>
-                    <TableCell>
+                  <MobileTableCard key={record.variantId} className="relative">
+                    <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="font-semibold text-foreground">{record.productName}</div>
+                        <div className="font-semibold text-sm">{record.productName}</div>
                         {record.productType === "MEDICINE" && record.genericName && (
                           <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                             <Pill className="w-3.5 h-3.5 text-blue-500" />
@@ -278,64 +358,60 @@ export default function CatalogPage() {
                           </div>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell>{record.variantName}</TableCell>
-                    <TableCell className="font-mono text-xs">{record.sku}</TableCell>
-                    <TableCell className="text-right">৳{record.retailPrice.toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-medium">{record.currentStock ?? 0}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2 items-center">
-                        {deletingId === record.variantId ? (
-                          <div className="flex gap-1.5">
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteMutation.mutate(record.variantId)}
-                              disabled={deleteMutation.isPending}
-                            >
-                              Confirm
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setDeletingId(null)}
-                              disabled={deleteMutation.isPending}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => handleOpenModal(record)}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setDeletingId(record.variantId)}
-                            >
-                              <Trash className="w-4 h-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                      <div className="text-right font-bold text-sm">৳{record.retailPrice.toLocaleString()}</div>
+                    </div>
+                    <MobileTableCardRow label="Variant" value={record.variantName} />
+                    <MobileTableCardRow label="SKU" value={<span className="font-mono text-xs">{record.sku}</span>} />
+                    <MobileTableCardRow label="Stock" value={record.currentStock ?? 0} />
+                    <div className="pt-2 border-t border-border mt-2">
+                      {deletingId === record.variantId ? (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="flex-1"
+                            onClick={() => deleteMutation.mutate(record.variantId)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            Confirm
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setDeletingId(null)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => handleOpenModal(record)}
+                          >
+                            <Pencil className="w-4 h-4 mr-2" /> Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-destructive"
+                            onClick={() => setDeletingId(record.variantId)}
+                          >
+                            <Trash className="w-4 h-4 mr-2" /> Delete
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </MobileTableCard>
                 ))
               ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No products found.
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8 text-muted-foreground">No products found.</div>
               )}
-            </TableBody>
-          </Table>
+            </div>
           </CardContent>
           {totalPages > 1 && (
             <div className="flex justify-between items-center p-4 border-t border-border/60">

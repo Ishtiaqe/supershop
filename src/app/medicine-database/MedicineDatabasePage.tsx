@@ -14,6 +14,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { MobileTableCard } from "@/components/mobile/MobileTableCard";
 import { offlineApi } from "@/lib/api-offline";
 import { Medicine } from "@/types";
 
@@ -65,95 +66,155 @@ export default function MedicineDatabasePage() {
               className="w-full md:w-80"
             />
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10"></TableHead>
-                <TableHead>Brand Name</TableHead>
-                <TableHead>Generic Name</TableHead>
-                <TableHead>Manufacturer</TableHead>
-                <TableHead>Strength</TableHead>
-                <TableHead>Dosage Form</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <CardContent className="p-0">
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10"></TableHead>
+                    <TableHead>Brand Name</TableHead>
+                    <TableHead>Generic Name</TableHead>
+                    <TableHead>Manufacturer</TableHead>
+                    <TableHead>Strength</TableHead>
+                    <TableHead>Dosage Form</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                      </TableCell>
+                    </TableRow>
+                  ) : paginatedMedicines.length > 0 ? (
+                    paginatedMedicines.map((record) => {
+                      const isExpanded = expandedIds.has(record.id);
+                      return (
+                        <Fragment key={record.id}>
+                          <TableRow
+                            className="hover:bg-muted/50 cursor-pointer"
+                            onClick={() => toggleExpand(record.id)}
+                          >
+                            <TableCell className="w-10">
+                              <div className="flex items-center justify-center h-6 w-6">
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-semibold">{record.brandName}</TableCell>
+                            <TableCell>{record.generic?.genericName || "-"}</TableCell>
+                            <TableCell>{record.manufacturer?.manufacturerName || "-"}</TableCell>
+                            <TableCell>{record.strength || "-"}</TableCell>
+                            <TableCell>{record.dosageForm || "-"}</TableCell>
+                          </TableRow>
+                          {isExpanded && (
+                            <TableRow className="bg-muted/30 hover:bg-muted/30">
+                              <TableCell colSpan={6} className="py-4 px-6 text-sm text-muted-foreground">
+                                <div className="space-y-3">
+                                  {record.generic?.indicationDescription && (
+                                    <div>
+                                      <strong className="text-foreground">Indication:</strong> {record.generic.indicationDescription}
+                                    </div>
+                                  )}
+                                  {record.generic?.pharmacologyDescription && (
+                                    <div>
+                                      <strong className="text-foreground">Pharmacology:</strong> {record.generic.pharmacologyDescription}
+                                    </div>
+                                  )}
+                                  {record.generic?.dosageDescription && (
+                                    <div>
+                                      <strong className="text-foreground">Dosage:</strong> {record.generic.dosageDescription}
+                                    </div>
+                                  )}
+                                  {record.generic?.sideEffectsDescription && (
+                                    <div>
+                                      <strong className="text-foreground">Side Effects:</strong> {record.generic.sideEffectsDescription}
+                                    </div>
+                                  )}
+                                  {!record.generic?.indicationDescription &&
+                                    !record.generic?.pharmacologyDescription &&
+                                    !record.generic?.dosageDescription &&
+                                    !record.generic?.sideEffectsDescription && (
+                                      <div>No detailed information available.</div>
+                                    )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </Fragment>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No medicines found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="md:hidden p-4 space-y-3">
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                </div>
               ) : paginatedMedicines.length > 0 ? (
                 paginatedMedicines.map((record) => {
                   const isExpanded = expandedIds.has(record.id);
                   return (
-                    <Fragment key={record.id}>
-                      <TableRow
-                        className="hover:bg-muted/50 cursor-pointer"
-                        onClick={() => toggleExpand(record.id)}
-                      >
-                        <TableCell className="w-10">
-                          <div className="flex items-center justify-center h-6 w-6">
-                            {isExpanded ? (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-semibold">{record.brandName}</TableCell>
-                        <TableCell>{record.generic?.genericName || "-"}</TableCell>
-                        <TableCell>{record.manufacturer?.manufacturerName || "-"}</TableCell>
-                        <TableCell>{record.strength || "-"}</TableCell>
-                        <TableCell>{record.dosageForm || "-"}</TableCell>
-                      </TableRow>
+                    <MobileTableCard
+                      key={record.id}
+                      onClick={() => toggleExpand(record.id)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="font-semibold text-sm">{record.brandName}</div>
+                        <div className="flex items-center justify-center h-6 w-6">
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {record.generic?.genericName || "-"} • {record.strength || "-"}
+                      </div>
                       {isExpanded && (
-                        <TableRow className="bg-muted/30 hover:bg-muted/30">
-                          <TableCell colSpan={6} className="py-4 px-6 text-sm text-muted-foreground">
-                            <div className="space-y-3">
-                              {record.generic?.indicationDescription && (
-                                <div>
-                                  <strong className="text-foreground">Indication:</strong> {record.generic.indicationDescription}
-                                </div>
-                              )}
-                              {record.generic?.pharmacologyDescription && (
-                                <div>
-                                  <strong className="text-foreground">Pharmacology:</strong> {record.generic.pharmacologyDescription}
-                                </div>
-                              )}
-                              {record.generic?.dosageDescription && (
-                                <div>
-                                  <strong className="text-foreground">Dosage:</strong> {record.generic.dosageDescription}
-                                </div>
-                              )}
-                              {record.generic?.sideEffectsDescription && (
-                                <div>
-                                  <strong className="text-foreground">Side Effects:</strong> {record.generic.sideEffectsDescription}
-                                </div>
-                              )}
-                              {!record.generic?.indicationDescription &&
-                                !record.generic?.pharmacologyDescription &&
-                                !record.generic?.dosageDescription &&
-                                !record.generic?.sideEffectsDescription && (
-                                  <div>No detailed information available.</div>
-                                )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
+                        <div className="mt-3 pt-3 border-t border-border text-sm text-muted-foreground space-y-2">
+                          <div><strong className="text-foreground">Manufacturer:</strong> {record.manufacturer?.manufacturerName || "-"}</div>
+                          <div><strong className="text-foreground">Dosage Form:</strong> {record.dosageForm || "-"}</div>
+                          {record.generic?.indicationDescription && (
+                            <div><strong className="text-foreground">Indication:</strong> {record.generic.indicationDescription}</div>
+                          )}
+                          {record.generic?.pharmacologyDescription && (
+                            <div><strong className="text-foreground">Pharmacology:</strong> {record.generic.pharmacologyDescription}</div>
+                          )}
+                          {record.generic?.dosageDescription && (
+                            <div><strong className="text-foreground">Dosage:</strong> {record.generic.dosageDescription}</div>
+                          )}
+                          {record.generic?.sideEffectsDescription && (
+                            <div><strong className="text-foreground">Side Effects:</strong> {record.generic.sideEffectsDescription}</div>
+                          )}
+                          {!record.generic?.indicationDescription &&
+                            !record.generic?.pharmacologyDescription &&
+                            !record.generic?.dosageDescription &&
+                            !record.generic?.sideEffectsDescription && (
+                              <div>No detailed information available.</div>
+                            )}
+                        </div>
                       )}
-                    </Fragment>
+                    </MobileTableCard>
                   );
                 })
               ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No medicines found.
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8 text-muted-foreground">No medicines found.</div>
               )}
-            </TableBody>
-          </Table>
+            </div>
 
           {totalCount > 0 && (
             <div className="flex items-center justify-between px-4 py-4 border-t border-border bg-card">

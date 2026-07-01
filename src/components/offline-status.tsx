@@ -61,7 +61,7 @@ export function OfflineIndicator() {
   return (
     <>
       <div
-        className="fixed top-[72px] right-6 z-[40] cursor-pointer"
+        className="fixed top-[68px] right-3 sm:top-[72px] sm:right-6 z-[40] cursor-pointer"
         onClick={() => setShowOfflineModal(true)}
       >
         <div
@@ -191,4 +191,75 @@ export function OfflineNotification() {
   }, [isOnline, forceSync, lastOfflineNotification]);
 
   return null;
+}
+
+const ENTITY_LABELS: Record<string, string> = {
+  inventory: 'Inventory change',
+  sale: 'Sale',
+  'sales-history': 'Sale',
+  saleItem: 'Sale item',
+  product: 'Product',
+  variant: 'Variant',
+  user: 'User update',
+  tenant: 'Tenant update',
+};
+
+// A queued write (a sale, a stock adjustment — real money) that failed 3
+// times is never deleted (see offline-queue.ts) so it can't be silently
+// lost. This makes that unresolved state impossible to miss: a persistent,
+// non-auto-dismissing banner with per-item retry/discard, shown wherever the
+// app shell renders.
+export function FailedSyncAlert() {
+  const { failedItems, retryFailedItem, discardFailedItem } = useOffline();
+  const [retrying, setRetrying] = useState<string | null>(null);
+
+  if (failedItems.length === 0) return null;
+
+  const handleRetry = async (id: string) => {
+    setRetrying(id);
+    try {
+      await retryFailedItem(id);
+    } finally {
+      setRetrying(null);
+    }
+  };
+
+  const handleDiscard = async (id: string) => {
+    if (!window.confirm('Discard this unsynced operation permanently? This cannot be undone.')) return;
+    await discardFailedItem(id);
+  };
+
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-lg">
+      <Alert variant="destructive" className="shadow-lg border-2">
+        <AlertTitle className="font-semibold">
+          {failedItems.length} operation{failedItems.length > 1 ? 's' : ''} could not be synced
+        </AlertTitle>
+        <AlertDescription className="mt-2 space-y-2">
+          <p className="text-xs">
+            These changes are still saved on this device but repeatedly failed to reach the server.
+            Nothing has been lost — retry once you have a stable connection, or discard if it&apos;s no longer needed.
+          </p>
+          <ul className="space-y-2 max-h-48 overflow-y-auto">
+            {failedItems.map(item => (
+              <li key={item.id} className="flex items-center justify-between gap-2 text-xs bg-background/50 rounded p-2">
+                <span className="truncate">
+                  {ENTITY_LABELS[item.entityType] || item.entityType} ({item.operation.toLowerCase()})
+                  {item.lastError ? ` — ${item.lastError}` : ''}
+                </span>
+                <span className="flex gap-1 shrink-0">
+                  <Button size="sm" variant="outline" disabled={retrying === item.id} onClick={() => handleRetry(item.id)}>
+                    Retry
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleDiscard(item.id)}>
+                    Discard
+                  </Button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </AlertDescription>
+      </Alert>
+    </div>
+  );
 }

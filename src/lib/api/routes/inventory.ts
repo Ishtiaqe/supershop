@@ -2,12 +2,14 @@ import { supabase } from '@/lib/supabase'
 import { formatResponse, generateUUID, sanitizeInventoryItem, sanitizeUpdate } from '../utils'
 import { RouteHandler } from '../types'
 import { masterDataCache } from '@/lib/cache/masterData'
+import { sendShortlistRemovedNotification } from '../services/notificationService'
 
 const getInventory: RouteHandler = async ({ tenantId, query }) => {
   const q = query.get('q') || ''
   const variantId = query.get('variantId') || ''
   const limit = Number(query.get('limit') || '100')
   const offset = Number(query.get('offset') || '0')
+  const since = query.get('since')
 
   // Try to get cached master data first
   const [variantsWithProducts] = await Promise.allSettled([
@@ -18,30 +20,49 @@ const getInventory: RouteHandler = async ({ tenantId, query }) => {
 
   const hasCachedData = variantsWithProducts.status === 'fulfilled' && variantsWithProducts.value.length > 0
 
-  let dbQuery: any = supabase.from('inventory_items')
-  
-  if (hasCachedData) {
-    // Use cached data: fetch inventory without joins
-    dbQuery = dbQuery.select('*')
-  } else {
-    // Fallback: fetch with joins as before
-    dbQuery = dbQuery.select('*, variant:product_variants(*, product:products(*))')
-  }
-  
-  dbQuery = dbQuery
-    .eq('tenantId', tenantId)
-    .order('createdAt', { ascending: false })
-
-  if (variantId) {
-    dbQuery = dbQuery.eq('variantId', variantId)
-  }
+  let inventoryData: any[] | null = null
+  let error: any = null
 
   if (q && !hasCachedData) {
-    // Only use server-side search if we don't have cached data
-    dbQuery = dbQuery.or(`itemName.ilike.%${q}%,variant.sku.ilike.%${q}%,variant.variantName.ilike.%${q}%,variant.product.name.ilike.%${q}%,variant.product.genericName.ilike.%${q}%,variant.product.manufacturerName.ilike.%${q}%`)
+    // Single-join search via RPC — PostgREST's .or() across embedded resources
+    // joins product_variants once per referenced column (3x for this search),
+    // so this query is pushed into a real SQL function instead.
+    const rpcResult = await supabase.rpc('search_inventory_items', {
+      p_tenant_id: tenantId,
+      p_query: q,
+      p_limit: limit,
+      p_offset: offset
+    })
+    inventoryData = rpcResult.data
+    error = rpcResult.error
+  } else {
+    let dbQuery: any = supabase.from('inventory_items')
+
+    if (hasCachedData) {
+      // Use cached data: fetch inventory without joins
+      dbQuery = dbQuery.select('*')
+    } else {
+      // Fallback: fetch with joins as before
+      dbQuery = dbQuery.select('*, variant:product_variants(*, product:products(*))')
+    }
+
+    dbQuery = dbQuery
+      .eq('tenantId', tenantId)
+      .order('createdAt', { ascending: false })
+
+    if (variantId) {
+      dbQuery = dbQuery.eq('variantId', variantId)
+    }
+
+    if (since) {
+      dbQuery = dbQuery.gte('updatedAt', since)
+    }
+
+    const result = await dbQuery.range(offset, offset + limit - 1)
+    inventoryData = result.data
+    error = result.error
   }
 
-  const { data: inventoryData, error } = await dbQuery.range(offset, offset + limit - 1)
   if (error) throw error
 
   let result = inventoryData || []
@@ -200,10 +221,11 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
     })
 
     if (targetItem) {
+      const newQuantity = targetItem.quantity + (quantity || 0)
       const { data: updated, error: updErr } = await supabase
         .from('inventory_items')
         .update({
-          quantity: targetItem.quantity + (quantity || 0),
+          quantity: newQuantity,
           purchasePrice: purchasePrice,
           retailPrice: retailPrice,
           maxDiscountRate: maxDiscount || 0,
@@ -218,6 +240,27 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
         .single()
       if (updErr) throw updErr
       mergedItem = updated
+
+      // Auto-remove from shortlist if quantity is now above 50% of lastRestockQty
+      if (quantity && newQuantity > quantity * 0.5) {
+        const { data: shortlistItem } = await supabase
+          .from('short_list')
+          .select('id')
+          .eq('inventoryId', targetItem.id)
+          .eq('tenantId', tenantId)
+          .single()
+
+        if (shortlistItem) {
+          await supabase
+            .from('short_list')
+            .delete()
+            .eq('inventoryId', targetItem.id)
+            .eq('tenantId', tenantId)
+
+          // Send push notification
+          await sendShortlistRemovedNotification(tenantId, derivedItemName || 'Unknown item', newQuantity)
+        }
+      }
     }
   }
 

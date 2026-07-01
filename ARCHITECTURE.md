@@ -1,11 +1,13 @@
 # SuperShop Frontend Architecture
 
-**Last Updated:** 2026-06-26  
+**Last Updated:** 2026-07-02  
 **Status:** Production Ready
 
 ---
 
 ## System Architecture
+
+There is no backend server. `supershop-backend/` (NestJS on Cloud Run) has been fully deleted. This is a standalone Vite SPA (React 18 + React Router, not Next.js) that talks directly to Supabase (Postgres + PostgREST + Supabase Auth) via `@supabase/supabase-js`.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -15,27 +17,31 @@
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │ Authentication Layer (Supabase Auth)                         │   │
 │  │  • Login/Logout via Supabase                                │   │
-│  │  • JWT stored in localStorage                              │   │
-│  │  • useSupabaseAuth hook manages state                       │   │
+│  │  • Session stored/refreshed by the Supabase client           │   │
+│  │  • useSupabaseAuth hook manages session state                │   │
+│  │  • AuthProvider layers a `users` table profile fetch on top  │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                             ↓                                        │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │ API Client Layer (axios interceptor)                         │   │
-│  │  • Injects Supabase JWT from localStorage                   │   │
-│  │  • Handles errors & token expiration                        │   │
-│  │  • Falls back to backup API if primary fails                │   │
+│  │ API Layer (src/lib/api.ts — local in-process router)         │   │
+│  │  • NOT an HTTP client; no remote backend to call              │   │
+│  │  • Dispatches GET/POST/PUT/PATCH/DELETE to lib/api/router.ts │   │
+│  │  • router.ts routes to lib/api/routes/*.ts (one per domain)  │   │
+│  │  • Each route handler calls supabase.from()/.rpc() directly  │   │
+│  │  • GET responses cached in localStorage for 30s               │   │
+│  │  • Manual tenantId filtering per handler (no Postgres RLS)    │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                             ↓                                        │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │ Data Layer (React Query + IndexedDB)                         │   │
 │  │  • Query caching for API responses                          │   │
-│  │  • Offline support via IndexedDB                            │   │
-│  │  • Background sync queue for offline mutations              │   │
+│  │  • Offline: api-offline.ts reads/writes IndexedDB directly,   │   │
+│  │    bypassing Supabase entirely when the network is down       │   │
+│  │  • Background sync queue replays queued mutations on reconnect│  │
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
-        ↓                                                   ↓
-   Supabase Auth                           Cloud Run NestJS Backend
-   (Serverless)                            (Business Logic)
+                             ↓
+                    Supabase (Postgres + PostgREST + Auth)
 ```
 
 ---
@@ -50,38 +56,37 @@ User enters credentials
 src/app/login/page.tsx
   └── useSupabaseAuth() hook
         └── supabase.auth.signInWithPassword()
-            └── Supabase verifies email/password
-                └── Returns JWT (access_token)
-                    └── useSupabaseAuth stores JWT in localStorage
+            └── Supabase verifies email/password, returns a session
+                └── AuthProvider fetches the matching `users` table row
+                    (lookup by email, falling back to id, falling back
+                    to Supabase user_metadata) to build the app profile
                         └── Redirect to /pos
 ```
 
 **Key Points:**
-- ✅ Frontend calls Supabase directly (no backend needed)
-- ✅ JWT stored in localStorage as `accessToken`
-- ✅ Supabase handles all credential verification
-- ✅ No refresh tokens needed (Supabase manages expiration)
+- Frontend calls Supabase directly — there is no backend to call
+- Supabase client manages the session (access + refresh tokens) internally
+- `AuthProvider` layers tenant/role profile data from the `users` table on top of the Supabase session
 
 ### API Calls (Authenticated)
 
 ```
 Component calls api.get() or api.post()
         ↓
-src/lib/api.ts (interceptor)
-  ├── Reads JWT from localStorage
-  ├── Attaches: Authorization: Bearer <jwt>
-  └── Sends to Cloud Run NestJS backend
-      ↓
-Cloud Run validates JWT against Supabase public key
-  ├── If valid: Execute business logic (products, sales, inventory, etc.)
-  └── If invalid: Return 401 Unauthorized
+src/lib/api.ts — local in-process router (not axios, not HTTP)
+  ├── GET: check 30s localStorage cache (skipped for /users/me, /auth/, /backup/, /export/pdf)
+  ├── Online → src/lib/api/router.ts
+  │     └── routes to src/lib/api/routes/<domain>.ts
+  │           └── handler calls supabase.from(...) / supabase.rpc(...) directly
+  │                 (filters manually by tenantId from local auth state)
+  └── Offline → src/lib/api-offline.ts
+        └── reads/writes IndexedDB (src/lib/offline-db.ts) directly, no network call
 ```
 
 **Key Points:**
-- ✅ VITE_API_URL points to Cloud Run (still needed!)
-- ✅ API interceptor automatically injects JWT
-- ✅ Backend validates JWT as Supabase-issued
-- ✅ No backend-based token refresh needed
+- No remote API URL to configure — `api.ts` never leaves the process except via the Supabase client
+- Tenant isolation is enforced in application code (each route handler filters by `tenantId`), not by Postgres RLS
+- Supabase handles token refresh itself; there is no app-level refresh logic
 
 ### Logout (Supabase Auth)
 
@@ -91,41 +96,47 @@ User clicks "Logout"
 Shell.tsx
   └── useAuth().logout()
       └── AuthProvider calls supabase.auth.signOut()
-          └── Clears localStorage (accessToken, user, tenant)
+          └── Clears localStorage (cached profile/tenant data)
               └── Redirect to /login
 ```
 
 **Key Points:**
-- ✅ Uses Supabase logout (cleans up server-side sessions)
-- ✅ LocalStorage cleared on client
-- ✅ No backend logout call needed
+- Uses Supabase logout (cleans up the Supabase session)
+- LocalStorage cleared on client
+- No backend logout call — there is no backend
 
 ---
 
 ## API Endpoints
 
-### Authentication (Supabase, not backend)
+### Authentication (Supabase)
 
 | Method | Endpoint | Purpose | Status |
 |--------|----------|---------|--------|
 | POST | supabase.auth.signInWithPassword() | Email/password login | ✅ Implemented |
 | POST | supabase.auth.signOut() | Logout | ✅ Implemented |
 
-### Business Logic (Cloud Run NestJS backend — unchanged)
+### Business Logic (local router → Supabase, `src/lib/api/routes/`)
 
-| Feature | Endpoints | Status |
-|---------|-----------|--------|
-| **Catalog** | POST /catalog/products, POST /catalog/brands, POST /catalog/categories, GET /catalog/* | ✅ Working |
-| **Inventory** | GET /inventory, POST /inventory | ✅ Working |
-| **Sales** | GET /sales, POST /sales (with shortlist + cashbox side effects) | ✅ Working |
-| **Shortlist** | POST /shortlist/add/*, POST /shortlist/*/toggle | ✅ Working |
-| **Cash Box** | GET /cash-box, POST /cash-box/entries | ✅ Working |
-| **Expenses** | GET /expenses, POST /expenses, POST /expenses/categories | ✅ Working |
-| **Credits** | GET /credits, POST /credits/*/payments | ✅ Working |
-| **Tenants** | POST /tenants, POST /tenants/setup, GET /tenants/me | ✅ Working |
-| **Notifications** | POST /notifications, POST /notifications/subscribe | ✅ Working |
-| **Users** | GET /users/me (fetch current user profile) | ✅ Working |
-| **Backup** | POST /backup/import | ✅ Working |
+Same `/domain/path` shapes as before, but each is handled in-process by a route file that queries Supabase directly — no network hop to a separate backend.
+
+| Feature | Route file | Endpoints (paths) | Status |
+|---------|-----------|-----------|--------|
+| **Catalog** | `catalog.ts` | POST /catalog/products, POST /catalog/brands, POST /catalog/categories, GET /catalog/* | ✅ Working |
+| **Inventory** | `inventory.ts` | GET /inventory, POST /inventory | ✅ Working |
+| **Sales** | `sales-history.ts` | GET /sales, POST /sales (with shortlist + cashbox side effects) | ✅ Working |
+| **Shortlist** | `shortlist.ts` | POST /shortlist/add/*, POST /shortlist/*/toggle | ✅ Working |
+| **Cash Box** | `cashBox.ts` | GET /cash-box, POST /cash-box/entries | ✅ Working |
+| **Expenses** | `expenses.ts` | GET /expenses, POST /expenses, POST /expenses/categories | ✅ Working |
+| **Credits** | `credits.ts` | GET /credits, POST /credits/*/payments | ✅ Working |
+| **Tenants** | `tenants.ts` | POST /tenants, POST /tenants/setup, GET /tenants/me | ✅ Working |
+| **Notifications** | `notifications.ts` | POST /notifications, POST /notifications/subscribe | ✅ Working |
+| **Users** | `users.ts` | GET /users/me (fetch current user profile) | ✅ Working |
+| **Backup** | `backup.ts` | POST /backup/import | ✅ Working |
+| **Export** | `export.ts` | GET /export/pdf | ✅ Working |
+| **Auth helpers** | `auth.ts` | local-state helpers used alongside Supabase Auth | ✅ Working |
+
+Side effects that used to be NestJS service coupling (e.g. a sale triggering shortlist checks and a cash-box entry) are now implemented directly inside the relevant route handler (`sales-history.ts`), calling the other domains' Supabase tables/RPCs in the same request.
 
 ---
 
@@ -134,10 +145,7 @@ Shell.tsx
 ### Required Variables
 
 ```bash
-# Business Logic Backend (Cloud Run NestJS)
-VITE_API_URL=https://api.shomaj.one/api/v1
-
-# Authentication (Supabase)
+# Supabase (Postgres + PostgREST + Auth) — the only backend
 VITE_SUPABASE_URL=https://pdfqecwtuytkwkgsygca.supabase.co
 VITE_SUPABASE_ANON_KEY=sb_publishable_...
 ```
@@ -145,9 +153,6 @@ VITE_SUPABASE_ANON_KEY=sb_publishable_...
 ### Optional Variables
 
 ```bash
-# Backup API for fallback if primary fails
-VITE_API_URL_BACKUP=http://localhost:8000/api/v1
-
 # Analytics
 VITE_GA_TRACKING_ID=G-CF5FD8RQF0
 
@@ -159,7 +164,7 @@ VITE_ADSENSE_CLIENT_ID=ca-pub-...
 ### Removed Variables
 
 - ❌ `VITE_FIREBASE_*` — Replaced by Supabase Auth
-- ❌ Backend auth endpoints — No longer needed
+- ❌ `VITE_API_URL` / `VITE_API_URL_BACKUP` — No remote backend exists; `src/lib/api.ts` is a local router, not an HTTP client
 
 ---
 
@@ -171,8 +176,11 @@ VITE_ADSENSE_CLIENT_ID=ca-pub-...
 |------|---------|
 | `src/lib/supabase.ts` | Supabase client configuration |
 | `src/hooks/useSupabaseAuth.ts` | Auth state management |
-| `src/lib/api.ts` | API client with JWT interceptor |
-| `src/components/auth/AuthProvider.tsx` | Auth context provider (uses Supabase) |
+| `src/lib/api.ts` | Local in-process API router + 30s GET cache |
+| `src/lib/api/router.ts` | Dispatches to domain route handlers |
+| `src/lib/api/routes/*.ts` | One handler file per domain, calls Supabase directly |
+| `src/lib/api/utils.ts` | `getLocalStorageData()` and other route-handler helpers (tenantId extraction, etc.) |
+| `src/components/auth/AuthProvider.tsx` | Auth context provider (wraps `useSupabaseAuth`, adds `users` table profile) |
 | `src/components/auth/ProtectedRoute.tsx` | Route protection wrapper |
 
 ### Application Pages
@@ -204,131 +212,28 @@ VITE_ADSENSE_CLIENT_ID=ca-pub-...
 ## Deployment
 
 ### Frontend (Vercel)
-- Vite SPA build
-- Runs on Vercel Functions (optional, not required)
-- Sets `VITE_API_URL` to Cloud Run backend
+- Vite SPA build, deployed as a static site
+- No server-side rendering, no API routes — pure client-side app
 
-### Authentication (Supabase)
-- Managed service (no deployment needed)
-- Handles email/password verification
-- Issues JWTs
+### Backend (Supabase, managed)
+- Postgres database + PostgREST (auto-generated REST layer used via `@supabase/supabase-js`) + Supabase Auth
+- No app server to deploy or scale — Supabase is the entire backend
 
-### Backend (Cloud Run)
-- NestJS application
-- Validates JWTs from Supabase
-- Serves all business logic
-- Uses PostgreSQL (Supabase)
+### Schema / migrations
+- `prisma/schema.prisma` (under `supershop-frontend/`, not a separate backend repo) is the schema/migration source of truth
+- Migrations applied with the Prisma CLI (`npx prisma migrate dev`) directly against the Supabase Postgres instance
+- Prisma is **not** used as a runtime ORM — at runtime all reads/writes go through `supabase-js` (PostgREST), not Prisma Client
 
 ---
 
-## Migration Summary
+## History: Migration off NestJS/Cloud Run
 
-### What Changed (June 26, 2026)
+The app previously had a separate NestJS backend on Cloud Run that owned all business logic, with the frontend on Next.js. That backend (`supershop-backend/`) has been **fully deleted** from the workspace. The frontend was also migrated off Next.js onto Vite + React Router. Business logic that used to live in NestJS services now lives in `src/lib/api/routes/*.ts`, calling Supabase directly. There is no remaining plan to reintroduce a separate backend server — Supabase (Postgres + PostgREST + Auth) is the permanent data/auth tier.
 
-| Item | Before | After | Status |
-|------|--------|-------|--------|
-| **Authentication** | Firebase + Next.js routes | Supabase Auth (client-side) | ✅ Complete |
-| **Frontend Framework** | Next.js 14 App Router | Vite + React Router | ✅ Complete |
-| **Token Refresh** | Backend endpoint (`/auth/refresh`) | Supabase (automatic) | ✅ Removed |
-| **Token Storage** | httpOnly cookies + localStorage | localStorage only | ✅ Simplified |
-| **Logout** | Backend endpoint (`/auth/logout`) | Supabase.auth.signOut() | ✅ Removed |
-| **Business Logic** | Still on Cloud Run | Still on Cloud Run (unchanged) | ✅ No change |
-
-### What Stayed the Same
-
-- ✅ Cloud Run NestJS backend (no changes)
-- ✅ All business logic endpoints
-- ✅ Multi-tenant architecture
-- ✅ Offline support (IndexedDB + sync queue)
-- ✅ React Query data caching
-- ✅ PostgreSQL database (Supabase)
-
-### Removed
-
-- ❌ Next.js route handlers (`/src/app/api/v1/*`)
-- ❌ Server-side JWT utilities (`/src/server/*`)
-- ❌ Firebase authentication
-- ❌ Backend token refresh logic
-- ❌ Backend logout logic
-
----
-
-## Key Insights
-
-### Why Supabase Auth?
-
-1. **Works with Vite** — No need for Next.js
-2. **Serverless** — No authentication backend to maintain
-3. **Integrated** — Already using Supabase PostgreSQL
-4. **Secure** — Built-in JWTs, no custom auth code
-5. **Compliant** — Meets security standards (RLS, policies)
-
-### VITE_API_URL Still Needed?
-
-**Yes!** Cloud Run backend is required for:
-- All business logic (products, sales, inventory, expenses, etc.)
-- Tenant isolation and multi-tenancy
-- Complex side effects (shortlist + cashbox on sales)
-- Data persistence and validation
-
-The frontend is NOT a backend. It's a client-side app that calls the backend for everything except authentication.
-
-### Why Not Migrate All Backend to Frontend?
-
-Backend business logic is 500+ endpoints across 13 modules. Migrating to frontend would:
-1. ❌ Make bundle size massive
-2. ❌ Expose business rules to client
-3. ❌ Break multi-tenant isolation
-4. ❌ Require rewriting complex validation
-5. ❌ Eliminate server-side security checks
-
-**Correct architecture:** Thin client + thick server.
-
----
-
-## Next Steps (If Needed)
-
-### To Migrate More Business Logic to Frontend
-
-**If you ever want to move backend endpoints to the frontend:**
-1. Recreate endpoint logic in React/TypeScript
-2. Use IndexedDB for persistence
-3. Implement offline sync for mutations
-4. Add server-side validation before sync
-5. Handle conflict resolution
-
-**Current recommendation:** Keep Cloud Run backend as-is. It's free tier ($0/mo) and works well.
-
-### To Scale Backend
-
-If Cloud Run costs grow:
-1. Switch to Google App Engine (Flexible)
-2. Or Vercel Functions (paid tier)
-3. Or self-host on AWS/GCP
-
-### To Enhance Frontend
-
-Recommended additions:
-1. ✅ Electron desktop app (same Vite bundle)
-2. ✅ React Native mobile (reuse components)
-3. ✅ Progressive offline mode (already in code)
-4. ✅ Service Worker (already implemented)
+Multi-tenancy is still enforced by a `tenantId` column on every domain table, but filtering now happens in the route handlers (application code), not in a NestJS guard/service layer, and not via Postgres RLS.
 
 ---
 
 ## Documentation
 
-- **SUPABASE_AUTH_SETUP.md** — Authentication setup guide & troubleshooting
-- **MIGRATION_STATUS.md** — Migration progress tracking
-- **CLAUDE.md** (parent) — Backend NestJS architecture
-
----
-
-## Questions?
-
-This is a standard three-tier architecture:
-- **Tier 1 (Frontend):** Vite SPA + React + Supabase Auth
-- **Tier 2 (Auth):** Supabase Auth (managed)
-- **Tier 3 (Backend):** NestJS + PostgreSQL (Cloud Run)
-
-All layers are decoupled and independently deployable.
+- **CLAUDE.md** (parent, `/mnt/storage/Projects/supershop/CLAUDE.md`) — repo-wide guidance; note it may still reference the old backend layout in places and should be read alongside this file.

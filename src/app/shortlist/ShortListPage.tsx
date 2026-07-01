@@ -18,6 +18,7 @@ import {
 import { useItemDetail } from "@/components/providers/ItemDetailContext";
 import { Loader2, Download, Trash2, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 
 interface ShortListItem {
   id: string;
@@ -377,12 +378,13 @@ export default function ShortListPage() {
                 value={shortlistSearchTerm}
                 onChange={(e) => setShortlistSearchTerm(e.target.value)}
                 placeholder="Search shortlist by item name, SKU, or product..."
-                className="max-w-md"
+                className="w-full md:max-w-md"
               />
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
+          <CardContent className="p-0">
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Item Name</TableHead>
@@ -466,6 +468,78 @@ export default function ShortListPage() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+
+            <div className="md:hidden p-4 space-y-3">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                </div>
+              ) : shortlistItems.length > 0 ? (
+                shortlistItems.map((item) => {
+                  const variantId = item.inventory?.variant?.id;
+                  return (
+                    <MobileTableCard key={item.id}>
+                      <div className="font-semibold text-sm">
+                        {variantId ? (
+                          <button
+                            onClick={() => openItem(variantId, { showBatches: false })}
+                            className="text-primary hover:underline text-left"
+                          >
+                            {item.inventory.itemName}
+                          </button>
+                        ) : (
+                          item.inventory.itemName
+                        )}
+                      </div>
+                      <MobileTableCardRow label="Current Qty" value={item.inventory.quantity} />
+                      <MobileTableCardRow label="Last Restock" value={item.inventory.lastRestockQty || "N/A"} />
+                      <div className="pt-2 border-t border-border mt-2 flex justify-end">
+                        {confirmDeleteId === item.id ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-destructive font-medium">Remove?</span>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9 text-destructive"
+                              onClick={() => {
+                                removeMutation.mutate(item.inventoryId);
+                                setConfirmDeleteId(null);
+                              }}
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9"
+                              onClick={() => setConfirmDeleteId(null)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => setConfirmDeleteId(item.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" /> Remove
+                          </Button>
+                        )}
+                      </div>
+                    </MobileTableCard>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  {shortlistSearchTerm
+                    ? `No items found matching "${shortlistSearchTerm}"`
+                    : "No items in short list"}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

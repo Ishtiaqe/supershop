@@ -6,7 +6,7 @@ import api from './api';
 export class OfflineQueue {
   private static instance: OfflineQueue;
   private processing = false;
-  private listeners: ((item: OfflineQueueItem, status: 'added' | 'processed' | 'failed') => void)[] = [];
+  private listeners: ((item: OfflineQueueItem, status: 'added' | 'processed' | 'failed' | 'permanently-failed') => void)[] = [];
 
   private constructor() { }
 
@@ -54,6 +54,10 @@ export class OfflineQueue {
       const queueItems = await offlineDb.getQueueItems();
 
       for (const item of queueItems) {
+        // Items that already exhausted retries wait for an explicit retry
+        // (see retryItem) rather than being retried silently forever.
+        if (item.status === 'failed') continue;
+
         try {
           await this.processItem(item);
           await offlineDb.removeFromQueue(item.id);
@@ -64,19 +68,42 @@ export class OfflineQueue {
           item.lastError = (error as Error).message;
 
           if (item.retryCount >= 3) {
-            // Remove after max retries
-            await offlineDb.removeFromQueue(item.id);
-          } else {
-            // Update retry count
+            // This represents a real sale, stock change, or payment — never
+            // delete it. Mark it failed and keep it queued so a human can see
+            // and resolve it (see getFailedItems / retryItem).
+            item.status = 'failed';
             await offlineDb.addToQueue(item);
+            this.listeners.forEach(listener => listener(item, 'permanently-failed'));
+          } else {
+            await offlineDb.addToQueue(item);
+            this.listeners.forEach(listener => listener(item, 'failed'));
           }
-
-          this.listeners.forEach(listener => listener(item, 'failed'));
         }
       }
     } finally {
       this.processing = false;
     }
+  }
+
+  async retryItem(id: string): Promise<void> {
+    const items = await offlineDb.getQueueItems();
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    item.status = 'pending';
+    item.retryCount = 0;
+    await offlineDb.addToQueue(item);
+    if (navigator.onLine) {
+      await this.processQueue();
+    }
+  }
+
+  async discardItem(id: string): Promise<void> {
+    await offlineDb.removeFromQueue(id);
+  }
+
+  async getFailedItems(): Promise<OfflineQueueItem[]> {
+    const items = await offlineDb.getQueueItems();
+    return items.filter(i => i.status === 'failed');
   }
 
   private async processItem(item: OfflineQueueItem): Promise<void> {
@@ -128,7 +155,8 @@ export class OfflineQueue {
   }
 
   async getPendingItems(): Promise<OfflineQueueItem[]> {
-    return offlineDb.getQueueItems();
+    const items = await offlineDb.getQueueItems();
+    return items.filter(i => i.status !== 'failed');
   }
 
   async clearQueue(): Promise<void> {
@@ -138,7 +166,7 @@ export class OfflineQueue {
     }
   }
 
-  onQueueChange(callback: (item: OfflineQueueItem, status: 'added' | 'processed' | 'failed') => void): () => void {
+  onQueueChange(callback: (item: OfflineQueueItem, status: 'added' | 'processed' | 'failed' | 'permanently-failed') => void): () => void {
     this.listeners.push(callback);
     return () => {
       const index = this.listeners.indexOf(callback);

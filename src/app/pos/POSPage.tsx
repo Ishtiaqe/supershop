@@ -5,7 +5,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { InventoryItem } from "@/types";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useIsMobile } from "@/hooks/useMediaQuery";
+import { MobilePOS } from "./MobilePOS";
 import { toast } from "sonner";
+
+const CART_STORAGE_KEY = "supershop-pos-cart";
 
 // Import shadcn UI components
 import { Button } from "@/components/ui/button";
@@ -88,6 +92,7 @@ export default function POSPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const quantityRef = useRef<HTMLInputElement>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -98,6 +103,14 @@ export default function POSPage() {
   const completeSaleBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    if (isMobile) {
+      inputRef.current?.focus();
+    }
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (isMobile) return;
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.key === "/" &&
@@ -127,7 +140,7 @@ export default function POSPage() {
 
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -218,9 +231,29 @@ export default function POSPage() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selectedItemName, setSelectedItemName] = useState("");
   const [qty, setQty] = useState<number | null>(null);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [itemDiscount, setItemDiscount] = useState<number>(0);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const stored = localStorage.getItem(CART_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      /* ignore corrupt storage */
+    }
+    return [];
+  });
   const [isCreditSale, setIsCreditSale] = useState(false);
   const [cashReceived, setCashReceived] = useState<number>(0);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    } catch {
+      /* ignore storage errors */
+    }
+  }, [cart]);
 
   const saleMutation = useMutation({
     mutationFn: (payload: {
@@ -255,6 +288,11 @@ export default function POSPage() {
       }
       toast.success("Sale completed successfully!");
       setCart([]);
+      try {
+        localStorage.removeItem(CART_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
       setCustomerName("");
       setCustomerPhone("");
       customerNameRef.current = "";
@@ -310,7 +348,7 @@ export default function POSPage() {
           unitPrice: item.retailPrice,
           purchasePrice: avgPurchase,
           quantity: qty!,
-          discount: 0,
+          discount: Math.min(itemDiscount, maxDiscountPercent),
           maxDiscount: maxDiscountPercent,
           batches: item.batches,
         },
@@ -320,6 +358,7 @@ export default function POSPage() {
     setSelectedKey(null);
     setSelectedItemName("");
     setQty(null);
+    setItemDiscount(0);
     setSearch("");
     setIsDropdownOpen(false);
 
@@ -413,8 +452,42 @@ export default function POSPage() {
 
   return (
     <div className="space-y-4">
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {isMobile ? (
+        <MobilePOS
+          search={search}
+          setSearch={setSearch}
+          isDropdownOpen={isDropdownOpen}
+          setIsDropdownOpen={setIsDropdownOpen}
+          inputRef={inputRef}
+          aggregatedItems={aggregatedItems}
+          itemsLoading={itemsLoading}
+          selectedKey={selectedKey}
+          setSelectedKey={setSelectedKey}
+          selectedItemName={selectedItemName}
+          setSelectedItemName={setSelectedItemName}
+          qty={qty}
+          setQty={setQty}
+          itemDiscount={itemDiscount}
+          setItemDiscount={setItemDiscount}
+          addToCart={addToCart}
+          cart={cart}
+          setCart={setCart}
+          removeFromCart={removeFromCart}
+          customerName={customerName}
+          setCustomerName={setCustomerName}
+          customerPhone={customerPhone}
+          setCustomerPhone={setCustomerPhone}
+          isCreditSale={isCreditSale}
+          setIsCreditSale={setIsCreditSale}
+          cashReceived={cashReceived}
+          setCashReceived={setCashReceived}
+          total={total}
+          checkout={checkout}
+          salePending={saleMutation.isPending}
+        />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left/Middle: Select, Quantity, Add to Cart */}
         <Card className="md:col-span-2 shadow-sm border-border/60">
           <CardHeader className="pb-4 p-5">
@@ -443,12 +516,13 @@ export default function POSPage() {
                 placeholder="Type to search inventory or SKU..."
                 value={selectedItemName || search}
                 onChange={(e) => {
-                  setSearch(e.target.value);
+                  const value = e.target.value;
+                  setSearch(value);
                   setSelectedItemName("");
                   setSelectedKey(null);
-                  setIsDropdownOpen(true);
+                  setIsDropdownOpen(value.length > 0);
                 }}
-                onFocus={() => setIsDropdownOpen(true)}
+                onFocus={() => setIsDropdownOpen(search.length > 0)}
                 onKeyDown={(e) => {
                   if (e.key === "Tab") {
                     e.preventDefault();
@@ -715,6 +789,8 @@ export default function POSPage() {
         </Button>
         </CardContent>
       </Card>
+      </>
+    )}
     </div>
   );
 }

@@ -166,7 +166,7 @@ export default function TenantSetupPage() {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
                 {loading ? 'Creating store...' : 'Create store'}
               </Button>
             </form>

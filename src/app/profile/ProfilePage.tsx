@@ -188,7 +188,7 @@ export default function ProfilePage() {
                     )}
                   />
 
-                  <Button type="submit">Save Changes</Button>
+                  <Button type="submit" className="w-full sm:w-auto h-11">Save Changes</Button>
                 </form>
               </Form>
             </TabsContent>
@@ -238,7 +238,7 @@ export default function ProfilePage() {
                     )}
                   />
 
-                  <Button type="submit">Change Password</Button>
+                  <Button type="submit" className="w-full sm:w-auto h-11">Change Password</Button>
                 </form>
               </Form>
             </TabsContent>

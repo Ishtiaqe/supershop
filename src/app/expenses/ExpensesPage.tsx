@@ -17,6 +17,7 @@ import { useExpenses, useExpenseSummary, ExpenseFilters } from "./hooks/useExpen
 import { ExpenseModal } from "./components/ExpenseModal";
 import { ManageCategoriesModal } from "./components/ManageCategoriesModal";
 import { useCategories } from "./hooks/useExpensesHooks";
+import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 
 export default function ExpensesPage() {
   const [filters, setFilters] = useState<ExpenseFilters>({ page: 1, limit: 10 });
@@ -135,83 +136,128 @@ export default function ExpensesPage() {
         <CardHeader className="pb-4 p-5 border-b border-border/60">
           <CardTitle className="text-lg font-semibold">Expense Records</CardTitle>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Logged By</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <CardContent className="p-0">
+          <div className="hidden md:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Logged By</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingExpenses ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    </TableCell>
+                  </TableRow>
+                ) : expensesData?.data && expensesData.data.length > 0 ? (
+                  expensesData.data.map((record: any) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{dayjs(record.expenseDate).format("DD/MM/YYYY")}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/20">
+                          {record.category?.name}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate" title={record.description}>
+                        {record.description || "-"}
+                      </TableCell>
+                      <TableCell>{record.employee?.fullName || "-"}</TableCell>
+                      <TableCell className="text-right font-bold">{formatCurrency(record.amount)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="link" size="sm" className="h-auto p-0" onClick={() => openEditModal(record.id)}>
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No expenses found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="md:hidden p-4 space-y-3">
             {isLoadingExpenses ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                </TableCell>
-              </TableRow>
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+              </div>
             ) : expensesData?.data && expensesData.data.length > 0 ? (
               expensesData.data.map((record: any) => (
-                <TableRow key={record.id}>
-                  <TableCell>{dayjs(record.expenseDate).format("DD/MM/YYYY")}</TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/20">
-                      {record.category?.name}
-                    </span>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate" title={record.description}>
-                    {record.description || "-"}
-                  </TableCell>
-                  <TableCell>{record.employee?.fullName || "-"}</TableCell>
-                  <TableCell className="text-right font-bold">{formatCurrency(record.amount)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="link" size="sm" className="h-auto p-0" onClick={() => openEditModal(record.id)}>
+                <MobileTableCard key={record.id}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/20">
+                        {record.category?.name}
+                      </span>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {dayjs(record.expenseDate).format("DD/MM/YYYY")}
+                      </div>
+                    </div>
+                    <div className="font-bold text-sm">{formatCurrency(record.amount)}</div>
+                  </div>
+                  <MobileTableCardRow
+                    label="Description"
+                    value={record.description || "-"}
+                  />
+                  <MobileTableCardRow
+                    label="Logged By"
+                    value={record.employee?.fullName || "-"}
+                  />
+                  <div className="pt-2 border-t border-border mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => openEditModal(record.id)}
+                    >
                       Edit
                     </Button>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </MobileTableCard>
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  No expenses found.
-                </TableCell>
-              </TableRow>
+              <div className="text-center py-8 text-muted-foreground">No expenses found.</div>
             )}
-          </TableBody>
-        </Table>
-
-        {/* Pagination */}
-        {expensesData?.meta && expensesData.meta.total > 0 && (
-          <div className="flex items-center justify-between px-4 py-4 border-t border-border bg-card">
-            <span className="text-sm text-muted-foreground">
-              Showing {Math.min((page - 1) * limit + 1, expensesData.meta.total)} to{" "}
-              {Math.min(page * limit, expensesData.meta.total)} of {expensesData.meta.total} expenses
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFilters(prev => ({ ...prev, page: Math.max(1, (prev.page ?? 1) - 1) }))}
-                disabled={page === 1}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFilters(prev => ({ ...prev, page: Math.min(Math.ceil(expensesData.meta.total / limit), (prev.page ?? 1) + 1) }))}
-                disabled={page >= Math.ceil(expensesData.meta.total / limit)}
-              >
-                Next
-              </Button>
-            </div>
           </div>
-        )}
+
+          {expensesData?.meta && expensesData.meta.total > 0 && (
+            <div className="flex items-center justify-between px-4 py-4 border-t border-border bg-card">
+              <span className="text-sm text-muted-foreground">
+                Showing {Math.min((page - 1) * limit + 1, expensesData.meta.total)} to{" "}
+                {Math.min(page * limit, expensesData.meta.total)} of {expensesData.meta.total} expenses
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFilters(prev => ({ ...prev, page: Math.max(1, (prev.page ?? 1) - 1) }))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFilters(prev => ({ ...prev, page: Math.min(Math.ceil(expensesData.meta.total / limit), (prev.page ?? 1) + 1) }))}
+                  disabled={page >= Math.ceil(expensesData.meta.total / limit)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -19,7 +19,7 @@
 - **eslint@8.57.1**: No longer supported. Update to `eslint@^9.0.0` or latest v8 if needed.
 
 ### Vulnerabilities
-- **3 high severity vulnerabilities**: Ran `npm audit fix`, but 1 remains (glob CLI injection in @next/eslint-plugin-next). Manually update `glob` to ^11.0.0 or wait for Next.js to patch. Run `npm audit` for details.
+- **3 high severity vulnerabilities** (from when this project still depended on Next.js tooling — since removed along with the Next.js → Vite migration). Run `npm audit` for the current state.
 
 ### Gradle Warnings
 - **Using flatDir should be avoided**: This is from Capacitor/Cordova plugins. Consider migrating to proper Maven/Gradle repositories if possible, but it's often not critical for Capacitor projects.
@@ -43,7 +43,7 @@ To build APK locally without relying on it:
    - Install Node.js and Capacitor CLI globally: `npm install -g @capacitor/cli`.
 
 2. **Build Steps**:
-   - In project root: `npm run build-mobile` (builds Next.js and syncs to Android).
+   - In project root: `npm run build-mobile` (runs the Vite static build and syncs it to Android via Capacitor).
    - For debug APK: `cd android && ./gradlew assembleDebug`.
      - Output: `android/app/build/outputs/apk/debug/app-debug.apk`.
      - **Note**: If Gradle fails with JAVA_COMPILER error, ensure JDK is properly installed and JAVA_HOME points to JDK bin directory.

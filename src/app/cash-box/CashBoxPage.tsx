@@ -15,6 +15,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import dayjs from "dayjs";
+import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 import {
   useCashBoxSummary,
   useCashBoxEntries,
@@ -186,140 +187,230 @@ export default function CashBoxPage() {
         <CardHeader className="pb-4 p-5 border-b border-border/60">
           <CardTitle className="text-lg font-semibold">Cash Movements</CardTitle>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Note</TableHead>
-                <TableHead>By</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {entriesLoading ? (
+        <CardContent className="p-0">
+          <div className="hidden md:block overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  </TableCell>
+                  <TableHead>Date & Time</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Note</TableHead>
+                  <TableHead>By</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
-              ) : entries.length > 0 ? (
-                entries.map((record) => {
+              </TableHeader>
+              <TableBody>
+                {entriesLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    </TableCell>
+                  </TableRow>
+                ) : entries.length > 0 ? (
+                  entries.map((record) => {
+                    const cfg = ENTRY_TYPE_CONFIG[record.entryType] ?? {
+                      label: record.entryType,
+                      badgeClass: "bg-gray-500/10 text-gray-600 border-gray-500/20",
+                      sign: "+" as const,
+                    };
+                    const amountColor =
+                      cfg.sign === "+" ? "text-green-600 dark:text-green-500 font-semibold" : "text-destructive font-semibold";
+                    const isManual =
+                      record.entryType === "MANUAL_IN" || record.entryType === "MANUAL_OUT";
+                    return (
+                      <TableRow key={record.id}>
+                        <TableCell>{dayjs(record.entryDate).format("DD MMM YYYY, hh:mm A")}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={cfg.badgeClass}>
+                            {cfg.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className={`text-right ${amountColor}`}>
+                          {cfg.sign} {formatBDT(record.amount)}
+                        </TableCell>
+                        <TableCell>{record.note || <span className="text-muted-foreground">—</span>}</TableCell>
+                        <TableCell>{record.createdBy?.fullName ?? "—"}</TableCell>
+                        <TableCell className="text-right">
+                          {isManual && (
+                            confirmDeleteId === record.id ? (
+                              <div className="flex items-center gap-1 bg-destructive/10 px-2 py-0.5 rounded border border-destructive/20 justify-end w-fit ml-auto">
+                                <span className="text-xs text-destructive font-medium mr-1">Delete?</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7 text-destructive hover:bg-destructive/20"
+                                  onClick={() => {
+                                    deleteEntry(record.id);
+                                    setConfirmDeleteId(null);
+                                  }}
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7 text-muted-foreground hover:bg-muted"
+                                  onClick={() => setConfirmDeleteId(null)}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
+                                onClick={() => setConfirmDeleteId(record.id)}
+                              >
+                                Delete
+                              </Button>
+                            )
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No cash movements in this period
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {!entriesLoading && entries.length > 0 && (
+                  <TableRow className="bg-muted/30 font-semibold border-t">
+                    <TableCell colSpan={2} className="font-bold">Period Net</TableCell>
+                    <TableCell className="text-right font-bold">
+                      <span className={net >= 0 ? "text-green-600 dark:text-green-500" : "text-destructive"}>
+                        {net >= 0 ? "+" : ""}
+                        {formatBDT(net)}
+                      </span>
+                    </TableCell>
+                    <TableCell colSpan={3} />
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="md:hidden p-4 space-y-3">
+            {entriesLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              </div>
+            ) : entries.length > 0 ? (
+              <>
+                {entries.map((record) => {
                   const cfg = ENTRY_TYPE_CONFIG[record.entryType] ?? {
                     label: record.entryType,
                     badgeClass: "bg-gray-500/10 text-gray-600 border-gray-500/20",
                     sign: "+" as const,
                   };
                   const amountColor =
-                    cfg.sign === "+" ? "text-green-600 dark:text-green-500 font-semibold" : "text-destructive font-semibold";
+                    cfg.sign === "+" ? "text-green-600 dark:text-green-500" : "text-destructive";
                   const isManual =
                     record.entryType === "MANUAL_IN" || record.entryType === "MANUAL_OUT";
+
                   return (
-                    <TableRow key={record.id}>
-                      <TableCell>{dayjs(record.entryDate).format("DD MMM YYYY, hh:mm A")}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={cfg.badgeClass}>
-                          {cfg.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className={`text-right ${amountColor}`}>
-                        {cfg.sign} {formatBDT(record.amount)}
-                      </TableCell>
-                      <TableCell>{record.note || <span className="text-muted-foreground">—</span>}</TableCell>
-                      <TableCell>{record.createdBy?.fullName ?? "—"}</TableCell>
-                      <TableCell className="text-right">
-                        {isManual && (
-                          confirmDeleteId === record.id ? (
-                            <div className="flex items-center gap-1 bg-destructive/10 px-2 py-0.5 rounded border border-destructive/20 justify-end w-fit ml-auto">
-                              <span className="text-xs text-destructive font-medium mr-1">Delete?</span>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 text-destructive hover:bg-destructive/20"
+                    <MobileTableCard key={record.id}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <Badge variant="outline" className={cfg.badgeClass}>
+                            {cfg.label}
+                          </Badge>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {dayjs(record.entryDate).format("DD MMM YYYY, hh:mm A")}
+                          </div>
+                        </div>
+                        <div className={`font-bold text-sm ${amountColor}`}>
+                          {cfg.sign} {formatBDT(record.amount)}
+                        </div>
+                      </div>
+                      <MobileTableCardRow label="Note" value={record.note || "—"} />
+                      <MobileTableCardRow label="By" value={record.createdBy?.fullName ?? "—"} />
+                      {isManual && (
+                        <div className="pt-2 border-t border-border mt-2 flex justify-end">
+                          {confirmDeleteId === record.id ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-destructive font-medium">Delete?</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 text-destructive"
                                 onClick={() => {
                                   deleteEntry(record.id);
                                   setConfirmDeleteId(null);
                                 }}
                               >
-                                <Check className="h-3.5 w-3.5" />
+                                <Check className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 text-muted-foreground hover:bg-muted"
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9"
                                 onClick={() => setConfirmDeleteId(null)}
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X className="h-4 w-4" />
                               </Button>
                             </div>
                           ) : (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive"
                               onClick={() => setConfirmDeleteId(record.id)}
                             >
                               Delete
                             </Button>
-                          )
-                        )}
-                      </TableCell>
-                    </TableRow>
+                          )}
+                        </div>
+                      )}
+                    </MobileTableCard>
                   );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No cash movements in this period
-                  </TableCell>
-                </TableRow>
-              )}
-
-              {/* Table Net Summary */}
-              {!entriesLoading && entries.length > 0 && (
-                <TableRow className="bg-muted/30 font-semibold border-t">
-                  <TableCell colSpan={2} className="font-bold">Period Net</TableCell>
-                  <TableCell className="text-right font-bold">
-                    <span className={net >= 0 ? "text-green-600 dark:text-green-500" : "text-destructive"}>
+                })}
+                {!entriesLoading && entries.length > 0 && (
+                  <div className="flex items-center justify-between py-3 px-2 border-t border-border">
+                    <span className="font-bold">Period Net</span>
+                    <span className={net >= 0 ? "text-green-600 dark:text-green-500 font-bold" : "text-destructive font-bold"}>
                       {net >= 0 ? "+" : ""}
                       {formatBDT(net)}
                     </span>
-                  </TableCell>
-                  <TableCell colSpan={3} />
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">No cash movements in this period</div>
+            )}
+          </div>
 
-        {/* Pagination footer */}
-        <div className="flex items-center justify-between p-4 border-t bg-muted/20">
-          <div className="text-sm text-muted-foreground">
-            Total {entriesData?.total ?? 0} entries
+          <div className="flex items-center justify-between p-4 border-t bg-muted/20">
+            <div className="text-sm text-muted-foreground">
+              Total {entriesData?.total ?? 0} entries
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+              >
+                Previous
+              </Button>
+              <span className="text-sm font-medium">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage(prev => prev + 1)}
+              >
+                Next
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage(prev => Math.max(1, prev - 1))}
-            >
-              Previous
-            </Button>
-            <span className="text-sm font-medium">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage(prev => prev + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
         </CardContent>
       </Card>
 

@@ -2,11 +2,11 @@
 
 Live tracking file — updated as work progresses.
 
-**Current State (2026-06-26):**
+**Current State (2026-07-02):**
 - ✅ Track A (Frontend Modernization): **COMPLETE** — Vite SPA + React Router + shadcn/ui
-- ✅ Track B (Authentication): **COMPLETE** — Supabase Auth integrated, ready to test
-- ✅ Backend NestJS: **Still running on Cloud Run** — No migration needed; frontend calls it for business logic
-- ⏳ **Next step:** Fill in Supabase ANON_KEY in `.env.local` and test login flow
+- ✅ Track B (Authentication): **COMPLETE** — Supabase Auth integrated and in use
+- ✅ Track B (Backend collapse): **COMPLETE** — `supershop-backend/` (NestJS on Cloud Run) has been deleted; all business logic reimplemented in `src/lib/api/routes/*.ts`, calling Supabase directly
+- The migration is done. No backend server exists; the app is a standalone Vite SPA talking directly to Supabase.
 
 ---
 
@@ -16,7 +16,7 @@ Live tracking file — updated as work progresses.
 |------|----------|--------|
 | 2026-06-25 | **Vite migration confirmed** | User confirmed no ads will be placed. Vite SPA is fine. |
 | 2026-06-25 | **Full antd rip-out → shadcn** | User confirmed aggressive path. |
-| 2026-06-25 | **Keep NestJS backend on Cloud Run** | DB already Supabase free tier. Cloud Run min=0, ~$0/mo. Track B deferred. |
+| 2026-06-25 | **Initially kept NestJS backend on Cloud Run** | DB already Supabase free tier; Cloud Run min=0, ~$0/mo. Superseded — backend was later fully collapsed and deleted (see Track B below). |
 | 2026-06-25 | **injectManifest strategy for PWA** | Keeps existing `src/sw.js` with full workbox control. `manifest: false` since `public/manifest.json` already exists. |
 
 ---
@@ -135,34 +135,25 @@ All Ant Design components (Button, Input, Card, Table, Modal, Typography, Popcon
 ---
 
 ## Track B — Backend collapse
-**Status:** 🔄 In Progress (Phase B0 complete, B1–B7 pending)
+**Status:** ✅ Complete — `supershop-backend/` (NestJS on Cloud Run) is fully deleted. All business logic now runs client-side against Supabase.
 
-### Phase B0 — Safety + scaffolding
-**Status:** ✅ Complete (2026-06-26)
+### Prisma schema
+**Status:** ✅ Complete
 
-| Task | Status | Notes |
-|------|--------|-------|
-| Database backup created | ✅ Done | 4.8MB dump created at `supershop-backend/backups/db-backup-20260626T042922Z.dump.gz` |
-| Prisma schema + migrations copied | ✅ Done | Copied to `supershop-frontend/prisma/` (read-only, no modifications) |
-| `@prisma/client` + `prisma` installed | ✅ Done | Version 5.8.0 (pinned to match backend) |
-| Singleton Prisma client created | ✅ Done | `src/lib/prisma.ts` with `globalThis` guard for Vercel Fluid Compute |
-| `prisma generate` successful | ✅ Done | Client types generated, schema validated |
-| Sanity query verification script | ✅ Done | `scripts/verify-prisma.ts` ready; run with `DATABASE_URL` set |
+The Prisma schema + migrations were copied into `supershop-frontend/prisma/` (source of truth: `prisma/schema.prisma`). Prisma is used **only** via the CLI (`npx prisma migrate dev`, `prisma generate`) as the schema/migration tool against Supabase Postgres — there is no runtime Prisma client in the app. All data access at runtime goes through `supabase.from(...)` / `supabase.rpc(...)` calls in `src/lib/api/routes/*.ts`.
 
 ---
 
-### Phase B — Authentication (Supabase)
-**Status:** ✅ Complete (2026-06-26)
+### Authentication (Supabase)
+**Status:** ✅ Complete
 
-**Decision:** Vite is a bundler, not a framework. Next.js route handlers won't work. Instead of restoring Next.js, we use **Supabase Auth** (fully managed, serverless).
+**Decision:** Vite is a bundler, not a framework — no Next.js route handlers. Auth is handled entirely by **Supabase Auth** (fully managed, serverless), with no backend involved.
 
 **Architecture:**
 ```
 Browser (Vite SPA)
   ↓
-Supabase Auth (signup/login/JWT)
-  ↓
-Cloud Run NestJS Backend (validate JWT, serve business logic)
+Supabase Auth (signup/login/session) + Postgres (via PostgREST)
 ```
 
 **Implemented:**
@@ -170,59 +161,25 @@ Cloud Run NestJS Backend (validate JWT, serve business logic)
 | Component | Status | Details |
 |-----------|--------|---------|
 | `src/lib/supabase.ts` | ✅ Done | Supabase JS client configured |
-| `src/hooks/useSupabaseAuth.ts` | ✅ Done | Auth state hook (login, logout, user) |
-| Login page (`src/app/login/page.tsx`) | ✅ Done | Updated to use Supabase Auth |
+| `src/components/auth/AuthProvider.tsx` (`useSupabaseAuth()`) | ✅ Done | Auth state + `users` table profile lookup |
+| Login page (`src/app/login/page.tsx`) | ✅ Done | Uses Supabase Auth |
 | `src/components/auth/ProtectedRoute.tsx` | ✅ Done | Route protection via Supabase user |
-| `src/lib/api.ts` | ✅ Works | Injects JWT from localStorage (from Supabase) |
-| `.env.local` | ⏳ Needs | VITE_SUPABASE_ANON_KEY (get from Supabase Dashboard) |
+| `src/lib/api.ts` | ✅ Done | Local in-process router — no HTTP calls, no JWT injection needed |
+| Token refresh | ✅ Done | Handled entirely by the Supabase client (`onAuthStateChange`) |
 
 **Removed (no longer needed):**
-- ❌ `/src/app/api/v1/*` — Next.js route handlers (delete: not executable in Vite)
-- ❌ `/src/server/*` — JWT utilities (delete: Supabase handles this)
-
-**Setup Required (3 steps):**
-1. Get `VITE_SUPABASE_ANON_KEY` from Supabase Dashboard → Settings → API
-2. Paste into `.env.local` (already has URL)
-3. Create test user in Supabase Auth (email: owner@shop1.com, password: NFdfp@JP@N75P3J)
-
-**Testing:**
-- ✅ Login form submits to Supabase
-- ✅ JWT stored in localStorage
-- ✅ API client attaches token to requests (existing code, works as-is)
-- ⏳ Backend JWT validation (needs Supabase JWKS setup — see below)
-
-**Reference:** Full setup guide in `SUPABASE_AUTH_SETUP.md`
-4. Monitor Vercel function logs + Supabase connection pool
-5. **Rollback:** Change env var → redeploy (1-2 min, no code changes)
-
-Cloud Run stays live as fallback during parallel-run phase.
+- `/src/app/api/v1/*` — Next.js route handlers (removed with the Next.js → Vite migration)
+- `/src/server/*` — JWT utilities (removed; Supabase handles this)
+- `supershop-backend/` — NestJS backend, deleted entirely
 
 ---
 
-### Phase B7 — Decommission
-**Status:** ✅ Ready (only after 24-48h stable on Vercel)
+## Business logic migration
+**Status:** ✅ Complete
 
-After production soak proves stable:
-1. Scale Cloud Run to 0 (or delete)
-2. Archive backend repo (`git tag archive/main`)
-3. Update runbook: Prisma migrations owned by frontend now
-4. Remove Cloud Run from CI/CD
+All domain business logic (catalog, inventory, sales, cash box, expenses, credits, tenants, notifications, backup/import, users) has been reimplemented as route handlers under `src/lib/api/routes/*.ts`, dispatched via `src/lib/api/router.ts`. Each handler calls Supabase directly and filters by `tenantId` manually (no Postgres RLS yet). See `BACKEND_BUSINESS_LOGIC.md` for the full per-feature breakdown.
 
-**Final cost:** ~$0/month (Vercel Functions + Supabase free tier)
-
----
-
-## Remaining Work
-
-All core infrastructure complete. Remaining phases (B3 continuation, B4-B7) follow documented patterns:
-
-- **B3 continuation:** 10+ domain module endpoints (1-2 hours each, parallel)
-- **B4:** Copy static files, 1 line update to next.config.js
-- **B5:** Configure build profiles (already designed)
-- **B6:** Deploy to Vercel (1 click) + env vars + smoke test
-- **B7:** Cleanup Cloud Run (1 command)
-
-**Total time to full cutover:** ~20-30 hours spread over 3-5 days (or faster in parallel)
+Offline support continues to work as before: `src/lib/api-offline.ts` serves IndexedDB reads/writes when offline, with `offline-queue.ts` / `offline-sync.ts` replaying queued mutations once back online.
 
 ---
 

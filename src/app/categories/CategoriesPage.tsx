@@ -35,6 +35,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 
 interface Category {
   id: string;
@@ -147,80 +148,142 @@ export default function CategoriesPage() {
           <CardHeader className="pb-4 p-5 border-b border-border/60">
             <CardTitle className="text-lg font-semibold">Categories</CardTitle>
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Products</TableHead>
-                <TableHead className="text-right w-[150px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <CardContent className="p-0">
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Products</TableHead>
+                    <TableHead className="text-right w-[150px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                      </TableCell>
+                    </TableRow>
+                  ) : categories.length > 0 ? (
+                    categories.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell className="font-medium">{record.name}</TableCell>
+                        <TableCell>{record._count?.products || 0}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2 items-center">
+                            {deletingId === record.id ? (
+                              <div className="flex gap-1.5">
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => deleteMutation.mutate(record.id)}
+                                  disabled={deleteMutation.isPending}
+                                >
+                                  Confirm
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setDeletingId(null)}
+                                  disabled={deleteMutation.isPending}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleOpenModal(record)}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeletingId(record.id)}
+                                >
+                                  <Trash className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                        No categories found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="md:hidden p-4 space-y-3">
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                </div>
               ) : categories.length > 0 ? (
                 categories.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell className="font-medium">{record.name}</TableCell>
-                    <TableCell>{record._count?.products || 0}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2 items-center">
-                        {deletingId === record.id ? (
-                          <div className="flex gap-1.5">
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteMutation.mutate(record.id)}
-                              disabled={deleteMutation.isPending}
-                            >
-                              Confirm
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setDeletingId(null)}
-                              disabled={deleteMutation.isPending}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => handleOpenModal(record)}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setDeletingId(record.id)}
-                            >
-                              <Trash className="w-4 h-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <MobileTableCard key={record.id}>
+                    <div className="font-semibold text-sm">{record.name}</div>
+                    <MobileTableCardRow label="Products" value={record._count?.products || 0} />
+                    <div className="pt-2 border-t border-border mt-2">
+                      {deletingId === record.id ? (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="flex-1"
+                            onClick={() => deleteMutation.mutate(record.id)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            Confirm
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setDeletingId(null)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => handleOpenModal(record)}
+                          >
+                            <Pencil className="w-4 h-4 mr-2" /> Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-destructive"
+                            onClick={() => setDeletingId(record.id)}
+                          >
+                            <Trash className="w-4 h-4 mr-2" /> Delete
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </MobileTableCard>
                 ))
               ) : (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                    No categories found.
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8 text-muted-foreground">No categories found.</div>
               )}
-            </TableBody>
-          </Table>
+            </div>
           </CardContent>
         </Card>
 

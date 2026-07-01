@@ -6,10 +6,15 @@ import { createSale } from '../services/salesService'
 const getSales: RouteHandler = async ({ tenantId, query }) => {
   const limit = Number(query.get('limit') || '50')
   const offset = Number(query.get('offset') || '0')
-  const { data, error } = await supabase
+  const since = query.get('since')
+  let dbQuery = supabase
     .from('sales')
     .select('*, items:sale_items(*, inventory:inventory_items(*)), employee:users(*)')
     .eq('tenantId', tenantId)
+  if (since) {
+    dbQuery = dbQuery.gte('updatedAt', since)
+  }
+  const { data, error } = await dbQuery
     .order('saleTime', { ascending: false })
     .range(offset, offset + limit - 1)
   if (error) throw error

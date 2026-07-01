@@ -8,6 +8,12 @@ import { NetworkStatus } from "./NetworkStatus";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Monitor,
   Sun,
   Moon,
@@ -16,6 +22,7 @@ import {
   Menu as MenuIcon,
 } from "lucide-react";
 import NotificationSetup from "@/components/notifications/NotificationSetup";
+import { BottomSheet } from "@/components/mobile/BottomSheet";
 
 const PATH_LABELS: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -146,38 +153,45 @@ const AppSidebar = ({
   </div>
 );
 
+const THEME_OPTIONS: { value: "system" | "light" | "dark"; icon: React.ReactNode; label: string }[] = [
+  { value: "system", icon: <Monitor className="w-4 h-4" />, label: "System" },
+  { value: "light", icon: <Sun className="w-4 h-4" />, label: "Light" },
+  { value: "dark", icon: <Moon className="w-4 h-4" />, label: "Dark" },
+];
+
 const ThemeToggle = ({
   mode,
   setMode,
-  compact = false,
 }: {
   mode: string;
   setMode: (m: "system" | "light" | "dark") => void;
-  compact?: boolean;
 }) => {
-  const options: { value: "system" | "light" | "dark"; icon: React.ReactNode; label: string }[] = [
-    { value: "system", icon: <Monitor className="w-4 h-4" />, label: "System" },
-    { value: "light", icon: <Sun className="w-4 h-4" />, label: "Light" },
-    { value: "dark", icon: <Moon className="w-4 h-4" />, label: "Dark" },
-  ];
+  const current = THEME_OPTIONS.find((o) => o.value === mode) ?? THEME_OPTIONS[0];
   return (
-    <div className="flex items-center rounded-lg border border-border bg-muted p-0.5 gap-0.5">
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          onClick={() => setMode(opt.value)}
-          title={opt.label}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-ring ${
-            mode === opt.value
-              ? "bg-background text-foreground shadow-xs"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          title={`Theme: ${current.label}`}
+          className="h-9 w-9 text-muted-foreground hover:text-foreground"
         >
-          {opt.icon}
-          {!compact && <span className="hidden md:inline">{opt.label}</span>}
-        </button>
-      ))}
-    </div>
+          {current.icon}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {THEME_OPTIONS.map((opt) => (
+          <DropdownMenuItem
+            key={opt.value}
+            onClick={() => setMode(opt.value)}
+            className={mode === opt.value ? "font-medium text-foreground" : "text-muted-foreground"}
+          >
+            {opt.icon}
+            <span className="ml-2">{opt.label}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
@@ -288,34 +302,25 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </aside>
       )}
 
-      {/* Sidebar Drawer for Mobile */}
+      {/* Bottom Sheet Navigation for Mobile */}
       {isMobile && (
-        <>
-          {/* Backdrop */}
-          {mobileOpen && (
-            <div
-              className="fixed inset-0 bg-black/40 z-50 md:hidden"
-              onClick={() => setMobileOpen(false)}
-            />
-          )}
-          {/* Drawer content */}
-          <aside
-            className={`fixed inset-y-0 left-0 w-64 bg-background border-r border-border z-50 md:hidden flex flex-col transform transition-transform duration-300 ${
-              mobileOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
-          >
-            <AppSidebar
-              collapsed={false}
-              isMobile={isMobile}
-              setMobileOpen={setMobileOpen}
-              setCollapsed={setDrawerCollapsed}
-              navigationItems={navigationItems}
-              selectedKey={selectedKey}
-              user={user}
-              onLogout={handleLogout}
-            />
-          </aside>
-        </>
+        <BottomSheet
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          title="Menu"
+          className="md:hidden"
+        >
+          <AppSidebar
+            collapsed={false}
+            isMobile={isMobile}
+            setMobileOpen={setMobileOpen}
+            setCollapsed={setDrawerCollapsed}
+            navigationItems={navigationItems}
+            selectedKey={selectedKey}
+            user={user}
+            onLogout={handleLogout}
+          />
+        </BottomSheet>
       )}
 
       {/* Main Content Area */}
@@ -342,7 +347,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             <ThemeToggle
               mode={themeContext.mode}
               setMode={themeContext.setMode}
-              compact={isMobile}
             />
           </div>
         </header>

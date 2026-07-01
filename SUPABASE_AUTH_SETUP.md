@@ -2,30 +2,17 @@
 
 ## Overview
 
-The frontend has been migrated from Firebase Auth to Supabase Auth. This is a simpler, more integrated approach that:
+The app is a standalone Vite SPA (React 18) that talks directly to Supabase (Postgres + PostgREST + Supabase Auth) via `@supabase/supabase-js`. There is no backend server — the old NestJS backend (`supershop-backend/`) has been fully deleted. Supabase Auth is the sole, complete authentication mechanism:
 
-- ✅ Works with Vite SPA (no Next.js required)
-- ✅ Uses Supabase's managed authentication (no backend needed)
-- ✅ Automatically stores JWT in localStorage for API requests
-- ✅ Integrates with the existing Cloud Run NestJS backend
+- ✅ Vite SPA, no Next.js
+- ✅ Supabase's managed authentication — no backend needed
+- ✅ Session/token refresh handled entirely by the Supabase client (auto-refresh)
+- ✅ `src/lib/api.ts` is a local in-process router that dispatches straight to `supabase.from(...)` / `supabase.rpc(...)` calls in `src/lib/api/routes/*.ts`
 
-## What Changed
+## Architecture
 
-### Removed
-- ❌ Next.js route handlers (`/src/app/api/v1/auth/*`)
-- ❌ `/src/server/*` helper files (JWT generation, guards, etc.)
-- ❌ Firebase Auth dependency (still available but not used for login)
-
-### Added
-- ✅ `src/lib/supabase.ts` — Supabase client
-- ✅ `src/hooks/useSupabaseAuth.ts` — Auth state management
-- ✅ Updated login page to use Supabase Auth
-- ✅ Updated ProtectedRoute to use Supabase auth
-
-### Unchanged
-- `src/lib/api.ts` — Still reads JWT from localStorage (works as-is)
-- `src/components/auth/AuthProvider.tsx` — Can be kept for compatibility
-- `prisma/schema.prisma` — Database schema (read-only)
+- `src/components/auth/AuthProvider.tsx` wraps `useSupabaseAuth()` (a hook around the Supabase client's auth session) and layers a `users` table profile fetch on top — looked up by email, falling back to id, falling back to Supabase `user_metadata` if the DB lookup fails.
+- Route handlers read `tenantId`/`userId` from local auth state (not a backend-issued JWT) and filter Supabase queries manually — there is currently no Postgres RLS enforcing tenant isolation.
 
 ---
 
@@ -86,75 +73,6 @@ INSERT INTO public.users (
 );
 ```
 
-### Step 3: Update Backend to Validate Supabase JWT
-
-Your Cloud Run NestJS backend needs to validate tokens from Supabase (not generate them).
-
-**Update `supershop-backend/src/modules/auth/strategies/jwt.strategy.ts`:**
-
-```ts
-import { Injectable } from '@nestjs/common'
-import { PassportStrategy } from '@nestjs/passport'
-import { Strategy, ExtractJwt } from 'passport-jwt'
-
-@Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
-    super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      // Use Supabase's public key (available via JWKS endpoint)
-      // For now, we'll use HS256 with a temporary secret — update before production
-      secretOrKey: process.env.JWT_SECRET || 'your-jwt-secret',
-    })
-  }
-
-  async validate(payload: any) {
-    // Supabase JWT has these fields:
-    // payload.sub = user ID
-    // payload.email = user email
-    // payload.aud = "authenticated"
-    
-    // Link to your app's users table by email
-    return { userId: payload.sub, email: payload.email }
-  }
-}
-```
-
-**For production (recommended):** Use Supabase's JWKS endpoint to validate without a shared secret:
-
-```ts
-import { Injectable } from '@nestjs/common'
-import { PassportStrategy } from '@nestjs/passport'
-import { Strategy, ExtractJwt } from 'passport-jwt'
-import * as jwksClient from 'jwks-rsa'
-
-@Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
-  private jwksClient: jwksClient.JwksClient
-
-  constructor() {
-    const projectId = process.env.VITE_SUPABASE_URL.split('.')[0] // Extract from URL
-    
-    super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrPublicKey: async (header, callback) => {
-        const key = await this.jwksClient.getSigningKey(header.kid)
-        callback(null, key.getPublicKey())
-      },
-    })
-
-    this.jwksClient = jwksClient.default({
-      jwksUri: `${process.env.VITE_SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
-    })
-  }
-
-  async validate(payload: any) {
-    return { userId: payload.sub, email: payload.email }
-  }
-}
-```
-
 ---
 
 ## Testing the Flow
@@ -171,18 +89,11 @@ npm run dev
 - Password: `NFdfp@JP@N75P3J`
 - Expected: Login succeeds → redirects to `/pos`
 
-### 3. Verify token is stored
+### 3. Verify session is stored
 ```javascript
 // In browser DevTools console:
-localStorage.getItem('accessToken')
-// Should output: JWT token starting with "eyJ..."
-```
-
-### 4. Test API call with token
-```bash
-curl -H "Authorization: Bearer $(node -e 'console.log(localStorage.getItem(\"accessToken\"))')" \
-  http://localhost:8000/api/v1/users/me
-# Should return authenticated user profile
+supabase.auth.getSession().then(r => console.log(r))
+// Should output a session containing an access_token starting with "eyJ..."
 ```
 
 ---
@@ -197,17 +108,13 @@ curl -H "Authorization: Bearer $(node -e 'console.log(localStorage.getItem(\"acc
 **Problem:** User doesn't exist in Supabase Auth  
 **Solution:** Create the user (see Step 2 → Option B)
 
-### "401 Unauthorized on API calls"
-**Problem:** Backend can't validate JWT token  
-**Solution:** Ensure backend JWT strategy uses correct secret/public key
-
-### Token not stored in localStorage
-**Problem:** Login succeeds but token missing  
-**Solution:** Check DevTools → Network → login response contains `access_token`
+### Session not found / user logged out unexpectedly
+**Problem:** Supabase client couldn't refresh the session  
+**Solution:** Check DevTools → Application → Local Storage for the `sb-...-auth-token` key; verify `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` are correct
 
 ---
 
-## Architecture After Migration
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -215,74 +122,35 @@ curl -H "Authorization: Bearer $(node -e 'console.log(localStorage.getItem(\"acc
 ├─────────────────────────────────────────────────────┤
 │ 1. User fills login form                            │
 │ 2. Frontend calls: supabase.auth.signInWithPassword │
-│ 3. Supabase returns JWT                             │
-│ 4. Frontend stores JWT in localStorage              │
-│ 5. API client attaches: Authorization: Bearer JWT   │
+│ 3. Supabase returns a session (JWT + refresh token) │
+│ 4. Supabase client persists & auto-refreshes it     │
+│ 5. src/lib/api.ts route handlers call               │
+│    supabase.from(...)/supabase.rpc(...) directly    │
 └─────────────────────────────────────────────────────┘
          │
-         │ Login request
+         │ Auth + data requests
          ▼
 ┌─────────────────────────────────────────────────────┐
-│ Supabase Auth (Managed)                             │
+│ Supabase (Managed)                                  │
 ├─────────────────────────────────────────────────────┤
-│ - Email/password verification                       │
-│ - JWT generation (HS256)                            │
-│ - Session management                                │
-└─────────────────────────────────────────────────────┘
-         │
-         │ API requests with JWT
-         ▼
-┌─────────────────────────────────────────────────────┐
-│ Cloud Run NestJS Backend                            │
-├─────────────────────────────────────────────────────┤
-│ - Validates JWT against Supabase public key         │
-│ - Returns protected resources (products, sales)     │
-│ - Enforces multi-tenant isolation                   │
+│ - Email/password verification (Supabase Auth)       │
+│ - Postgres database via PostgREST                    │
+│ - tenantId filtered manually in route handlers       │
+│   (no RLS enforcing it yet)                          │
 └─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Files Modified
+## Files Involved
 
-| File | Change |
-|------|--------|
-| `src/lib/supabase.ts` | **NEW** — Supabase client |
-| `src/hooks/useSupabaseAuth.ts` | **NEW** — Auth state hook |
-| `src/app/login/page.tsx` | Updated to use Supabase login |
-| `src/components/auth/ProtectedRoute.tsx` | Updated to use Supabase auth |
-| `.env.local` | Added Supabase credentials |
-| `/src/app/api/v1/*` | **DELETED** — Old Next.js routes |
-| `/src/server/*` | **DELETED** — Old JWT utilities |
-
----
-
-## Next: Backend Database Integration
-
-Once login works, optionally sync Supabase Auth users with your PostgreSQL `users` table:
-
-```ts
-// After successful Supabase login, create/update app user:
-const { data: { user } } = await supabase.auth.getUser()
-const response = await api.post('/users', {
-  id: user.id,
-  email: user.email,
-  fullName: user.user_metadata.full_name || '',
-})
-```
-
-Backend route to create/update users from Supabase ID:
-```ts
-// POST /users (backend)
-@Post()
-async createUser(@Body() dto: CreateUserDto, @CurrentUser() user: User) {
-  return this.userService.upsertFromSupabase(
-    dto.id,     // Supabase user.id
-    dto.email,  // From Supabase
-    dto.fullName
-  )
-}
-```
+| File | Role |
+|------|------|
+| `src/lib/supabase.ts` | Supabase client |
+| `src/hooks/useSupabaseAuth.ts` | Auth state hook (wraps Supabase session) |
+| `src/components/auth/AuthProvider.tsx` | Auth context — layers `users` table profile on top of the Supabase session |
+| `src/lib/api.ts` | Local in-process router dispatching to `src/lib/api/routes/*.ts` |
+| `src/lib/api/routes/*.ts` | Per-domain handlers calling `supabase.from(...)`/`supabase.rpc(...)` |
 
 ---
 
@@ -301,13 +169,10 @@ supabase.auth.onAuthStateChange((event, session) => {
 })
 ```
 
-**View stored credentials (DevTools Console):**
+**View stored session (DevTools Console):**
 ```javascript
-localStorage.getItem('accessToken')  // JWT
-localStorage.getItem('sb-...')       // Supabase session data
+localStorage.getItem('sb-<project-ref>-auth-token')  // Supabase session data
 ```
-
----
 
 ---
 
@@ -315,9 +180,8 @@ localStorage.getItem('sb-...')       // Supabase session data
 
 Read these files for more context:
 1. **ARCHITECTURE.md** — Complete system architecture & data flow
-2. **MIGRATION_STATUS.md** — Migration progress from Next.js to Vite
-3. **src/hooks/useSupabaseAuth.ts** — Auth hook implementation details
-4. **src/components/auth/AuthProvider.tsx** — Auth context using Supabase
+2. **src/hooks/useSupabaseAuth.ts** — Auth hook implementation details
+3. **src/components/auth/AuthProvider.tsx** — Auth context using Supabase
 
 ---
 
@@ -326,5 +190,4 @@ Read these files for more context:
 Refer to:
 - **Supabase Docs:** https://supabase.com/docs/guides/auth
 - **Implementation:** `src/hooks/useSupabaseAuth.ts`
-- **Backend JWT validation:** See Step 3 in this guide
 - **System architecture:** See `ARCHITECTURE.md`

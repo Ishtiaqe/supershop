@@ -31,17 +31,24 @@ registerRoute(
       throw new Error('Server error or 404');
     } catch (err) {
       // Network failed or server error -> try cache
-      
+
       // 1. Try Runtime Cache (pages visited before)
       const cachedResponse = await caches.match(request);
       if (cachedResponse) return cachedResponse;
-      
+
       // 2. Try Precache (static pages generated at build time)
       const precachedResponse = await matchPrecache(request);
       if (precachedResponse) return precachedResponse;
-      
-      // 3. Fallback to offline page
-      return caches.match('/offline');
+
+      // 3. Fall back to the app shell so the client-side router can render —
+      // this is a React Router SPA, not a multi-page app, so there is no
+      // separately-built /offline.html to serve; caches.match('/offline')
+      // here always missed (nothing ever populates that exact cache key),
+      // which is why the app showed a blank page instead of any UI when
+      // opened while offline with no prior visit cached.
+      const shellResponse = await matchPrecache('/index.html');
+      if (shellResponse) return shellResponse;
+      return caches.match('/index.html');
     }
   }
 );

@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { Sale } from "@/types";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 import { toast } from "sonner";
 
 // Import shadcn UI components
@@ -166,21 +167,21 @@ export default function SalesPage() {
                 onChange={(e) => setSearchText(e.target.value)}
                 className="w-full sm:w-[220px]"
               />
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Input
                   type="date"
                   id="sales-start-date"
                   value={startDateStr}
                   onChange={(e) => setStartDateStr(e.target.value)}
-                  className="w-[140px]"
+                  className="w-full sm:w-[140px]"
                 />
-                <span className="text-muted-foreground text-sm">to</span>
+                <span className="hidden sm:inline text-muted-foreground text-sm">to</span>
                 <Input
                   type="date"
                   id="sales-end-date"
                   value={endDateStr}
                   onChange={(e) => setEndDateStr(e.target.value)}
-                  className="w-[140px]"
+                  className="w-full sm:w-[140px]"
                 />
               </div>
               <select
@@ -198,111 +199,197 @@ export default function SalesPage() {
               </select>
             </div>
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Receipt Number</TableHead>
-                <TableHead>Customer Name</TableHead>
-                <TableHead>Customer Phone</TableHead>
-                <TableHead>Time</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Profit</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
+          <CardContent className="p-0">
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                  </TableCell>
+                  <TableHead>Receipt Number</TableHead>
+                  <TableHead>Customer Name</TableHead>
+                  <TableHead>Customer Phone</TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Profit</TableHead>
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
-              ) : filteredSales.length > 0 ? (
-                filteredSales.map((record) => (
-                  <TableRow key={record.id} className="hover:bg-muted/50">
-                    <TableCell
-                      className="font-semibold cursor-pointer"
-                      onClick={() => handleRowClick(record)}
-                      onMouseEnter={() => prefetchSaleDetails(record.id)}
-                    >
-                      {record.receiptNumber}
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
                     </TableCell>
-                    <TableCell
-                      className="cursor-pointer"
-                      onClick={() => handleRowClick(record)}
-                      onMouseEnter={() => prefetchSaleDetails(record.id)}
-                    >
-                      {record.customerName || "—"}
-                    </TableCell>
-                    <TableCell
-                      className="cursor-pointer"
-                      onClick={() => handleRowClick(record)}
-                      onMouseEnter={() => prefetchSaleDetails(record.id)}
-                    >
-                      {record.customerPhone || "—"}
-                    </TableCell>
-                    <TableCell
-                      className="cursor-pointer"
-                      onClick={() => handleRowClick(record)}
-                      onMouseEnter={() => prefetchSaleDetails(record.id)}
-                    >
-                      {new Date(record.saleTime).toLocaleString()}
-                    </TableCell>
-                    <TableCell
-                      className="text-right font-medium cursor-pointer"
-                      onClick={() => handleRowClick(record)}
-                      onMouseEnter={() => prefetchSaleDetails(record.id)}
-                    >
-                      ৳{record.totalAmount.toFixed(2)}
-                    </TableCell>
-                    <TableCell
-                      className="text-right text-emerald-600 font-semibold cursor-pointer"
-                      onClick={() => handleRowClick(record)}
-                      onMouseEnter={() => prefetchSaleDetails(record.id)}
-                    >
-                      ৳{record.totalProfit.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                      {user?.role === "OWNER" && deletingId === record.id ? (
-                        <div className="flex gap-1">
+                  </TableRow>
+                ) : filteredSales.length > 0 ? (
+                  filteredSales.map((record) => (
+                    <TableRow key={record.id} className="hover:bg-muted/50">
+                      <TableCell
+                        className="font-semibold cursor-pointer"
+                        onClick={() => handleRowClick(record)}
+                        onMouseEnter={() => prefetchSaleDetails(record.id)}
+                      >
+                        {record.receiptNumber}
+                      </TableCell>
+                      <TableCell
+                        className="cursor-pointer"
+                        onClick={() => handleRowClick(record)}
+                        onMouseEnter={() => prefetchSaleDetails(record.id)}
+                      >
+                        {record.customerName || "—"}
+                      </TableCell>
+                      <TableCell
+                        className="cursor-pointer"
+                        onClick={() => handleRowClick(record)}
+                        onMouseEnter={() => prefetchSaleDetails(record.id)}
+                      >
+                        {record.customerPhone || "—"}
+                      </TableCell>
+                      <TableCell
+                        className="cursor-pointer"
+                        onClick={() => handleRowClick(record)}
+                        onMouseEnter={() => prefetchSaleDetails(record.id)}
+                      >
+                        {new Date(record.saleTime).toLocaleString()}
+                      </TableCell>
+                      <TableCell
+                        className="text-right font-medium cursor-pointer"
+                        onClick={() => handleRowClick(record)}
+                        onMouseEnter={() => prefetchSaleDetails(record.id)}
+                      >
+                        ৳{record.totalAmount.toFixed(2)}
+                      </TableCell>
+                      <TableCell
+                        className="text-right text-emerald-600 font-semibold cursor-pointer"
+                        onClick={() => handleRowClick(record)}
+                        onMouseEnter={() => prefetchSaleDetails(record.id)}
+                      >
+                        ৳{record.totalProfit.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                        {user?.role === "OWNER" && deletingId === record.id ? (
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => voidMutation.mutate(record.id)}
+                              disabled={voidMutation.isPending}
+                            >
+                              {voidMutation.isPending ? "..." : "Confirm"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setDeletingId(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : user?.role === "OWNER" ? (
                           <Button
                             size="sm"
-                            variant="destructive"
-                            onClick={() => voidMutation.mutate(record.id)}
-                            disabled={voidMutation.isPending}
+                            variant="ghost"
+                            onClick={() => setDeletingId(record.id)}
                           >
-                            {voidMutation.isPending ? "..." : "Confirm"}
+                            🗑️
                           </Button>
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      No sales found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+            </div>
+
+            <div className="md:hidden p-4 space-y-3">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                </div>
+              ) : filteredSales.length > 0 ? (
+                filteredSales.map((record) => (
+                  <MobileTableCard
+                    key={record.id}
+                    onClick={() => handleRowClick(record)}
+                    className="relative"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="font-semibold text-sm">{record.receiptNumber}</div>
+                      <Badge variant={record.paymentMethod === "CASH" ? "default" : "secondary"}>
+                        {record.paymentMethod?.toUpperCase() || "CASH"}
+                      </Badge>
+                    </div>
+                    <MobileTableCardRow label="Customer" value={record.customerName || "—"} />
+                    <MobileTableCardRow label="Phone" value={record.customerPhone || "—"} />
+                    <MobileTableCardRow
+                      label="Time"
+                      value={new Date(record.saleTime).toLocaleString()}
+                    />
+                    <MobileTableCardRow
+                      label="Total"
+                      value={`৳${record.totalAmount.toFixed(2)}`}
+                      className="font-bold text-foreground"
+                    />
+                    <MobileTableCardRow
+                      label="Profit"
+                      value={`৳${record.totalProfit.toFixed(2)}`}
+                      className="text-emerald-600"
+                    />
+                    {user?.role === "OWNER" && (
+                      <div className="pt-2 border-t border-border mt-2">
+                        {deletingId === record.id ? (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                voidMutation.mutate(record.id);
+                              }}
+                              disabled={voidMutation.isPending}
+                            >
+                              {voidMutation.isPending ? "..." : "Confirm"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingId(null);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setDeletingId(null)}
+                            className="w-full text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingId(record.id);
+                            }}
                           >
-                            Cancel
+                            Void Sale
                           </Button>
-                        </div>
-                      ) : user?.role === "OWNER" ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setDeletingId(record.id)}
-                        >
-                          🗑️
-                        </Button>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
+                        )}
+                      </div>
+                    )}
+                  </MobileTableCard>
                 ))
               ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    No sales found.
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8 text-muted-foreground">No sales found.</div>
               )}
-            </TableBody>
-          </Table>
+            </div>
           </CardContent>
         </Card>
 

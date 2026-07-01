@@ -4,11 +4,11 @@
 
 A complete, production-ready **Multi-Tenant Shop Management Dashboard** with:
 
-### **Frontend (Next.js)**
+### **Frontend (Vite + React 18)**
 
 ✅ Modern dashboard UI with Tailwind CSS  
 ✅ React Query for data fetching  
-✅ Axios API client with token refresh  
+✅ Supabase client (`@supabase/supabase-js`) talking directly to Postgres/PostgREST — no backend server  
 ✅ TypeScript type safety  
 ✅ Responsive design ready  
 ✅ Vercel deployment ready  
@@ -17,10 +17,10 @@ A complete, production-ready **Multi-Tenant Shop Management Dashboard** with:
 
 #### 1. Authentication Module
 
-- User login with JWT tokens
-- Token refresh mechanism
+- User login via Supabase Auth
+- Session/token refresh handled automatically by the Supabase client
 - Logout functionality
-- Secure token storage
+- Session persisted by Supabase client
 
 #### 2. Dashboard
 
@@ -63,88 +63,74 @@ A complete, production-ready **Multi-Tenant Shop Management Dashboard** with:
 ```
 supershop/
 ├── src/
-│   ├── app/                # Next.js 14 app router
-│   │   ├── login/          # Authentication pages
-│   │   ├── dashboard/      # Main dashboard
-│   │   │   ├── inventory/  # Inventory management
-│   │   │   ├── pos/        # Point of sale
-│   │   │   └── sales/      # Sales reports
-│   │   ├── admin/          # Admin features
-│   │   └── tenant/         # Tenant setup
+│   ├── pages/ or routes/    # React Router views (login, dashboard, inventory, pos, sales, admin, tenant setup)
 │   ├── components/         # React components
 │   │   ├── dashboard/      # Dashboard components
 │   │   ├── inventory/      # Inventory components
 │   │   ├── pos/            # POS components
 │   │   └── sales/          # Sales components
-│   ├── lib/                # Utilities & API client
-│   └── types/              # TypeScript definitions
+│   ├── lib/                # Utilities, Supabase client, local API router
+│   │   └── api/routes/     # Per-domain handlers calling supabase.from(...)/supabase.rpc(...)
+│   └── types/               # TypeScript definitions
 ├── public/                 # Static assets
 ├── scripts/                # Build scripts
 ├── package.json
-├── next.config.js
-└── tailwind.config.js
+├── vite.config.ts
+└── tailwind.config.cjs
 ```
 
-## 🗄️ API Integration
+## 🗄️ Data Integration
 
-### **Backend Communication**
+### **Supabase Communication**
 
-- RESTful API calls to backend service
-- JWT authentication headers
-- Automatic token refresh
-- Error handling and retries
-- Type-safe API responses
+- Direct client calls to Supabase (Postgres via PostgREST + RPC), no backend server in between
+- `src/lib/api.ts` is a local in-process router dispatching to `src/lib/api/routes/*.ts` handlers
+- Session-based auth via Supabase client (auto-refresh)
+- Error handling and retries in route handlers
+- Type-safe request/response shapes
 
-### **Key API Endpoints Used**
+### **Key Data Domains Used**
 
-- `/auth/login` - User authentication
-- `/auth/refresh` - Token refresh
-- `/tenants/me` - Current tenant info
-- `/inventory` - Inventory management
-- `/sales` - Sales transactions
-- `/users` - User management
+- Supabase Auth — user authentication/session
+- `tenants` — current tenant info (filtered by `tenantId` in route handlers)
+- `inventory` — inventory management
+- `sales` — sales transactions
+- `users` — user management
 
 ## 🛡️ Security Features
 
-✅ JWT token authentication  
-✅ Secure token storage (localStorage)  
-✅ Automatic token refresh  
+✅ Supabase Auth session (JWT managed by Supabase client)  
+✅ Automatic session refresh (Supabase client)  
 ✅ Role-based UI rendering  
 ✅ Input validation  
 ✅ XSS protection (React built-in)  
+⚠️ Multi-tenant isolation is enforced manually per query (`tenantId` filter) — no Postgres RLS yet  
 
 ## 🚀 Deployment Ready
 
 ### Frontend Deployment Options
 
-1. **Vercel** - One-click deploy (recommended)
+1. **Vercel** - One-click deploy (recommended, static Vite build)
 2. **Netlify** - Works out of the box
-3. **AWS Amplify** - Supports Next.js
-4. **Self-hosted** - Docker/nginx
+3. **Self-hosted** - Docker/nginx serving the static build
 
 ### Environment Variables
 
 ```env
-NEXT_PUBLIC_API_URL=https://api.shomaj.one/api/v1
-NEXT_PUBLIC_API_URL_BACKUP=https://supershop-backend-531309434570.asia-southeast1.run.app/api/v1
-NEXT_PUBLIC_APP_NAME=SuperShop
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon-key>
 ```
 
 ### Custom Domain
 
 **Primary Domain:** `https://supershop.shomaj.one`
 
-**CORS Configuration Required:**
-- Allow `https://supershop.shomaj.one` on both backend deployments
-- Allow `http://localhost:3000` for development
-
-**Automatic Fallback:** The application will automatically switch to the backup API URL if the primary domain experiences connectivity issues.
+Supabase project must allow this origin (Auth → URL Configuration) for redirects/callbacks.
 
 ## 📊 Performance Optimizations
 
 - React Query caching
-- Image optimization (Next.js built-in)
-- Code splitting (Next.js automatic)
+- Code splitting (Vite/Rollup automatic)
 - CDN delivery (Vercel automatic)
 - Lazy loading components
 
@@ -175,12 +161,12 @@ Structure supports:
 
 | Component | Technology |
 |-----------|------------|
-| Framework | Next.js 14 |
+| Framework | Vite + React 18 (SPA, React Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS |
 | UI Components | shadcn/ui |
 | State Management | React Query |
-| HTTP Client | Axios |
+| Data/Auth Client | Supabase (`@supabase/supabase-js`) — direct to Postgres/PostgREST, no backend server |
 | Deployment | Vercel |
 
 ## 🧹 Dependency Cleanup
@@ -197,8 +183,8 @@ Structure supports:
 
 Before going to production:
 
-- [ ] Set correct API URL in environment
-- [ ] Configure CORS in backend
+- [ ] Set correct Supabase URL/anon key in environment
+- [ ] Configure allowed redirect URLs in Supabase Auth settings
 - [ ] Enable HTTPS
 - [ ] Test all features end-to-end
 - [ ] Optimize images and assets
@@ -219,7 +205,6 @@ Before going to production:
 ## 📞 Support & Resources
 
 - **Repository**: <https://github.com/Ishtiaqe/supershop>
-- **Backend Repo**: [Separate backend repository]
 - **Issues**: GitHub Issues
 
 ## 🎉 Success Metrics

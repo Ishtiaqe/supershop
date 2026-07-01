@@ -1,7 +1,7 @@
 # Backend Business Logic — Status & Inventory
 
-**Last Updated:** 2026-06-26  
-**Summary:** Cloud Run NestJS backend is REQUIRED for all business logic. Frontend is a thin client that calls the backend for everything except authentication.
+**Last Updated:** 2026-07-02
+**Summary:** The Cloud Run NestJS backend has been deleted. This is a standalone Vite SPA (React 18) that talks directly to Supabase (Postgres + PostgREST + Supabase Auth) via `@supabase/supabase-js`. All business logic previously on the backend now lives in `src/lib/api/routes/*.ts` handlers, called through the local router `src/lib/api.ts` → `src/lib/api/router.ts`. When offline, `src/lib/api-offline.ts` reads/writes IndexedDB directly instead of calling Supabase.
 
 ---
 
@@ -10,9 +10,9 @@
 | Aspect | Status |
 |--------|--------|
 | **Authentication** | ✅ Migrated to Supabase Auth (frontend-only) |
-| **Business Logic** | ❌ NOT migrated (still on Cloud Run) |
-| **Can Delete Backend?** | ❌ NO — Required for all data operations |
-| **VITE_API_URL Needed?** | ✅ YES — Points to Cloud Run |
+| **Business Logic** | ✅ Migrated — reimplemented in `src/lib/api/routes/*.ts`, calling Supabase directly |
+| **Backend Deleted?** | ✅ YES — `supershop-backend/` no longer exists |
+| **VITE_API_URL Needed?** | ❌ NO — no remote API server; frontend talks to Supabase directly |
 
 ---
 
@@ -21,30 +21,31 @@
 | Feature | Location | Status |
 |---------|----------|--------|
 | Login (email/password) | `src/app/login/page.tsx` | ✅ Implemented in frontend |
-| Token management | `src/hooks/useSupabaseAuth.ts` | ✅ Implemented in frontend |
+| Token management | Supabase client (`@supabase/supabase-js`) | ✅ Handled entirely by Supabase, no custom refresh logic |
 | Logout | `src/components/auth/AuthProvider.tsx` | ✅ Uses Supabase |
 | Protected routes | `src/components/auth/ProtectedRoute.tsx` | ✅ Checks Supabase user |
+| User profile lookup | `src/components/auth/AuthProvider.tsx` (`useSupabaseAuth()`) | ✅ Queries `users` table directly via Supabase |
 
-**Backend auth endpoints called:**
-- `POST /auth/register` → ✅ KEPT (creates app user tied to tenant)
-- `GET /users/me` → ✅ KEPT (fetches authenticated user profile)
+Registration and profile fetch are handled the same way as the rest of the app: route handlers in `src/lib/api/routes/auth.ts` and `users.ts` call Supabase directly. There is no separate backend auth service.
 
 ---
 
-## Business Logic (Cloud Run — NOT MIGRATED)
+## Business Logic (now implemented in this repo)
 
-All endpoints below **REQUIRED** and still running on Cloud Run.
+All items below are implemented as route handlers under `src/lib/api/routes/`, dispatched from `src/lib/api/router.ts`. Each handler calls `supabase.from(...)` / `supabase.rpc(...)` directly — this is the business logic layer now.
 
 ### 1. Catalog Management (3 endpoints)
 
-| Endpoint | Method | Purpose | Frontend Caller |
+**Implemented in:** `src/lib/api/routes/catalog.ts`
+
+| Route (local) | Method | Purpose | Frontend Caller |
 |----------|--------|---------|-----------------|
 | `/catalog/products` | GET | List all products | src/app/catalog/page.tsx |
 | `/catalog/products` | POST | Create product | src/app/catalog/page.tsx |
 | `/catalog/brands` | POST | Create brand | src/app/brands/page.tsx |
 | `/catalog/categories` | POST | Create category | src/app/categories/page.tsx |
 
-**Why on backend?**
+**Why this logic exists (not just raw CRUD)?**
 - Multiple tenants share data but filtered by tenant ID
 - Complex filtering and search (SKU, name, type, brand)
 - Inventory links via product variants
@@ -52,14 +53,16 @@ All endpoints below **REQUIRED** and still running on Cloud Run.
 
 ### 2. Inventory Management (2+ endpoints)
 
-| Endpoint | Method | Purpose | Frontend Caller |
+**Implemented in:** `src/lib/api/routes/inventory.ts` and `src/lib/api/routes/shortlist.ts`
+
+| Route (local) | Method | Purpose | Frontend Caller |
 |----------|--------|---------|-----------------|
 | `/inventory` | GET | List inventory items | src/app/inventory/page.tsx |
 | `/inventory` | POST | Create inventory item | src/app/inventory/page.tsx |
 | `/shortlist/add/{inventoryId}` | POST | Add to shortlist | src/hooks/useShortlist.ts |
 | `/shortlist/{inventoryId}/toggle` | POST | Toggle shortlist | src/app/shortlist/page.tsx |
 
-**Why on backend?**
+**Why this logic exists (not just raw CRUD)?**
 - Multi-tenant scoping (each tenant has separate inventory)
 - Variant-to-product relationships
 - Batch number & expiry tracking
@@ -68,12 +71,14 @@ All endpoints below **REQUIRED** and still running on Cloud Run.
 
 ### 3. Sales Recording (1 endpoint — complex)
 
-| Endpoint | Method | Purpose | Frontend Caller |
+**Implemented in:** `src/lib/api/routes/sales-history.ts`
+
+| Route (local) | Method | Purpose | Frontend Caller |
 |----------|--------|---------|-----------------|
 | `/sales` | GET | List sales | src/app/sales/page.tsx |
 | `/sales` | POST | Record sale | src/app/pos/page.tsx |
 
-**Why on backend?**
+**Why this logic exists (not just raw CRUD)?**
 - **Complex side effects:**
   - Automatically creates `ShortList` entry if quantity < 10
   - Automatically creates `CashBoxEntry` if payment method = CASH
@@ -86,12 +91,14 @@ All endpoints below **REQUIRED** and still running on Cloud Run.
 
 ### 4. Cash Box Management (2 endpoints)
 
-| Endpoint | Method | Purpose | Frontend Caller |
+**Implemented in:** `src/lib/api/routes/cashBox.ts`
+
+| Route (local) | Method | Purpose | Frontend Caller |
 |----------|--------|---------|-----------------|
 | `/cash-box` | GET | List cash box entries | src/app/cash-box/ |
 | `/cash-box/entries` | POST | Record transaction | src/app/cash-box/hooks/useCashBoxHooks.ts |
 
-**Why on backend?**
+**Why this logic exists (not just raw CRUD)?**
 - Financial record keeping
 - Balance tracking across days
 - Reconciliation & audits
@@ -100,13 +107,15 @@ All endpoints below **REQUIRED** and still running on Cloud Run.
 
 ### 5. Expense Tracking (3+ endpoints)
 
-| Endpoint | Method | Purpose | Frontend Caller |
+**Implemented in:** `src/lib/api/routes/expenses.ts`
+
+| Route (local) | Method | Purpose | Frontend Caller |
 |----------|--------|---------|-----------------|
 | `/expenses` | GET | List expenses | src/app/expenses/page.tsx |
 | `/expenses` | POST | Create expense | src/app/expenses/hooks/useExpensesHooks.ts |
 | `/expenses/categories` | POST | Create category | src/app/expenses/hooks/useExpensesHooks.ts |
 
-**Why on backend?**
+**Why this logic exists (not just raw CRUD)?**
 - Receipt storage & validation
 - Category hierarchy
 - Budget tracking
@@ -116,12 +125,14 @@ All endpoints below **REQUIRED** and still running on Cloud Run.
 
 ### 6. Credit Management (2+ endpoints)
 
-| Endpoint | Method | Purpose | Frontend Caller |
+**Implemented in:** `src/lib/api/routes/credits.ts`
+
+| Route (local) | Method | Purpose | Frontend Caller |
 |----------|--------|---------|-----------------|
 | `/credits` | GET | List credit accounts | src/app/credits/ |
 | `/credits/{saleId}/payments` | POST | Record payment | src/app/credits/hooks/useCreditsHooks.ts |
 
-**Why on backend?**
+**Why this logic exists (not just raw CRUD)?**
 - Credit limit enforcement
 - Payment history tracking
 - Interest calculations
@@ -131,13 +142,15 @@ All endpoints below **REQUIRED** and still running on Cloud Run.
 
 ### 7. Tenant Management (3+ endpoints)
 
-| Endpoint | Method | Purpose | Frontend Caller |
+**Implemented in:** `src/lib/api/routes/tenants.ts`
+
+| Route (local) | Method | Purpose | Frontend Caller |
 |----------|--------|---------|-----------------|
 | `/tenants` | POST | Create tenant | src/app/admin/tenants/page.tsx |
 | `/tenants/setup` | POST | Initial setup | src/app/tenant/setup/page.tsx |
 | `/tenants/me` | GET | Get current tenant | AuthProvider (cached) |
 
-**Why on backend?**
+**Why this logic exists (not just raw CRUD)?**
 - Tenant isolation enforcement
 - Multi-tenant schema management
 - Subscription tiers
@@ -146,12 +159,14 @@ All endpoints below **REQUIRED** and still running on Cloud Run.
 
 ### 8. Notifications (2+ endpoints)
 
-| Endpoint | Method | Purpose | Frontend Caller |
+**Implemented in:** `src/lib/api/routes/notifications.ts`
+
+| Route (local) | Method | Purpose | Frontend Caller |
 |----------|--------|---------|-----------------|
 | `/notifications/subscribe` | POST | Subscribe to push | src/components/notifications/ |
 | `/notifications` | POST | Send notification | (internal) |
 
-**Why on backend?**
+**Why this logic exists (not just raw CRUD)?**
 - Push notification delivery
 - Subscription management
 - Message queueing
@@ -160,11 +175,13 @@ All endpoints below **REQUIRED** and still running on Cloud Run.
 
 ### 9. Backup & Import (1 endpoint)
 
-| Endpoint | Method | Purpose | Frontend Caller |
+**Implemented in:** `src/lib/api/routes/backup.ts`
+
+| Route (local) | Method | Purpose | Frontend Caller |
 |----------|--------|---------|-----------------|
 | `/backup/import` | POST | Import backup | src/hooks/useBackupApi.ts |
 
-**Why on backend?**
+**Why this logic exists (not just raw CRUD)?**
 - Data validation before import
 - Conflict resolution
 - Transaction safety
@@ -173,13 +190,15 @@ All endpoints below **REQUIRED** and still running on Cloud Run.
 
 ### 10. User Management (2+ endpoints)
 
-| Endpoint | Method | Purpose | Frontend Caller |
+**Implemented in:** `src/lib/api/routes/users.ts` and `src/lib/api/routes/auth.ts`
+
+| Route (local) | Method | Purpose | Frontend Caller |
 |----------|--------|---------|-----------------|
 | `/users/me` | GET | Current user profile | AuthProvider |
 | `/auth/register` | POST | Create user | src/app/admin/tenants/page.tsx |
 | `/users/me/change-password` | POST | Change password | src/app/profile/page.tsx |
 
-**Why on backend?**
+**Why this logic exists (not just raw CRUD)?**
 - Role-based access control (RBAC)
 - User lifecycle management
 - Password hashing
@@ -188,125 +207,49 @@ All endpoints below **REQUIRED** and still running on Cloud Run.
 
 ---
 
-## Decision Matrix
+## Where logic lives now
 
-| Feature | Backend? | Frontend? | Reason |
-|---------|----------|-----------|--------|
-| Login | ❌ No | ✅ Yes | Supabase Auth (serverless) |
-| Token refresh | ❌ No | ✅ Yes | Supabase handles automatically |
-| Logout | ❌ No | ✅ Yes | Supabase.auth.signOut() |
-| Product CRUD | ✅ Yes | ❌ No | Multi-tenant filtering, variants, pricing |
-| Inventory CRUD | ✅ Yes | ❌ No | Stock tracking, variants, audit trail |
-| Sales recording | ✅ Yes | ❌ No | Complex side effects (shortlist, cashbox) |
-| Cash box | ✅ Yes | ❌ No | Financial records, balance tracking |
-| Expenses | ✅ Yes | ❌ No | Receipt storage, budget tracking |
-| Credits | ✅ Yes | ❌ No | Credit limits, aging reports |
-| Tenants | ✅ Yes | ❌ No | Data isolation, subscriptions |
-| Users | ✅ Yes | ❌ No | RBAC, lifecycle management |
+| Feature | Implemented in | Reason it's non-trivial |
+|---------|-----------------|--------------------------|
+| Login / token refresh / logout | Supabase Auth client (`@supabase/supabase-js`) | Fully managed, serverless |
+| Product CRUD | `src/lib/api/routes/catalog.ts` | Multi-tenant filtering, variants, pricing |
+| Inventory CRUD | `src/lib/api/routes/inventory.ts`, `shortlist.ts` | Stock tracking, variants, low-stock alerts |
+| Sales recording | `src/lib/api/routes/sales-history.ts` | Side effects (shortlist, cash box), stock validation |
+| Cash box | `src/lib/api/routes/cashBox.ts` | Financial records, balance tracking |
+| Expenses | `src/lib/api/routes/expenses.ts` | Receipt storage, category hierarchy |
+| Credits | `src/lib/api/routes/credits.ts` | Credit limits, payment history, aging |
+| Tenants | `src/lib/api/routes/tenants.ts` | Tenant isolation, setup flow |
+| Users | `src/lib/api/routes/users.ts`, `auth.ts` | RBAC, lifecycle, tenant assignment |
+| Notifications | `src/lib/api/routes/notifications.ts` | Push subscription management |
+| Backup/import | `src/lib/api/routes/backup.ts` | Validation, conflict resolution on import |
 
----
-
-## Why Not Migrate Business Logic to Frontend?
-
-### 1. Security
-
-- ❌ Exposes business rules to client (can be inspected)
-- ❌ No server-side validation
-- ❌ Multi-tenant isolation impossible
-- ❌ Pricing/discounts visible to clients
-
-### 2. Scale
-
-- ❌ Bundle size becomes massive (500+ endpoints)
-- ❌ Slower initial page load
-- ❌ Can't update logic without rebuilding & redeploying frontend
-
-### 3. Consistency
-
-- ❌ Different implementations on different clients
-- ❌ Offline clients have stale logic
-- ❌ Can't enforce required validation
-
-### 4. Complexity
-
-- ❌ Complex features (sales side effects, credit calculations)
-- ❌ Database transactions can't be replicated in frontend
-- ❌ Real-time syncing becomes nightmare
-
-### 5. Operations
-
-- ❌ Can't debug issues (client-side logic is black box)
-- ❌ Can't audit data changes
-- ❌ Hard to enforce permissions
+All of the above run client-side against Supabase (Postgres + PostgREST), scoped manually by `tenantId` in each handler — there is no Postgres RLS yet, so this scoping must stay correct in every handler.
 
 ---
 
-## Current Architecture Rationale
+## Notes on doing business logic client-side
+
+Since there is no backend, these tradeoffs are accepted as the current architecture rather than points to weigh:
+- Validation and tenant scoping happen in the route handlers in this repo, not in a server process — correctness depends on each handler filtering by `tenantId` and not skipping validation.
+- Multi-tenant isolation is enforced only by explicit `tenantId` filters in queries (no RLS), so new handlers must follow the existing pattern in `src/lib/api/routes/*.ts`.
+- Offline behavior: when offline, `src/lib/api-offline.ts` serves reads/writes from IndexedDB instead of Supabase, and queues mutations for later sync (see `src/lib/offline-queue.ts`, `offline-sync.ts`).
+
+---
+
+## Architecture
 
 ```
-Frontend (Vite SPA)           Auth (Supabase)           Backend (Cloud Run)
-├── UI & Routing            ├── Signup                ├── Products
-├── Form validation         ├── Login                 ├── Inventory
-├── Offline caching         ├── JWT management        ├── Sales (with side effects)
-├── Optimistic updates      └── Session management    ├── Expenses
-└── UX polish                                         ├── Credits
-                                                      ├── Tenants
-                                                      ├── Users (RBAC)
-                                                      ├── Notifications
-                                                      └── Financial reports
+Frontend (Vite SPA)                    Supabase
+├── UI & Routing                       ├── Auth (signup/login/session)
+├── Form validation                    ├── Postgres (via PostgREST)
+├── src/lib/api/routes/*.ts  ────────► └── supabase.from(...) / supabase.rpc(...)
+│   (business logic, tenant scoping)
+├── Offline caching (IndexedDB)
+├── Optimistic updates
+└── UX polish
 ```
 
-**Result:**
-- ✅ Thin, fast frontend (~500KB gzipped)
-- ✅ Secure, server-validated business logic
-- ✅ Scalable backend (NestJS can handle growth)
-- ✅ Clean separation of concerns
-- ✅ Easy to debug & maintain
-
----
-
-## Conclusion
-
-### ✅ KEEP Cloud Run Backend
-
-All business logic requires server-side validation, multi-tenant scoping, and complex side effects that can't be replicated in the frontend.
-
-### ❌ DO NOT Migrate to Frontend
-
-The 500+ business logic endpoints are correctly on the backend. Moving them to the frontend would:
-- Break security (no server-side validation)
-- Break multi-tenancy (can't enforce isolation)
-- Bloat the bundle
-- Make it impossible to update logic
-- Violate SOC 2 compliance
-
-### ✅ KEEP VITE_API_URL
-
-The frontend needs to call the backend for all data operations. `VITE_API_URL` will always be required.
-
-### ✅ Supabase Auth is Sufficient
-
-Authentication is now fully managed by Supabase. The frontend calls Supabase directly. Backend doesn't need to handle login/logout/token refresh anymore.
-
----
-
-## Migration Checklist (If Ever Needed)
-
-If you ever want to move a specific business logic endpoint to the frontend:
-
-- [ ] Understand the current backend implementation
-- [ ] Identify all validation rules & business logic
-- [ ] Identify all multi-tenant scoping
-- [ ] Identify all side effects
-- [ ] Implement frontend version with full validation
-- [ ] Implement IndexedDB schema for persistence
-- [ ] Implement offline sync queue
-- [ ] Test thoroughly with multiple tenants
-- [ ] Add to offline sync engine
-- [ ] Document the decision
-- [ ] Update this file
-
-**Recommendation:** Don't do this unless you have a specific reason (e.g., reducing API latency for a specific feature).
+No remote application server exists. `VITE_API_URL`/Cloud Run references are obsolete.
 
 ---
 
@@ -314,5 +257,5 @@ If you ever want to move a specific business logic endpoint to the frontend:
 
 Refer to:
 - **ARCHITECTURE.md** — Complete system design
-- **backend/CLAUDE.md** — Backend architecture
-- **backend/ARCHITECTURE_ANALYSIS.md** — Backend module dependencies
+- `src/lib/api/router.ts` and `src/lib/api/routes/*.ts` — actual business logic implementation
+- `prisma/schema.prisma` (in this repo) — schema/migration source of truth for Supabase Postgres (not used as a runtime ORM)

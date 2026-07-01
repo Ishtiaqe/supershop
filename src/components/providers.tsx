@@ -10,6 +10,8 @@ import { OfflineProvider } from "./providers/offline-provider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ItemDetailProvider } from "@/components/providers/ItemDetailContext";
 import { PWAUpdatePrompt } from "@/components/pwa-update-prompt";
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { FailedSyncAlert } from "@/components/offline-status";
 
 const ReactQueryDevtools = lazy(() =>
   import("@tanstack/react-query-devtools").then((m) => ({
@@ -102,6 +104,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <ItemDetailProvider>
               {children}
               <PWAUpdatePrompt />
+              <PWAInstallPrompt />
+              <FailedSyncAlert />
             </ItemDetailProvider>
             {import.meta.env.DEV && (
               <Suspense fallback={null}>
