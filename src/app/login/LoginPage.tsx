@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import { Lock, Mail, ShoppingBag } from 'lucide-react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
+import { useAuth } from '@/components/auth/AuthProvider'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -30,7 +31,8 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { user, login } = useSupabaseAuth()
+  const { login } = useSupabaseAuth()
+  const { user, loading: authLoading } = useAuth()
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema) as Resolver<LoginFormData>,
@@ -42,11 +44,11 @@ export default function LoginPage() {
   const hasRedirected = useRef(false)
 
   useEffect(() => {
-    if (user && !hasRedirected.current) {
+    if (!authLoading && user && !hasRedirected.current) {
       hasRedirected.current = true
       navigate('/pos', { replace: true })
     }
-  }, [user, navigate])
+  }, [authLoading, user, navigate])
 
   const submit = async (values: LoginFormData) => {
     setError(null)

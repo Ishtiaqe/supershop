@@ -66,7 +66,7 @@ async function handleRequest(method: string, url: string, requestData?: any): Pr
     }
     return result
   } catch (error: any) {
-    console.error(`[Serverless-API Error] ${method} ${url}:`, error)
+    console.error(`[API Error] ${method} ${url}:`, error)
     const status = error.status || 500
     const errObj: any = new Error(error.message || 'API request failed')
     errObj.response = {

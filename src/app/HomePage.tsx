@@ -2,11 +2,11 @@
 
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function Home() {
   const navigate = useNavigate();
-  const { user, loading } = useSupabaseAuth();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     if (loading) return;
