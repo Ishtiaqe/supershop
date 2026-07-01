@@ -1,7 +1,7 @@
 'use client'
 
 import { useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Lock, Mail, ShoppingBag } from 'lucide-react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { useForm, type Resolver } from 'react-hook-form'
@@ -39,9 +39,11 @@ export default function LoginPage() {
       password: '',
     },
   })
+  const hasRedirected = useRef(false)
 
   useEffect(() => {
-    if (user) {
+    if (user && !hasRedirected.current) {
+      hasRedirected.current = true
       navigate('/pos', { replace: true })
     }
   }, [user, navigate])
