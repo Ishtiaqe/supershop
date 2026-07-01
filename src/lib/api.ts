@@ -16,11 +16,13 @@ const MAX_CACHEABLE_SIZE = 500 // Don't cache responses larger than this
 function getCachedGet(url: string): any | null {
   if (typeof window === 'undefined') return null
   try {
-    const raw = localStorage.getItem(GET_CACHE_PREFIX + url)
+    const { tenantId } = getLocalStorageData()
+    const cacheKey = GET_CACHE_PREFIX + tenantId + ':' + url
+    const raw = localStorage.getItem(cacheKey)
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (Date.now() - parsed.ts > GET_CACHE_TTL) {
-      localStorage.removeItem(GET_CACHE_PREFIX + url)
+      localStorage.removeItem(cacheKey)
       return null
     }
     return parsed.data
@@ -31,18 +33,45 @@ function getCachedGet(url: string): any | null {
 
 function setCachedGet(url: string, data: any): void {
   if (typeof window === 'undefined') return
-  
+
+  const { tenantId } = getLocalStorageData()
+  const cacheKey = GET_CACHE_PREFIX + tenantId + ':' + url
+
   // Don't cache large arrays to avoid localStorage overflow
   const dataSize = Array.isArray(data) ? data.length : 1
   if (dataSize > MAX_CACHEABLE_SIZE) return
-  
+
   try {
-    localStorage.setItem(GET_CACHE_PREFIX + url, JSON.stringify({ data, ts: Date.now() }))
+    localStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }))
   } catch {}
 }
 
 function shouldSkipCache(url: string): boolean {
   return SKIP_CACHE_PATTERNS.some(pattern => url.includes(pattern))
+}
+
+function clearApiCache(tenantId?: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    const keysToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith(GET_CACHE_PREFIX)) {
+        if (tenantId) {
+          // Clear only cache entries for this tenant
+          if (key.startsWith(GET_CACHE_PREFIX + tenantId + ':')) {
+            keysToRemove.push(key)
+          }
+        } else {
+          // Clear all API cache entries
+          keysToRemove.push(key)
+        }
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key))
+  } catch (e) {
+    console.warn('Failed to clear API cache:', e)
+  }
 }
 
 async function handleRequest(method: string, url: string, requestData?: any): Promise<any> {
@@ -99,6 +128,7 @@ const api = {
   delete: <T = any>(url: string, config?: any): Promise<{ data: T }> => {
     return handleRequest('DELETE', url)
   },
+  clearCache: clearApiCache,
   interceptors: {
     request: { use: () => { } },
     response: { use: () => { } }

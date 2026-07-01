@@ -24,7 +24,7 @@ interface ProductVariant {
   updatedAt: string
 }
 
-const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
+const CACHE_TTL = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 class MasterDataCache {
   private productsPromise: Promise<Product[]> | null = null
@@ -32,13 +32,9 @@ class MasterDataCache {
 
   async getProducts(tenantId: string): Promise<Product[]> {
     // Check IndexedDB first
-    const cached = await idbCache.getAll<Product>('products')
+    const cached = await idbCache.getAll<Product>('products', tenantId)
     if (cached.length > 0) {
-      // Verify cache belongs to this tenant
-      const tenantProducts = cached.filter(p => p.tenantId === tenantId)
-      if (tenantProducts.length > 0) {
-        return tenantProducts
-      }
+      return cached
     }
 
     // Use in-flight promise to avoid duplicate fetches
@@ -55,13 +51,9 @@ class MasterDataCache {
 
   async getVariants(tenantId: string): Promise<ProductVariant[]> {
     // Check IndexedDB first
-    const cached = await idbCache.getAll<ProductVariant>('variants')
+    const cached = await idbCache.getAll<ProductVariant>('variants', tenantId)
     if (cached.length > 0) {
-      // Verify cache belongs to this tenant
-      const tenantVariants = cached.filter(v => v.tenantId === tenantId)
-      if (tenantVariants.length > 0) {
-        return tenantVariants
-      }
+      return cached
     }
 
     // Use in-flight promise to avoid duplicate fetches
@@ -85,11 +77,11 @@ class MasterDataCache {
     if (error) throw error
 
     const products = data || []
-    
+
     // Cache each product in IndexedDB
     await Promise.all(
-      products.map(product => 
-        idbCache.set('products', product.id, product, CACHE_TTL)
+      products.map(product =>
+        idbCache.set('products', product.id, product, tenantId, CACHE_TTL)
       )
     )
 
@@ -105,11 +97,11 @@ class MasterDataCache {
     if (error) throw error
 
     const variants = data || []
-    
+
     // Cache each variant in IndexedDB
     await Promise.all(
-      variants.map(variant => 
-        idbCache.set('variants', variant.id, variant, CACHE_TTL)
+      variants.map(variant =>
+        idbCache.set('variants', variant.id, variant, tenantId, CACHE_TTL)
       )
     )
 
@@ -122,6 +114,13 @@ class MasterDataCache {
 
   async invalidateVariants(): Promise<void> {
     await idbCache.clear('variants')
+  }
+
+  async invalidateTenant(tenantId: string): Promise<void> {
+    await Promise.all([
+      idbCache.clearByTenant('products', tenantId),
+      idbCache.clearByTenant('variants', tenantId)
+    ])
   }
 
   async invalidateAll(): Promise<void> {

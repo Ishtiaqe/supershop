@@ -14,6 +14,7 @@ interface CacheItem<T> {
   data: T
   timestamp: number
   ttl: number
+  tenantId: string
 }
 
 class IndexedDBCache {
@@ -44,7 +45,7 @@ class IndexedDBCache {
     })
   }
 
-  async set<T>(store: StoreName, key: string, data: T, ttlMs: number = 24 * 60 * 60 * 1000): Promise<void> {
+  async set<T>(store: StoreName, key: string, data: T, tenantId: string, ttlMs: number = 7 * 24 * 60 * 60 * 1000): Promise<void> {
     await this.init()
     if (!this.db) throw new Error('DB not initialized')
 
@@ -53,6 +54,7 @@ class IndexedDBCache {
       data,
       timestamp: Date.now(),
       ttl: ttlMs,
+      tenantId,
     }
 
     return new Promise((resolve, reject) => {
@@ -65,7 +67,7 @@ class IndexedDBCache {
     })
   }
 
-  async get<T>(store: StoreName, key: string): Promise<T | null> {
+  async get<T>(store: StoreName, key: string, tenantId: string): Promise<T | null> {
     await this.init()
     if (!this.db) throw new Error('DB not initialized')
 
@@ -78,6 +80,12 @@ class IndexedDBCache {
       request.onsuccess = () => {
         const result = request.result as CacheItem<T> | undefined
         if (!result) {
+          resolve(null)
+          return
+        }
+
+        // Check tenant match
+        if (result.tenantId !== tenantId) {
           resolve(null)
           return
         }
@@ -95,7 +103,7 @@ class IndexedDBCache {
     })
   }
 
-  async getAll<T>(store: StoreName): Promise<T[]> {
+  async getAll<T>(store: StoreName, tenantId: string): Promise<T[]> {
     await this.init()
     if (!this.db) throw new Error('DB not initialized')
 
@@ -109,7 +117,7 @@ class IndexedDBCache {
         const results = request.result as CacheItem<T>[]
         const now = Date.now()
         const validData = results
-          .filter(item => now - item.timestamp <= item.ttl)
+          .filter(item => now - item.timestamp <= item.ttl && item.tenantId === tenantId)
           .map(item => item.data)
 
         // Clean up expired entries in background
@@ -150,6 +158,35 @@ class IndexedDBCache {
 
       request.onerror = () => reject(request.error)
       request.onsuccess = () => resolve()
+    })
+  }
+
+  async clearByTenant(store: StoreName, tenantId: string): Promise<void> {
+    await this.init()
+    if (!this.db) throw new Error('DB not initialized')
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORES[store]], 'readwrite')
+      const objectStore = transaction.objectStore(STORES[store])
+      const request = objectStore.getAll()
+
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => {
+        const results = request.result as CacheItem<any>[]
+        const keysToDelete = results
+          .filter(item => item.tenantId === tenantId)
+          .map(item => item.id)
+
+        if (keysToDelete.length === 0) {
+          resolve()
+          return
+        }
+
+        const deletePromises = keysToDelete.map(key => this.delete(store, key))
+        Promise.all(deletePromises)
+          .then(() => resolve())
+          .catch(err => reject(err))
+      }
     })
   }
 }

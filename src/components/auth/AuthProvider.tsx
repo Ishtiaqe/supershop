@@ -2,7 +2,10 @@
 
 import React, { useEffect, useMemo, useCallback, useRef } from 'react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
-import { authStorage } from '@/lib/auth-storage'
+import { authStorage, sessionStorageWithTTL } from '@/lib/auth-storage'
+import { masterDataCache } from '@/lib/cache/masterData'
+import { clearTenantQueries } from '@/components/providers'
+import api from '@/lib/api'
 
 export type AuthContextType = {
   user: any | null
@@ -173,6 +176,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase])
 
   const logout = useCallback(async () => {
+    // Get current tenant ID before clearing auth
+    const currentTenantId = cachedProfile?.tenant?.id || authStorage.getTenant()?.id
+
     try {
       // Use Supabase logout (handles token cleanup)
       await supabaseLogout()
@@ -193,13 +199,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Failed to clear localStorage:', e)
     }
 
+    // Clear tenant-specific caches
+    if (currentTenantId) {
+      try {
+        // Clear IndexedDB data for current tenant
+        await masterDataCache.invalidateTenant(currentTenantId)
+      } catch (e) {
+        console.error('Failed to clear tenant IndexedDB cache:', e)
+      }
+
+      try {
+        // Clear TanStack Query queries for current tenant
+        const queryClient = (window as any).__queryClient
+        if (queryClient) {
+          clearTenantQueries(queryClient, currentTenantId)
+        }
+      } catch (e) {
+        console.error('Failed to clear tenant query cache:', e)
+      }
+
+      try {
+        // Clear API cache for current tenant
+        api.clearCache(currentTenantId)
+      } catch (e) {
+        console.error('Failed to clear tenant API cache:', e)
+      }
+    }
+
+    // Clear expired sessionStorage items (preserve valid items)
+    try {
+      sessionStorageWithTTL.clearExpiredSessionItems()
+    } catch (e) {
+      console.error('Failed to clear expired sessionStorage:', e)
+    }
+
     // Clear cached profile
     setCachedProfile(null)
 
     // The Shell's auth guard will redirect to /login once it sees the user is
     // gone. Avoiding a hard reload here prevents a double navigation and keeps
     // the logout experience fast.
-  }, [supabaseLogout])
+  }, [supabaseLogout, cachedProfile])
 
   const login = useCallback((userData: any) => {
     setCachedProfile(userData)

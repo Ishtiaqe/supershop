@@ -8,7 +8,7 @@ export interface OfflineQueueItem {
   timestamp: number;
   retryCount: number;
   lastError?: string;
-  tenantId?: string;
+  tenantId: string;
   // Absent/'pending' items are still awaiting replay. 'failed' items exhausted
   // their retries — they are never auto-deleted so the operation (real money:
   // a sale, a stock adjustment) is never silently lost. A human must resolve

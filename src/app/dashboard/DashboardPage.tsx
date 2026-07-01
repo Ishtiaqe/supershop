@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { TrendingUp, Wallet, Package, ShoppingCart, Store, Loader2 } from "lucide-react";
 import api from "@/lib/api";
+import { useTenant } from "@/components/providers/TenantProvider";
+import { queryKeys } from "@/components/providers";
 
 // Import shadcn UI components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,13 +46,23 @@ const periodLabel = (period: string) => {
 
 function DashboardSummary({ period }: { period: string }) {
   const label = periodLabel(period);
-  const { data, isLoading } = useQuery<DashboardSummaryType>({
-    queryKey: ["dashboard-summary", period],
+  const { currentTenantId } = useTenant();
+
+  const { data, isLoading, refetch } = useQuery<DashboardSummaryType>({
+    queryKey: ["dashboard-summary", currentTenantId, period],
     queryFn: () => api.get(`/sales-history/analytics/summary?period=${period}`).then((r) => r.data),
     refetchOnWindowFocus: false,
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
+    enabled: !!currentTenantId,
   });
+
+  // Refetch when tenant ID changes
+  useEffect(() => {
+    if (currentTenantId) {
+      refetch();
+    }
+  }, [currentTenantId, refetch]);
 
   if (isLoading) {
     return (
@@ -140,10 +152,20 @@ async function fetchGraphData(period: string): Promise<GraphDataPoint[]> {
 }
 
 function DashboardCharts({ period }: { period: string }) {
-  const { data, isLoading } = useQuery({
-    queryKey: ["dashboard-graphs", period],
+  const { currentTenantId } = useTenant();
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["dashboard-graphs", currentTenantId, period],
     queryFn: () => fetchGraphData(period),
+    enabled: !!currentTenantId,
   });
+
+  // Refetch when tenant ID changes
+  useEffect(() => {
+    if (currentTenantId) {
+      refetch();
+    }
+  }, [currentTenantId, refetch]);
 
   // Transform data to include profit percentage
   const chartData = data?.map(point => ({

@@ -13,6 +13,102 @@ const AUTH_KEYS = {
 } as const
 
 /**
+ * Safe sessionStorage access with TTL support
+ * Handles SSR scenarios where sessionStorage is undefined
+ */
+function getSessionStorage() {
+  if (typeof window === 'undefined') return null
+  return window.sessionStorage
+}
+
+interface SessionItem<T> {
+  data: T
+  expiresAt: number
+}
+
+export const sessionStorageWithTTL = {
+  /**
+   * Set an item in sessionStorage with TTL
+   */
+  setItemWithTTL: <T>(key: string, value: T, ttlMs: number): void => {
+    const storage = getSessionStorage()
+    if (!storage) return
+
+    try {
+      const item: SessionItem<T> = {
+        data: value,
+        expiresAt: Date.now() + ttlMs,
+      }
+      storage.setItem(key, JSON.stringify(item))
+    } catch (e) {
+      console.warn('Failed to set sessionStorage item:', e)
+    }
+  },
+
+  /**
+   * Get an item from sessionStorage, checking TTL
+   * Returns null if expired or not found
+   */
+  getItemWithTTL: <T>(key: string): T | null => {
+    const storage = getSessionStorage()
+    if (!storage) return null
+
+    try {
+      const raw = storage.getItem(key)
+      if (!raw) return null
+
+      const item: SessionItem<T> = JSON.parse(raw)
+
+      // Check if expired
+      if (Date.now() > item.expiresAt) {
+        storage.removeItem(key)
+        return null
+      }
+
+      return item.data
+    } catch (e) {
+      console.warn('Failed to get sessionStorage item:', e)
+      return null
+    }
+  },
+
+  /**
+   * Clear all expired sessionStorage items
+   */
+  clearExpiredSessionItems: (): void => {
+    const storage = getSessionStorage()
+    if (!storage) return
+
+    try {
+      const now = Date.now()
+      const keysToRemove: string[] = []
+
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i)
+        if (!key) continue
+
+        try {
+          const raw = storage.getItem(key)
+          if (!raw) continue
+
+          const item: SessionItem<unknown> = JSON.parse(raw)
+          if (item.expiresAt && now > item.expiresAt) {
+            keysToRemove.push(key)
+          }
+        } catch {
+          // Skip items that aren't TTL-formatted
+          continue
+        }
+      }
+
+      keysToRemove.forEach(key => storage.removeItem(key))
+    } catch (e) {
+      console.warn('Failed to clear expired sessionStorage items:', e)
+    }
+  },
+}
+
+/**
  * Safe localStorage access with type safety
  * Handles SSR scenarios where localStorage is undefined
  */

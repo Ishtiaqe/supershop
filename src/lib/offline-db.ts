@@ -384,6 +384,17 @@ class OfflineDatabase {
     return this.db!.getAll('offlineQueue');
   }
 
+  async getQueueItemsByTenant(tenantId: string): Promise<OfflineQueueItem[]> {
+    if (!this.db) await this.init();
+    const allItems = await this.db!.getAll('offlineQueue');
+    return allItems.filter(item => item.tenantId === tenantId);
+  }
+
+  async getQueueItemCountByTenant(tenantId: string): Promise<number> {
+    const items = await this.getQueueItemsByTenant(tenantId);
+    return items.length;
+  }
+
   async removeFromQueue(id: string): Promise<void> {
     if (!this.db) await this.init();
     await this.db!.delete('offlineQueue', id);
