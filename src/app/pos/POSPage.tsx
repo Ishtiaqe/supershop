@@ -619,7 +619,7 @@ export default function POSPage() {
                           id={`cart-discount-${record.key}`}
                           value={record.discount}
                           onChange={(e) => {
-                            const newDiscount = Math.min(parseFloat(e.target.value) || 0, maxAllowed);
+                            const newDiscount = Math.floor(Math.min(parseFloat(e.target.value) || 0, maxAllowed) * 10) / 10;
                             setCart((prev) =>
                               prev.map((item) =>
                                 item.key === record.key ? { ...item, discount: newDiscount } : item
