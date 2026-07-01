@@ -1,59 +1,84 @@
 import { supabase } from '@/lib/supabase'
 import { formatResponse, generateUUID, sanitizeInventoryItem, sanitizeUpdate } from '../utils'
 import { RouteHandler } from '../types'
+import { masterDataCache } from '@/lib/cache/masterData'
 
 const getInventory: RouteHandler = async ({ tenantId, query }) => {
   const q = query.get('q') || ''
   const variantId = query.get('variantId') || ''
-  let dbQuery = supabase
-    .from('inventory_items')
-    .select('*, variant:product_variants(*, product:products(*))')
+  const limit = Number(query.get('limit') || '100')
+  const offset = Number(query.get('offset') || '0')
+
+  // Try to get cached master data first
+  const [variantsWithProducts] = await Promise.allSettled([
+    masterDataCache.getVariantsWithProducts(tenantId),
+    // Only fetch inventory if we have cached master data
+    Promise.resolve()
+  ])
+
+  const hasCachedData = variantsWithProducts.status === 'fulfilled' && variantsWithProducts.value.length > 0
+
+  let dbQuery: any = supabase.from('inventory_items')
+  
+  if (hasCachedData) {
+    // Use cached data: fetch inventory without joins
+    dbQuery = dbQuery.select('*')
+  } else {
+    // Fallback: fetch with joins as before
+    dbQuery = dbQuery.select('*, variant:product_variants(*, product:products(*))')
+  }
+  
+  dbQuery = dbQuery
     .eq('tenantId', tenantId)
+    .order('createdAt', { ascending: false })
+
   if (variantId) {
     dbQuery = dbQuery.eq('variantId', variantId)
   }
-  const { data, error } = await dbQuery
+
+  if (q && !hasCachedData) {
+    // Only use server-side search if we don't have cached data
+    dbQuery = dbQuery.or(`itemName.ilike.%${q}%,variant.sku.ilike.%${q}%,variant.variantName.ilike.%${q}%,variant.product.name.ilike.%${q}%,variant.product.genericName.ilike.%${q}%,variant.product.manufacturerName.ilike.%${q}%`)
+  }
+
+  const { data: inventoryData, error } = await dbQuery.range(offset, offset + limit - 1)
   if (error) throw error
 
-  let filtered = data || []
-  if (q) {
-    const lowerQ = q.toLowerCase()
-    filtered = filtered
-      .filter((item: any) => {
+  let result = inventoryData || []
+
+  // If we have cached master data, embed it manually
+  if (hasCachedData) {
+    const variantMap = new Map(
+      variantsWithProducts.value.map((v: any) => [v.id, v])
+    )
+
+    result = result.map((item: any) => ({
+      ...item,
+      variant: variantMap.get(item.variantId) || null
+    }))
+
+    // Apply client-side search if needed
+    if (q) {
+      const lowerQ = q.toLowerCase()
+      result = result.filter((item: any) => {
         const itemName = (item.itemName || '').toLowerCase()
-        const sku = (item.variant?.sku || '').toLowerCase()
-        const productName = (item.variant?.product?.name || '').toLowerCase()
-        const genericName = (item.variant?.product?.genericName || '').toLowerCase()
-        const manufacturerName = (item.variant?.product?.manufacturerName || '').toLowerCase()
+        const sku = item.variant?.sku?.toLowerCase() || ''
+        const variantName = item.variant?.variantName?.toLowerCase() || ''
+        const productName = item.variant?.product?.name?.toLowerCase() || ''
+        const genericName = item.variant?.product?.genericName?.toLowerCase() || ''
+        const manufacturerName = item.variant?.product?.manufacturerName?.toLowerCase() || ''
+
         return itemName.includes(lowerQ) ||
           sku.includes(lowerQ) ||
+          variantName.includes(lowerQ) ||
           productName.includes(lowerQ) ||
           genericName.includes(lowerQ) ||
           manufacturerName.includes(lowerQ)
       })
-      .sort((a: any, b: any) => {
-        const getScore = (item: any) => {
-          const itemName = (item.itemName || '').toLowerCase()
-          const sku = (item.variant?.sku || '').toLowerCase()
-          const productName = (item.variant?.product?.name || '').toLowerCase()
-          const genericName = (item.variant?.product?.genericName || '').toLowerCase()
-          const manufacturerName = (item.variant?.product?.manufacturerName || '').toLowerCase()
-          if (productName === lowerQ || itemName === lowerQ) return 100
-          if (sku === lowerQ) return 95
-          if (genericName === lowerQ) return 90
-          if (productName.startsWith(lowerQ) || itemName.startsWith(lowerQ)) return 80
-          if (sku.startsWith(lowerQ)) return 75
-          if (genericName.startsWith(lowerQ)) return 70
-          if (productName.includes(lowerQ) || itemName.includes(lowerQ)) return 60
-          if (sku.includes(lowerQ)) return 55
-          if (genericName.includes(lowerQ)) return 50
-          if (manufacturerName.includes(lowerQ)) return 40
-          return 0
-        }
-        return getScore(b) - getScore(a)
-      })
+    }
   }
-  return formatResponse(filtered)
+
+  return formatResponse(result)
 }
 
 const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) => {
@@ -109,6 +134,9 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
       .select()
       .single()
     if (varErr) throw varErr
+
+    // Invalidate cache since we created new product/variant
+    await masterDataCache.invalidateAll().catch(() => {}) // Fire and forget
 
     variantId = variant.id
   }

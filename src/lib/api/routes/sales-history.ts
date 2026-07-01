@@ -3,12 +3,15 @@ import { formatResponse } from '../utils'
 import { RouteHandler } from '../types'
 import { createSale } from '../services/salesService'
 
-const getSales: RouteHandler = async ({ tenantId }) => {
+const getSales: RouteHandler = async ({ tenantId, query }) => {
+  const limit = Number(query.get('limit') || '50')
+  const offset = Number(query.get('offset') || '0')
   const { data, error } = await supabase
     .from('sales')
     .select('*, items:sale_items(*, inventory:inventory_items(*)), employee:users(*)')
     .eq('tenantId', tenantId)
     .order('saleTime', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
   return formatResponse(data)
 }

@@ -11,6 +11,7 @@ registerAllRoutes(router)
 const GET_CACHE_PREFIX = 'api_get_cache:'
 const GET_CACHE_TTL = 30 * 1000
 const SKIP_CACHE_PATTERNS = ['/users/me', '/auth/', '/backup/', '/export/pdf']
+const MAX_CACHEABLE_SIZE = 500 // Don't cache responses larger than this
 
 function getCachedGet(url: string): any | null {
   if (typeof window === 'undefined') return null
@@ -30,6 +31,11 @@ function getCachedGet(url: string): any | null {
 
 function setCachedGet(url: string, data: any): void {
   if (typeof window === 'undefined') return
+  
+  // Don't cache large arrays to avoid localStorage overflow
+  const dataSize = Array.isArray(data) ? data.length : 1
+  if (dataSize > MAX_CACHEABLE_SIZE) return
+  
   try {
     localStorage.setItem(GET_CACHE_PREFIX + url, JSON.stringify({ data, ts: Date.now() }))
   } catch {}

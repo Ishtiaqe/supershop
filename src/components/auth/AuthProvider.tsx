@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useCallback } from 'react'
-import api from '@/lib/api'
+import React, { useEffect, useMemo, useCallback, useRef } from 'react'
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth'
 import { authStorage } from '@/lib/auth-storage'
 
@@ -28,7 +27,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [cachedProfile, setCachedProfile] = React.useState<any | null>(() => {
     return authStorage.getUser()
   })
+  const cachedProfileRef = useRef(cachedProfile)
   const [profileLoading, setProfileLoading] = React.useState(false)
+
+  useEffect(() => {
+    cachedProfileRef.current = cachedProfile
+  }, [cachedProfile])
 
   // Loading is true while Supabase auth is initializing OR while we are resolving
   // the full profile for an authenticated Supabase user. This prevents auth guards
@@ -48,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // cached profile (i.e. an actual sign-out). This avoids wiping the cached
         // user during transient errors or race conditions on reload.
         if (!supabaseUser) {
-          if (cachedProfile) {
+          if (cachedProfileRef.current) {
             setCachedProfile(null)
             authStorage.setUser(null as any)
             authStorage.setTenant(null as any)
@@ -107,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('Failed to fetch user profile:', e)
         // Keep the cached profile if we already have one; do not log the user out
         // just because a profile refresh failed.
-        if (!cachedProfile) {
+        if (!cachedProfileRef.current) {
           setCachedProfile(null)
         }
       } finally {
@@ -116,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     fetchProfile()
-  }, [supabaseUser, supabase, supabaseLoading, cachedProfile])
+  }, [supabaseUser, supabase, supabaseLoading])
 
   // Simplified refresh: Supabase handles token refresh automatically
   const refresh = useCallback(async (): Promise<any> => {
