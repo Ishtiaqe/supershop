@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { formatResponse } from '../utils'
 import { RouteHandler } from '../types'
+import { formatDate } from '@/lib/ui-helpers'
 
 const generateShortListPdf = async (tenantId: string) => {
   const { data: items } = await supabase
@@ -15,12 +16,12 @@ const generateShortListPdf = async (tenantId: string) => {
     String(item.inventory?.quantity || 0),
     String(item.inventory?.purchasePrice?.toFixed(2) || 'N/A'),
     item.reason || 'manual',
-    item.addedAt ? new Date(item.addedAt).toLocaleDateString() : '—'
+    item.addedAt ? formatDate(item.addedAt) : '—'
   ])
 
   const doc = new jsPDF()
   doc.text('SHORT LIST REPORT', 14, 15)
-  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 23)
+  doc.text(`Generated on: ${formatDate(new Date())}`, 14, 23)
   autoTable(doc, {
     head: [['Item Name', 'Current Qty', 'Purchase Price', 'Reason', 'Added Date']],
     body: rows,
@@ -41,12 +42,12 @@ const generateInventoryPdf = async (tenantId: string) => {
     String(item.quantity || 0),
     String(item.purchasePrice?.toFixed(2) || '0.00'),
     String(item.retailPrice?.toFixed(2) || '0.00'),
-    item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : '—'
+    item.expiryDate ? formatDate(item.expiryDate) : '—'
   ])
 
   const doc = new jsPDF()
   doc.text('INVENTORY REPORT', 14, 15)
-  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 23)
+  doc.text(`Generated on: ${formatDate(new Date())}`, 14, 23)
   autoTable(doc, {
     head: [['Item Name', 'SKU', 'Qty', 'Cost Price', 'Retail Price', 'Expiry']],
     body: rows,
@@ -73,7 +74,7 @@ const generateAnalyticsPdf = async (tenantId: string) => {
 
   const doc = new jsPDF()
   doc.text('SHORT LIST ANALYTICS', 14, 15)
-  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 23)
+  doc.text(`Generated on: ${formatDate(new Date())}`, 14, 23)
   doc.text(`Total Items: ${(items || []).length}`, 14, 33)
   doc.text(`Slow Items: ${slowItems}`, 14, 41)
   autoTable(doc, {

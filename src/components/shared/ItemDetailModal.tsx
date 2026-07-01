@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import api from '@/lib/api';
+import { formatDate } from '@/lib/ui-helpers';
 
 // Import shadcn UI components
 import { Button } from '@/components/ui/button';
@@ -89,7 +90,7 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
 
   const formatBatchDate = (batch: Batch) => {
     const dateStr = batch.lastRestockDate || batch.createdAt;
-    return dateStr ? new Date(dateStr).toLocaleDateString() : '—';
+    return dateStr ? formatDate(dateStr) : '—';
   };
 
   return (
@@ -222,7 +223,7 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                                 <TableCell className="text-right">{record.quantity}</TableCell>
                                 <TableCell className="whitespace-nowrap">
                                   {record.expiryDate
-                                    ? new Date(record.expiryDate).toLocaleDateString()
+                                    ? formatDate(record.expiryDate)
                                     : '—'}
                                 </TableCell>
                                 <TableCell className="text-right">

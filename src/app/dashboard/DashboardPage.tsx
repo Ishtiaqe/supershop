@@ -54,8 +54,8 @@ function DashboardSummary({ period }: { period: string }) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {Array.from({ length: 5 }).map((_, index) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, index) => (
           <Card key={index} className="shadow-sm border-border/60">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-5">
               <Skeleton className="h-4 w-24" />
@@ -71,6 +71,10 @@ function DashboardSummary({ period }: { period: string }) {
 
   if (!data) return null;
 
+  const profitPercentage = data.totalRevenue > 0 
+    ? ((data.totalProfit / data.totalRevenue) * 100).toFixed(2)
+    : "0.00";
+
   const stats = [
     {
       title: `Revenue (${label})`,
@@ -81,6 +85,11 @@ function DashboardSummary({ period }: { period: string }) {
       title: `Profit (${label})`,
       value: `৳ ${fmt(data.totalProfit)}`,
       icon: <Wallet className="h-4 w-4 text-emerald-500" />,
+    },
+    {
+      title: `Profit Margin (${label})`,
+      value: `${profitPercentage}%`,
+      icon: <Wallet className="h-4 w-4 text-green-600" />,
     },
     {
       title: "Current Capital",
@@ -100,7 +109,7 @@ function DashboardSummary({ period }: { period: string }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {stats.map((stat, i) => (
         <Card key={i} className="shadow-sm border-border/60 hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-5">
@@ -122,6 +131,7 @@ interface GraphDataPoint {
   date: string;
   sales: number;
   profit: number;
+  profitPercentage?: number;
 }
 
 async function fetchGraphData(period: string): Promise<GraphDataPoint[]> {
@@ -134,6 +144,12 @@ function DashboardCharts({ period }: { period: string }) {
     queryKey: ["dashboard-graphs", period],
     queryFn: () => fetchGraphData(period),
   });
+
+  // Transform data to include profit percentage
+  const chartData = data?.map(point => ({
+    ...point,
+    profitPercentage: point.sales > 0 ? (point.profit / point.sales) * 100 : 0
+  })) || [];
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -162,7 +178,7 @@ function DashboardCharts({ period }: { period: string }) {
     );
   }
 
-  if (!data || data.length === 0) {
+  if (!chartData || chartData.length === 0) {
     return (
       <div className="space-y-6">
         <Card className="shadow-sm">
@@ -187,7 +203,7 @@ function DashboardCharts({ period }: { period: string }) {
               <div className="h-[250px] sm:h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
-                    data={data}
+                    data={chartData}
                     margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                   >
                     <defs>
@@ -254,7 +270,7 @@ function DashboardCharts({ period }: { period: string }) {
               <div className="h-[250px] sm:h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
-                    data={data}
+                    data={chartData}
                     margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                   >
                     <defs>
@@ -276,15 +292,15 @@ function DashboardCharts({ period }: { period: string }) {
                       axisLine={false}
                     />
                     <YAxis
-                      tickFormatter={(value) => `${value / 1000}k`}
+                      tickFormatter={(value) => `${value.toFixed(1)}%`}
                       tick={{ fontSize: 12 }}
                       tickLine={false}
                       axisLine={false}
                     />
                     <Tooltip
                       formatter={(value: number) => [
-                        formatCurrency(value),
-                        "Profit",
+                        `${value.toFixed(2)}%`,
+                        "Profit Margin",
                       ]}
                       labelFormatter={(label) => formatDate(label)}
                       contentStyle={{
@@ -297,7 +313,7 @@ function DashboardCharts({ period }: { period: string }) {
                     />
                     <Area
                       type="monotone"
-                      dataKey="profit"
+                      dataKey="profitPercentage"
                       stroke="#22c55e"
                       fillOpacity={1}
                       fill="url(#colorProfit)"

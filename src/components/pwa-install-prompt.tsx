@@ -11,6 +11,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const DISMISS_KEY = "pwa-install-dismissed";
+const SHOWN_KEY = "pwa-install-shown";
 
 export function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -20,20 +21,17 @@ export function PWAInstallPrompt() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const dismissedAt = localStorage.getItem(DISMISS_KEY);
-    if (dismissedAt) {
-      const dismissedTime = parseInt(dismissedAt, 10);
-      const oneDay = 24 * 60 * 60 * 1000;
-      if (Date.now() - dismissedTime < oneDay) {
-        setDismissed(true);
-        return;
-      }
+    // Check if already dismissed or shown before
+    if (localStorage.getItem(DISMISS_KEY) || localStorage.getItem(SHOWN_KEY)) {
+      setDismissed(true);
+      return;
     }
 
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setVisible(true);
+      localStorage.setItem(SHOWN_KEY, "true");
     };
 
     window.addEventListener("beforeinstallprompt", handler);

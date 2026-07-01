@@ -8,6 +8,7 @@ import type { Sale } from "@/types";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 import { toast } from "sonner";
+import { formatDateTime } from "@/lib/ui-helpers";
 
 // Import shadcn UI components
 import { Button } from "@/components/ui/button";
@@ -249,7 +250,7 @@ export default function SalesPage() {
                         onClick={() => handleRowClick(record)}
                         onMouseEnter={() => prefetchSaleDetails(record.id)}
                       >
-                        {new Date(record.saleTime).toLocaleString()}
+                        {formatDateTime(record.saleTime)}
                       </TableCell>
                       <TableCell
                         className="text-right font-medium cursor-pointer"
@@ -329,7 +330,7 @@ export default function SalesPage() {
                     <MobileTableCardRow label="Phone" value={record.customerPhone || "—"} />
                     <MobileTableCardRow
                       label="Time"
-                      value={new Date(record.saleTime).toLocaleString()}
+                      value={formatDateTime(record.saleTime)}
                     />
                     <MobileTableCardRow
                       label="Total"
@@ -445,7 +446,7 @@ export default function SalesPage() {
                   <div className="space-y-1">
                     <div className="text-xs text-muted-foreground font-medium">Sale Time</div>
                     <div className="font-semibold text-foreground">
-                      {new Date(saleDetails.saleTime).toLocaleString()}
+                      {formatDateTime(saleDetails.saleTime)}
                     </div>
                   </div>
                   <div className="space-y-1">

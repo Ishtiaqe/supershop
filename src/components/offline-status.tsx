@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useOffline } from '@/hooks/useOffline';
+import { formatDateTime } from '@/lib/ui-helpers';
 
 // Import shadcn UI components
 import { Button } from '@/components/ui/button';
@@ -95,7 +96,7 @@ export function OfflineIndicator() {
             {lastSyncTime && (
               <div className="text-sm">
                 <span className="font-semibold text-foreground">Last synced: </span>
-                <span className="text-muted-foreground">{new Date(lastSyncTime).toLocaleString()}</span>
+                <span className="text-muted-foreground">{formatDateTime(lastSyncTime)}</span>
               </div>
             )}
 
