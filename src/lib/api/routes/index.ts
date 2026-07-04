@@ -14,6 +14,7 @@ import { registerExportRoutes } from './export'
 import { registerCustomersRoutes } from './customers'
 import { registerSaleReturnsRoutes } from './saleReturns'
 import { registerStockMovementsRoutes } from './stockMovements'
+import { registerShiftRoutes } from './shifts'
 import { RouteHandler } from '../types'
 
 export function registerAllRoutes(router: { register: (method: string, pattern: string, handler: RouteHandler) => void }) {
@@ -33,4 +34,5 @@ export function registerAllRoutes(router: { register: (method: string, pattern: 
   registerCustomersRoutes(router)
   registerSaleReturnsRoutes(router)
   registerStockMovementsRoutes(router)
+  registerShiftRoutes(router)
 }

@@ -26,6 +26,7 @@ const DataManagementPage = lazy(() => import('@/app/data-management/DataManageme
 const ProfilePage = lazy(() => import('@/app/profile/ProfilePage'));
 const TenantSetupPage = lazy(() => import('@/app/tenant/setup/TenantSetupPage'));
 const AdminTenantsPage = lazy(() => import('@/app/admin/tenants/AdminTenantsPage'));
+const ShiftsPage = lazy(() => import('@/app/shifts/ShiftsPage'));
 
 function PageLoader() {
   return (
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
       { path: '/brands', element: <BrandsPage /> },
       { path: '/expenses', element: <ExpensesPage /> },
       { path: '/cash-box', element: <CashBoxPage /> },
+      { path: '/shifts', element: <ShiftsPage /> },
       { path: '/shortlist', element: <ShortlistPage /> },
       { path: '/credits', element: <CreditsPage /> },
       { path: '/customers', element: <CustomersPage /> },

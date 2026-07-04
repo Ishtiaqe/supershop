@@ -3,16 +3,15 @@ import { formatResponse, generateUUID } from '../utils'
 import { RouteHandler } from '../types'
 
 const getCreditsSummary: RouteHandler = async ({ tenantId }) => {
-  const { data: sales, error } = await supabase
-    .from('sales')
-    .select('dueAmount, customerPhone')
-    .eq('tenantId', tenantId)
-    .gt('dueAmount', 0)
+  const { data, error } = await supabase
+    .rpc('get_credits_summary', { p_tenant_id: tenantId })
   if (error) throw error
 
-  const totalOutstanding = sales.reduce((sum, s) => sum + (s.dueAmount || 0), 0)
-  const uniquePhones = new Set(sales.map(s => s.customerPhone).filter(Boolean))
-  return formatResponse({ totalOutstanding, customersWithDues: uniquePhones.size })
+  const row = data?.[0] || { total_outstanding: 0, customers_with_dues: 0 }
+  return formatResponse({
+    totalOutstanding: Number(row.total_outstanding) || 0,
+    customersWithDues: Number(row.customers_with_dues) || 0
+  })
 }
 
 const getCredits: RouteHandler = async ({ tenantId }) => {

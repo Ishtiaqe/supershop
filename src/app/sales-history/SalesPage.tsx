@@ -31,8 +31,23 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-function fetchSales() {
-  return api.get("/sales-history").then((rowData) => rowData.data);
+function fetchSales(params: {
+  page: number;
+  limit: number;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+  paymentMethod?: string;
+}) {
+  const queryParams: Record<string, string> = {
+    limit: String(params.limit),
+    offset: String((params.page - 1) * params.limit),
+  };
+  if (params.search) queryParams.search = params.search;
+  if (params.startDate) queryParams.startDate = params.startDate;
+  if (params.endDate) queryParams.endDate = params.endDate;
+  if (params.paymentMethod) queryParams.paymentMethod = params.paymentMethod;
+  return api.get("/sales-history", { params: queryParams }).then((res) => res.data);
 }
 
 function fetchSaleDetails(saleId: string) {
@@ -41,11 +56,6 @@ function fetchSaleDetails(saleId: string) {
 
 export default function SalesPage() {
   const queryClient = useQueryClient();
-  const { data: sales = [], isLoading } = useQuery({
-    queryKey: ["sales"],
-    queryFn: fetchSales,
-    staleTime: 30 * 1000,
-  });
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -58,6 +68,23 @@ export default function SalesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const deferredSearchText = useDeferredValue(searchText);
   const PAGE_SIZE = 10;
+
+  const { data: salesResponse, isLoading } = useQuery({
+    queryKey: ["sales", currentPage, deferredSearchText, startDateStr, endDateStr, paymentFilter],
+    queryFn: () => fetchSales({
+      page: currentPage,
+      limit: PAGE_SIZE,
+      search: deferredSearchText.trim() || undefined,
+      startDate: startDateStr || undefined,
+      endDate: endDateStr || undefined,
+      paymentMethod: paymentFilter,
+    }),
+    staleTime: 30 * 1000,
+  });
+
+  const sales: Sale[] = salesResponse?.data ?? [];
+  const totalCount = salesResponse?.total ?? 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const { data: saleDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ["sale-details", selectedSaleId],
@@ -105,49 +132,7 @@ export default function SalesPage() {
     setCurrentPage(1);
   }, [normalizedSearch, startDateStr, endDateStr, paymentFilter]);
 
-  const { filteredSales, totalPages } = useMemo(() => {
-    const rows: Sale[] = [];
-
-    for (const sale of sales as Sale[]) {
-      if (normalizedSearch) {
-        const matchesReceipt = sale.receiptNumber
-          ?.toLowerCase()
-          .includes(normalizedSearch);
-        const matchesCustomer =
-          sale.customerName?.toLowerCase().includes(normalizedSearch) ||
-          sale.customerPhone?.toLowerCase().includes(normalizedSearch);
-
-        if (!matchesReceipt && !matchesCustomer) {
-          continue;
-        }
-      }
-
-      if (startDateStr && endDateStr) {
-        const saleDate = new Date(sale.saleTime);
-        const start = new Date(startDateStr + "T00:00:00");
-        const end = new Date(endDateStr + "T23:59:59");
-        if (saleDate < start || saleDate > end) {
-          continue;
-        }
-      }
-
-      if (paymentFilter && sale.paymentMethod !== paymentFilter) {
-        continue;
-      }
-
-      rows.push(sale);
-    }
-
-    const total = rows.length;
-    const pages = Math.ceil(total / PAGE_SIZE);
-    const start = (currentPage - 1) * PAGE_SIZE;
-    const paginated = rows.slice(start, start + PAGE_SIZE);
-
-    return {
-      filteredSales: paginated,
-      totalPages: pages,
-    };
-  }, [sales, normalizedSearch, startDateStr, endDateStr, paymentFilter, currentPage]);
+  const filteredSales = sales;
 
   if (!user || (user.role !== "OWNER" && user.role !== "EMPLOYEE")) {
     return <div className="p-6">Access denied — Owners and employees only</div>;
@@ -222,7 +207,7 @@ export default function SalesPage() {
                     </TableCell>
                   </TableRow>
                 ) : filteredSales.length > 0 ? (
-                  filteredSales.map((record) => (
+                  filteredSales.map((record: Sale) => (
                     <TableRow key={record.id} className="hover:bg-muted/50">
                       <TableCell
                         className="font-semibold cursor-pointer"
@@ -314,7 +299,7 @@ export default function SalesPage() {
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
                 </div>
               ) : filteredSales.length > 0 ? (
-                filteredSales.map((record) => (
+                filteredSales.map((record: Sale) => (
                   <MobileTableCard
                     key={record.id}
                     onClick={() => handleRowClick(record)}

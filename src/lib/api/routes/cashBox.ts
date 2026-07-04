@@ -3,23 +3,16 @@ import { formatResponse, generateUUID, sanitizeCashBoxEntry } from '../utils'
 import { RouteHandler } from '../types'
 
 const getCashBoxSummary: RouteHandler = async ({ tenantId }) => {
-  const { data: entries, error } = await supabase
-    .from('cash_box_entries')
-    .select('*')
-    .eq('tenantId', tenantId)
+  const { data, error } = await supabase
+    .rpc('get_cash_box_summary', { p_tenant_id: tenantId })
   if (error) throw error
 
-  let cashIn = 0
-  let cashOut = 0
-  entries.forEach(e => {
-    const amount = e.amount
-    if (['SALE_IN', 'MANUAL_IN', 'NEW_INVESTMENT_IN', 'LOAN_IN', 'CREDIT_PAYMENT_IN'].includes(e.entryType)) {
-      cashIn += amount
-    } else {
-      cashOut += amount
-    }
+  const row = data?.[0] || { cash_in: 0, cash_out: 0, current_balance: 0 }
+  return formatResponse({
+    cashIn: Number(row.cash_in) || 0,
+    cashOut: Number(row.cash_out) || 0,
+    currentBalance: Number(row.current_balance) || 0
   })
-  return formatResponse({ cashIn, cashOut, currentBalance: cashIn - cashOut })
 }
 
 const getCashBoxEntries: RouteHandler = async ({ tenantId }) => {

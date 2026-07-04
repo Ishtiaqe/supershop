@@ -12,6 +12,7 @@ import {
   Wallet,
   Database,
   Users,
+  Clock,
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -82,6 +83,12 @@ export const navigationConfig: NavigationItem[] = [
     icon: Wallet,
     label: "Cash Box",
     roles: ["OWNER", "SUPER_ADMIN"],
+  },
+  {
+    key: "/shifts",
+    icon: Clock,
+    label: "Shifts",
+    roles: ["OWNER", "EMPLOYEE", "SUPER_ADMIN"],
   },
   {
     key: "/data-management",

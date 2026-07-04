@@ -25,6 +25,7 @@ model User {
   Expense           Expense[]
   cashBoxEntries    CashBoxEntry[]
   creditPayments    CreditPayment[]
+  shifts            Shift[]
 
   @@index([email])
   @@index([tenantId])
@@ -636,4 +637,26 @@ model SaleReturnItem {
   @@index([saleReturnId])
   @@index([saleItemId])
   @@map("sale_return_items")
+}
+
+model Shift {
+  id              String    @id @default(uuid())
+  tenantId        String
+  userId          String
+  openingBalance  Float     @default(0)
+  closingBalance  Float?
+  expectedBalance Float?
+  discrepancy     Float?
+  status          String    @default("OPEN") // OPEN, CLOSED
+  openedAt        DateTime  @default(now())
+  closedAt        DateTime?
+  note            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([tenantId, openedAt])
+  @@map("shifts")
 }

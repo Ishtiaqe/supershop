@@ -7,18 +7,37 @@ const getSales: RouteHandler = async ({ tenantId, query }) => {
   const limit = Number(query.get('limit') || '50')
   const offset = Number(query.get('offset') || '0')
   const since = query.get('since')
+  const search = query.get('search') || ''
+  const startDate = query.get('startDate')
+  const endDate = query.get('endDate')
+  const paymentMethod = query.get('paymentMethod')
+
   let dbQuery = supabase
     .from('sales')
-    .select('*, items:sale_items(*, inventory:inventory_items(*)), employee:users(*)')
+    .select('*, items:sale_items(*, inventory:inventory_items(*)), employee:users(*)', { count: 'exact' })
     .eq('tenantId', tenantId)
+
   if (since) {
     dbQuery = dbQuery.gte('updatedAt', since)
   }
-  const { data, error } = await dbQuery
+  if (search) {
+    dbQuery = dbQuery.or(`receiptNumber.ilike.%${search}%,customerName.ilike.%${search}%,customerPhone.ilike.%${search}%`)
+  }
+  if (startDate) {
+    dbQuery = dbQuery.gte('saleTime', new Date(startDate + 'T00:00:00').toISOString())
+  }
+  if (endDate) {
+    dbQuery = dbQuery.lte('saleTime', new Date(endDate + 'T23:59:59').toISOString())
+  }
+  if (paymentMethod) {
+    dbQuery = dbQuery.eq('paymentMethod', paymentMethod)
+  }
+
+  const { data, error, count } = await dbQuery
     .order('saleTime', { ascending: false })
     .range(offset, offset + limit - 1)
   if (error) throw error
-  return formatResponse(data)
+  return formatResponse({ data, total: count || 0, page: Math.floor(offset / limit) + 1, limit })
 }
 
 const getSaleById: RouteHandler = async ({ tenantId, params }) => {
@@ -39,50 +58,23 @@ const getSalesAnalyticsSummary: RouteHandler = async ({ tenantId, query }) => {
   if (period === '7d') days = 7
   else if (period === '90d') days = 90
 
-  const cutoffDate = new Date()
-  cutoffDate.setDate(cutoffDate.getDate() - days)
-  cutoffDate.setHours(0, 0, 0, 0)
-  const cutoffString = cutoffDate.toISOString()
+  const [salesResult, inventoryResult] = await Promise.all([
+    supabase.rpc('get_sales_analytics_summary', { p_tenant_id: tenantId, p_days: days }),
+    supabase.rpc('get_inventory_summary', { p_tenant_id: tenantId })
+  ])
 
-  const { data: sales, error: salesErr } = await supabase
-    .from('sales')
-    .select('totalAmount, totalProfit, saleTime')
-    .eq('tenantId', tenantId)
-    .gte('saleTime', cutoffString)
-  if (salesErr) throw salesErr
+  if (salesResult.error) throw salesResult.error
+  if (inventoryResult.error) throw inventoryResult.error
 
-  const { data: inventory, error: invErr } = await supabase
-    .from('inventory_items')
-    .select('purchasePrice, retailPrice, quantity')
-    .eq('tenantId', tenantId)
-  if (invErr) throw invErr
-
-  let ordersCount = 0
-  let totalRevenue = 0
-  let totalProfit = 0
-  if (sales) {
-    ordersCount = sales.length
-    sales.forEach(s => {
-      totalRevenue += s.totalAmount || 0
-      totalProfit += s.totalProfit || 0
-    })
-  }
-
-  let totalAssetValue = 0
-  let totalInventorySellingValue = 0
-  if (inventory) {
-    inventory.forEach(item => {
-      totalAssetValue += (item.purchasePrice || 0) * (item.quantity || 0)
-      totalInventorySellingValue += (item.retailPrice || 0) * (item.quantity || 0)
-    })
-  }
-
+  const row = salesResult.data?.[0] || { orders_count: 0, total_revenue: 0, total_profit: 0, total_asset_value: 0, total_inventory_selling_value: 0 }
+  const inventoryRow = inventoryResult.data?.[0] || { total_inventory_sku_count: 0, total_inventory_items: 0 }
   return formatResponse({
-    ordersCount,
-    totalRevenue,
-    totalProfit,
-    totalAssetValue,
-    totalInventorySellingValue
+    ordersCount: Number(row.orders_count) || 0,
+    totalRevenue: Number(row.total_revenue) || 0,
+    totalProfit: Number(row.total_profit) || 0,
+    totalAssetValue: Number(row.total_asset_value) || 0,
+    totalInventorySellingValue: Number(row.total_inventory_selling_value) || 0,
+    totalInventorySkuCount: Number(inventoryRow.total_inventory_sku_count) || 0
   })
 }
 
@@ -92,20 +84,12 @@ const getSalesAnalyticsGraphs: RouteHandler = async ({ tenantId, query }) => {
   if (period === '7d') days = 7
   else if (period === '90d') days = 90
 
-  const cutoffDate = new Date()
-  cutoffDate.setDate(cutoffDate.getDate() - days)
-  cutoffDate.setHours(0, 0, 0, 0)
-  const cutoffString = cutoffDate.toISOString()
+  const { data, error } = await supabase
+    .rpc('get_sales_analytics_graphs', { p_tenant_id: tenantId, p_days: days })
+  if (error) throw error
 
-  const { data: sales, error: salesErr } = await supabase
-    .from('sales')
-    .select('totalAmount, totalProfit, saleTime')
-    .eq('tenantId', tenantId)
-    .gte('saleTime', cutoffString)
-  if (salesErr) throw salesErr
-
+  // Fill in missing dates with zeros to maintain continuous graph
   const graphMap = new Map<string, { date: string; sales: number; profit: number }>()
-
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
@@ -113,17 +97,17 @@ const getSalesAnalyticsGraphs: RouteHandler = async ({ tenantId, query }) => {
     graphMap.set(dateStr, { date: dateStr, sales: 0, profit: 0 })
   }
 
-  if (sales) {
-    sales.forEach(s => {
-      if (s.saleTime) {
-        const dateStr = s.saleTime.split('T')[0]
+  if (data) {
+    for (const row of data) {
+      const dateStr = row.sale_date ? new Date(row.sale_date).toISOString().split('T')[0] : null
+      if (dateStr) {
         const existing = graphMap.get(dateStr)
         if (existing) {
-          existing.sales += s.totalAmount || 0
-          existing.profit += s.totalProfit || 0
+          existing.sales = Number(row.sales) || 0
+          existing.profit = Number(row.profit) || 0
         }
       }
-    })
+    }
   }
 
   const graphData = Array.from(graphMap.values())
@@ -134,9 +118,27 @@ const createSaleHandler: RouteHandler = async ({ tenantId, userId, requestData }
   return createSale(requestData, tenantId, userId)
 }
 
+const getDashboardExtraMetrics: RouteHandler = async ({ tenantId }) => {
+  const { data, error } = await supabase
+    .rpc('get_dashboard_extra_metrics', { p_tenant_id: tenantId })
+  if (error) throw error
+  return formatResponse(data)
+}
+
+const getTopProducts: RouteHandler = async ({ tenantId, query }) => {
+  const period = query.get('period') || '30d'
+  const days = period === '7d' ? 7 : period === '90d' ? 90 : 30
+  const { data, error } = await supabase
+    .rpc('get_top_products', { p_tenant_id: tenantId, p_days: days, p_limit: 5 })
+  if (error) throw error
+  return formatResponse(data)
+}
+
 export function registerSalesRoutes(router: { register: (method: string, pattern: string, handler: RouteHandler) => void }) {
   router.register('GET', '/sales-history/analytics/summary', getSalesAnalyticsSummary)
   router.register('GET', '/sales-history/analytics/graphs', getSalesAnalyticsGraphs)
+  router.register('GET', '/dashboard/extra-metrics', getDashboardExtraMetrics)
+  router.register('GET', '/dashboard/top-products', getTopProducts)
   router.register('GET', '/sales-history', getSales)
   router.register('GET', '/sales-history/:id', getSaleById)
   router.register('POST', '/sales-history', createSaleHandler)

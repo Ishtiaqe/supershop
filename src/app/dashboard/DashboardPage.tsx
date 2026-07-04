@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { TrendingUp, Wallet, Package, ShoppingCart, Store, Loader2 } from "lucide-react";
+import { TrendingUp, Wallet, Package, ShoppingCart, Store, Boxes, Loader2, CreditCard, AlertTriangle, CalendarDays, Trophy } from "lucide-react";
 import api from "@/lib/api";
 import { useTenant } from "@/components/providers/TenantProvider";
 import { queryKeys } from "@/components/providers";
@@ -26,6 +26,7 @@ interface DashboardSummaryType {
   totalProfit: number;
   totalAssetValue: number;
   totalInventorySellingValue: number;
+  totalInventorySkuCount: number;
 }
 
 const fmt = (n: number) =>
@@ -67,7 +68,7 @@ function DashboardSummary({ period }: { period: string }) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, index) => (
+        {Array.from({ length: 7 }).map((_, index) => (
           <Card key={index} className="shadow-sm border-border/60">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-5">
               <Skeleton className="h-4 w-24" />
@@ -112,6 +113,11 @@ function DashboardSummary({ period }: { period: string }) {
       title: "Inventory Selling Value",
       value: `৳ ${fmt(data.totalInventorySellingValue)}`,
       icon: <Store className="h-4 w-4 text-purple-500" />,
+    },
+    {
+      title: "Current Inventory SKU",
+      value: (data.totalInventorySkuCount ?? 0).toLocaleString("en-IN"),
+      icon: <Boxes className="h-4 w-4 text-cyan-500" />,
     },
     {
       title: `Orders (${label})`,
@@ -353,6 +359,169 @@ function DashboardCharts({ period }: { period: string }) {
   );
 }
 
+interface ExtraMetrics {
+  today_sales: number;
+  today_profit: number;
+  today_orders: number;
+  yesterday_sales: number;
+  credit_outstanding: number;
+  cash_box_balance: number;
+  low_stock_count: number;
+}
+
+interface TopProduct {
+  product_name: string;
+  total_quantity: number;
+  total_revenue: number;
+  total_profit: number;
+}
+
+function DashboardExtraMetrics({ period }: { period: string }) {
+  const { currentTenantId } = useTenant();
+  const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
+
+  const { data: extra, isLoading: isLoadingExtra } = useQuery<ExtraMetrics[]>({
+    queryKey: ["dashboard-extra", currentTenantId],
+    queryFn: () => api.get("/dashboard/extra-metrics").then((r) => r.data),
+    refetchOnWindowFocus: false,
+    staleTime: 30 * 1000,
+    enabled: !!currentTenantId,
+  });
+
+  const { data: topProducts, isLoading: isLoadingTop } = useQuery<TopProduct[]>({
+    queryKey: ["dashboard-top-products", currentTenantId, period],
+    queryFn: () => api.get(`/dashboard/top-products?period=${period}`).then((r) => r.data),
+    refetchOnWindowFocus: false,
+    staleTime: 30 * 1000,
+    enabled: !!currentTenantId,
+  });
+
+  const e = extra?.[0];
+  const todayVsYesterday = e && e.yesterday_sales > 0
+    ? (((e.today_sales - e.yesterday_sales) / e.yesterday_sales) * 100).toFixed(1)
+    : null;
+
+  if (isLoadingExtra) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i} className="shadow-sm border-border/60">
+            <CardHeader className="p-5 pb-2"><Skeleton className="h-4 w-20" /></CardHeader>
+            <CardContent className="p-5 pt-0"><Skeleton className="h-8 w-28" /></CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  const cards = [
+    {
+      title: "Today's Sales",
+      value: `৳ ${fmt(e?.today_sales || 0)}`,
+      sub: todayVsYesterday !== null
+        ? `${Number(todayVsYesterday) >= 0 ? "↑" : "↓"} ${Math.abs(Number(todayVsYesterday))}% vs yesterday`
+        : `${e?.today_orders || 0} orders`,
+      icon: <CalendarDays className="h-4 w-4 text-blue-500" />,
+      subColor: todayVsYesterday !== null && Number(todayVsYesterday) >= 0 ? "text-emerald-600" : "text-red-500",
+    },
+    {
+      title: "Today's Profit",
+      value: `৳ ${fmt(e?.today_profit || 0)}`,
+      sub: `${e?.today_orders || 0} orders today`,
+      icon: <Wallet className="h-4 w-4 text-emerald-500" />,
+      subColor: "text-muted-foreground",
+    },
+    {
+      title: "Credit Outstanding",
+      value: `৳ ${fmt(e?.credit_outstanding || 0)}`,
+      sub: "Total dues",
+      icon: <CreditCard className="h-4 w-4 text-orange-500" />,
+      subColor: "text-muted-foreground",
+    },
+    {
+      title: "Cash Box Balance",
+      value: `৳ ${fmt(e?.cash_box_balance || 0)}`,
+      sub: "Current balance",
+      icon: <Wallet className="h-4 w-4 text-purple-500" />,
+      subColor: "text-muted-foreground",
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map((stat, i) => (
+          <Card key={i} className="shadow-sm border-border/60 hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-5">
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {stat.title}
+              </CardTitle>
+              {stat.icon}
+            </CardHeader>
+            <CardContent className="p-5 pt-0">
+              <div className="text-lg font-bold text-foreground">{stat.value}</div>
+              <div className={`text-xs mt-1 ${stat.subColor}`}>{stat.sub}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {e?.low_stock_count != null && Number(e.low_stock_count) > 0 && (
+        <Card className="shadow-sm border-amber-500/40 bg-amber-500/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+            <div className="text-sm">
+              <span className="font-semibold text-amber-700">{Number(e.low_stock_count)} items</span>
+              <span className="text-muted-foreground"> are running low on stock (≤20 units). Check the Shortlist for details.</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Top Products */}
+      <Card className="shadow-sm border-border/60">
+        <CardHeader className="p-5 pb-4 border-b border-border/60">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-amber-500" />
+            Top Products ({periodLabel(period)})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoadingTop ? (
+            <div className="p-4 space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : topProducts && topProducts.length > 0 ? (
+            <div className="divide-y divide-border">
+              {topProducts.map((p, i) => (
+                <div key={i} className="flex items-center justify-between p-4 hover:bg-muted/30">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                      {i + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-foreground truncate">{p.product_name}</div>
+                      <div className="text-xs text-muted-foreground">{Number(p.total_quantity)} units sold</div>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-sm font-semibold text-foreground">৳{fmt(Number(p.total_revenue))}</div>
+                    <div className="text-xs text-emerald-600">৳{fmt(Number(p.total_profit))} profit</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-sm text-muted-foreground">No sales data for this period</div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const [period, setPeriod] = useState("30d");
 
@@ -374,6 +543,13 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {periodSelect}
       </div>
+
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold text-foreground">Today's Overview</h3>
+        </div>
+        <DashboardExtraMetrics period={period} />
+      </section>
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
