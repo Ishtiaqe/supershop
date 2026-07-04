@@ -58,6 +58,14 @@ function DashboardSummary({ period }: { period: string }) {
     enabled: !!currentTenantId,
   });
 
+  const { data: extra } = useQuery<ExtraMetrics[]>({
+    queryKey: ["dashboard-extra", currentTenantId],
+    queryFn: () => api.get("/dashboard/extra-metrics").then((r) => r.data),
+    refetchOnWindowFocus: false,
+    staleTime: 30 * 1000,
+    enabled: !!currentTenantId,
+  });
+
   // Refetch when tenant ID changes
   useEffect(() => {
     if (currentTenantId) {
@@ -68,7 +76,7 @@ function DashboardSummary({ period }: { period: string }) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 7 }).map((_, index) => (
+        {Array.from({ length: 8 }).map((_, index) => (
           <Card key={index} className="shadow-sm border-border/60">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-5">
               <Skeleton className="h-4 w-24" />
@@ -123,6 +131,11 @@ function DashboardSummary({ period }: { period: string }) {
       title: `Orders (${label})`,
       value: (data.ordersCount ?? 0).toLocaleString("en-IN"),
       icon: <ShoppingCart className="h-4 w-4 text-amber-500" />,
+    },
+    {
+      title: "Credit Outstanding",
+      value: `৳ ${fmt(extra?.[0]?.credit_outstanding || 0)}`,
+      icon: <CreditCard className="h-4 w-4 text-orange-500" />,
     },
   ];
 
@@ -456,10 +469,10 @@ function DashboardExtraMetrics({ period }: { period: string }) {
       subColor: "text-muted-foreground",
     },
     {
-      title: "Credit Outstanding",
-      value: `৳ ${fmt(e?.credit_outstanding || 0)}`,
-      sub: "Total dues",
-      icon: <CreditCard className="h-4 w-4 text-orange-500" />,
+      title: "Today's Orders",
+      value: (e?.today_orders || 0).toLocaleString("en-IN"),
+      sub: "Total orders today",
+      icon: <ShoppingCart className="h-4 w-4 text-amber-500" />,
       subColor: "text-muted-foreground",
     },
     {
