@@ -26,6 +26,7 @@ interface PaymentFormState {
   saleId: string;
   amount: number;
   note: string;
+  paymentMethod: string;
 }
 
 export default function CreditDetailDrawer({ phone, customerName, onClose }: Props) {
@@ -36,7 +37,7 @@ export default function CreditDetailDrawer({ phone, customerName, onClose }: Pro
   const handlePay = () => {
     if (!paymentForm || paymentForm.amount <= 0) return;
     recordPayment(
-      { saleId: paymentForm.saleId, amount: paymentForm.amount, note: paymentForm.note || undefined },
+      { saleId: paymentForm.saleId, amount: paymentForm.amount, note: paymentForm.note || undefined, paymentMethod: paymentForm.paymentMethod },
       { onSuccess: () => setPaymentForm(null) }
     );
   };
@@ -95,6 +96,7 @@ export default function CreditDetailDrawer({ phone, customerName, onClose }: Pro
                           <div key={p.id} className="flex justify-between">
                             <span>
                               {dayjs(p.paymentDate).format('DD/MM/YYYY')}
+                              {p.paymentMethod && p.paymentMethod !== 'CASH' ? ` · ${p.paymentMethod}` : ''}
                               {p.note ? ` — ${p.note}` : ''}
                             </span>
                             <span className="font-medium text-foreground">৳{p.amount.toFixed(2)}</span>
@@ -125,7 +127,25 @@ export default function CreditDetailDrawer({ phone, customerName, onClose }: Pro
                               className="w-28 h-8 px-2 py-1 text-xs"
                             />
                           </div>
-                          <div className="space-y-1 flex-1 min-w-[160px]">
+                          <div className="space-y-1">
+                            <label htmlFor={`payment-method-${sale.id}`} className="text-xs font-semibold text-foreground">Method</label>
+                            <select
+                              id={`payment-method-${sale.id}`}
+                              value={paymentForm.paymentMethod}
+                              onChange={(e) =>
+                                setPaymentForm((prev) =>
+                                  prev ? { ...prev, paymentMethod: e.target.value } : prev
+                                )
+                              }
+                              className="h-8 px-2 py-1 text-xs rounded-md border border-input bg-background"
+                            >
+                              <option value="CASH">Cash</option>
+                              <option value="CARD">Card</option>
+                              <option value="MOBILE_PAYMENT">Mobile</option>
+                              <option value="OTHER">Other</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1 flex-1 min-w-[120px]">
                             <label htmlFor={`payment-note-${sale.id}`} className="text-xs font-semibold text-foreground">Note (optional)</label>
                             <Input
                               id={`payment-note-${sale.id}`}
@@ -135,7 +155,7 @@ export default function CreditDetailDrawer({ phone, customerName, onClose }: Pro
                                   prev ? { ...prev, note: e.target.value } : prev
                                 )
                               }
-                              placeholder="e.g. Cash"
+                              placeholder="e.g. partial payment"
                               className="h-8 px-2 py-1 text-xs"
                             />
                           </div>
@@ -152,7 +172,7 @@ export default function CreditDetailDrawer({ phone, customerName, onClose }: Pro
                         <Button
                           size="sm"
                           onClick={() =>
-                            setPaymentForm({ saleId: sale.id, amount: sale.dueAmount ?? 0, note: '' })
+                            setPaymentForm({ saleId: sale.id, amount: sale.dueAmount ?? 0, note: '', paymentMethod: 'CASH' })
                           }
                           className="h-8 text-xs font-semibold"
                         >

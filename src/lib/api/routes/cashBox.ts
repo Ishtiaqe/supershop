@@ -13,7 +13,7 @@ const getCashBoxSummary: RouteHandler = async ({ tenantId }) => {
   let cashOut = 0
   entries.forEach(e => {
     const amount = e.amount
-    if (['SALE_IN', 'MANUAL_IN', 'NEW_INVESTMENT_IN', 'LOAN_IN'].includes(e.entryType)) {
+    if (['SALE_IN', 'MANUAL_IN', 'NEW_INVESTMENT_IN', 'LOAN_IN', 'CREDIT_PAYMENT_IN'].includes(e.entryType)) {
       cashIn += amount
     } else {
       cashOut += amount

@@ -85,6 +85,7 @@ const createExpense: RouteHandler = async ({ tenantId, userId, requestData }) =>
     amount: sanitized.amount,
     note: `Expense: ${sanitized.description || 'No description'}`,
     referenceId: expense.id,
+    referenceType: 'EXPENSE',
     createdById: userId,
     entryDate: new Date().toISOString(),
     updatedAt: new Date().toISOString()

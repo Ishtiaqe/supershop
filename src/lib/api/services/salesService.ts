@@ -45,12 +45,13 @@ export async function createSale(requestData: any, tenantId: string, userId: str
     totalProfit,
     customerName: requestData.customerName || null,
     customerPhone: requestData.customerPhone || null,
+    customerId: requestData.customerId || null,
     saleType: requestData.saleType || 'POS',
     paymentMethod: requestData.paymentMethod || 'CASH',
     discountType: requestData.discountType || null,
     discountValue: requestData.discountValue || 0,
-    amountPaid: requestData.paymentMethod === 'CREDIT' ? amountPaid : null,
-    dueAmount: requestData.paymentMethod === 'CREDIT' ? dueAmount : null,
+    amountPaid,
+    dueAmount,
     updatedAt: new Date().toISOString()
   }
 
@@ -85,6 +86,17 @@ export async function createSale(requestData: any, tenantId: string, userId: str
         .from('inventory_items')
         .update({ quantity: newQty, updatedAt: new Date().toISOString() })
         .eq('id', item.inventoryId)
+
+      // Log stock movement
+      await supabase.from('stock_movements').insert({
+        id: generateUUID(),
+        tenantId,
+        inventoryId: item.inventoryId,
+        movementType: 'SALE',
+        quantityChange: -item.quantity,
+        reason: `Sale #${sale.receiptNumber}`,
+        referenceId: sale.id,
+      })
 
       // Check 50% rule: if quantity drops to 50% or less of lastRestockQty, add to shortlist
       if (invItem.lastRestockQty && newQty > 0 && newQty <= invItem.lastRestockQty * 0.5) {
@@ -124,6 +136,7 @@ export async function createSale(requestData: any, tenantId: string, userId: str
       amount: cashReceivedNow,
       note: `Sale #${sale.receiptNumber} — ${requestData.paymentMethod || 'CASH'}`,
       referenceId: sale.id,
+      referenceType: 'SALE',
       createdById: userId,
       entryDate: sale.saleTime,
       updatedAt: new Date().toISOString()

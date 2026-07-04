@@ -20,6 +20,7 @@ const ExpensesPage = lazy(() => import('@/app/expenses/ExpensesPage'));
 const CashBoxPage = lazy(() => import('@/app/cash-box/CashBoxPage'));
 const ShortlistPage = lazy(() => import('@/app/shortlist/ShortListPage'));
 const CreditsPage = lazy(() => import('@/app/credits/CreditsPage'));
+const CustomersPage = lazy(() => import('@/app/customers/CustomersPage'));
 const MedicinePage = lazy(() => import('@/app/medicine-database/MedicineDatabasePage'));
 const DataManagementPage = lazy(() => import('@/app/data-management/DataManagementPage'));
 const ProfilePage = lazy(() => import('@/app/profile/ProfilePage'));
@@ -63,6 +64,7 @@ export const router = createBrowserRouter([
       { path: '/cash-box', element: <CashBoxPage /> },
       { path: '/shortlist', element: <ShortlistPage /> },
       { path: '/credits', element: <CreditsPage /> },
+      { path: '/customers', element: <CustomersPage /> },
       { path: '/medicine-database', element: <MedicinePage /> },
       { path: '/data-management', element: <DataManagementPage /> },
       { path: '/profile', element: <ProfilePage /> },

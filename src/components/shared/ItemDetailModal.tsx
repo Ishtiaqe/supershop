@@ -93,6 +93,120 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
     return dateStr ? formatDate(dateStr) : '—';
   };
 
+  const renderBatchCard = (record: Batch) => {
+    const isEditing = editingBatchId === record.id;
+    return (
+      <div key={record.id} className="rounded-md border bg-card p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-xs text-muted-foreground">Batch No</div>
+            <div className="font-medium text-sm">{record.batchNo || '—'}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-muted-foreground">Qty</div>
+            <div className="font-medium text-sm">{record.quantity}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <div className="text-xs text-muted-foreground">Date</div>
+            <div className="text-sm">{formatBatchDate(record)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Expiry</div>
+            <div className="text-sm">
+              {record.expiryDate ? formatDate(record.expiryDate) : '—'}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Purchase Price</div>
+            <div className="text-sm">
+              {isEditing ? (
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground text-xs">৳</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="w-full h-8 px-2 py-1 text-xs"
+                    value={editForm.purchasePrice ?? record.purchasePrice}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        purchasePrice: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                  />
+                </div>
+              ) : (
+                `৳${record.purchasePrice.toFixed(2)}`
+              )}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Retail Price</div>
+            <div className="text-sm">
+              {isEditing ? (
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground text-xs">৳</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="w-full h-8 px-2 py-1 text-xs"
+                    value={editForm.retailPrice ?? record.retailPrice}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        retailPrice: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                  />
+                </div>
+              ) : (
+                `৳${record.retailPrice.toFixed(2)}`
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="pt-2 border-t flex justify-end">
+          {isEditing ? (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => handleSave(record.id)}
+                disabled={updateMutation.isPending}
+                className="h-8 px-2.5 text-xs"
+              >
+                Save
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditingBatchId(null)}
+                className="h-8 px-2.5 text-xs"
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setEditingBatchId(record.id);
+                setEditForm({});
+              }}
+              className="h-8 px-3 text-xs"
+            >
+              Edit
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       {/* Optimized constraints: sm:max-w-5xl prevents excessive stretch, w-full manages smaller layouts */}
@@ -149,130 +263,143 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
                   </div>
                 ) : (
-                  /* Double wrap safeguards against layout breaks and prevents basic table layout explosions */
-                  <div className="rounded-md border bg-card w-full overflow-hidden">
-                    <div className="overflow-x-auto w-full inline-block align-middle">
-                      <Table className="min-w-full table-fixed">
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[15%]">Batch No</TableHead>
-                            <TableHead className="w-[15%]">Date</TableHead>
-                            <TableHead className="w-[15%]">Purchase Price</TableHead>
-                            <TableHead className="w-[15%]">Retail Price</TableHead>
-                            <TableHead className="w-[10%] text-right">Qty</TableHead>
-                            <TableHead className="w-[15%]">Expiry</TableHead>
-                            <TableHead className="w-[15%] text-right">Action</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {sortedBatches.length > 0 ? (
-                            sortedBatches.map((record) => (
-                              <TableRow key={record.id}>
-                                <TableCell className="font-medium truncate">
-                                  {record.batchNo || '—'}
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap">
-                                  {formatBatchDate(record)}
-                                </TableCell>
-                                <TableCell>
-                                  {editingBatchId === record.id ? (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-muted-foreground text-xs">৳</span>
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        step="0.01"
-                                        id={`batch-cost-edit-${record.id}`}
-                                        className="w-full max-w-[100px] h-8 px-2 py-1 text-xs"
-                                        value={editForm.purchasePrice ?? record.purchasePrice}
-                                        onChange={(e) =>
-                                          setEditForm((f) => ({
-                                            ...f,
-                                            purchasePrice: parseFloat(e.target.value) || 0,
-                                          }))
-                                        }
-                                      />
-                                    </div>
-                                  ) : (
-                                    `৳${record.purchasePrice.toFixed(2)}`
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {editingBatchId === record.id ? (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-muted-foreground text-xs">৳</span>
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        step="0.01"
-                                        id={`batch-price-edit-${record.id}`}
-                                        className="w-full max-w-[100px] h-8 px-2 py-1 text-xs"
-                                        value={editForm.retailPrice ?? record.retailPrice}
-                                        onChange={(e) =>
-                                          setEditForm((f) => ({
-                                            ...f,
-                                            retailPrice: parseFloat(e.target.value) || 0,
-                                          }))
-                                        }
-                                      />
-                                    </div>
-                                  ) : (
-                                    `৳${record.retailPrice.toFixed(2)}`
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">{record.quantity}</TableCell>
-                                <TableCell className="whitespace-nowrap">
-                                  {record.expiryDate
-                                    ? formatDate(record.expiryDate)
-                                    : '—'}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {editingBatchId === record.id ? (
-                                    <div className="flex justify-end gap-1">
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleSave(record.id)}
-                                        disabled={updateMutation.isPending}
-                                        className="h-8 px-2.5 text-xs"
-                                      >
-                                        Save
-                                      </Button>
+                  <>
+                    {/* Desktop table */}
+                    <div className="hidden sm:block rounded-md border bg-card w-full overflow-hidden">
+                      <div className="overflow-x-auto w-full inline-block align-middle">
+                        <Table className="min-w-full">
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[15%]">Batch No</TableHead>
+                              <TableHead className="w-[15%]">Date</TableHead>
+                              <TableHead className="w-[15%]">Purchase Price</TableHead>
+                              <TableHead className="w-[15%]">Retail Price</TableHead>
+                              <TableHead className="w-[10%] text-right">Qty</TableHead>
+                              <TableHead className="w-[15%]">Expiry</TableHead>
+                              <TableHead className="w-[15%] text-right">Action</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {sortedBatches.length > 0 ? (
+                              sortedBatches.map((record) => (
+                                <TableRow key={record.id}>
+                                  <TableCell className="font-medium truncate">
+                                    {record.batchNo || '—'}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap">
+                                    {formatBatchDate(record)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {editingBatchId === record.id ? (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-muted-foreground text-xs">৳</span>
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          step="0.01"
+                                          id={`batch-cost-edit-${record.id}`}
+                                          className="w-full max-w-[100px] h-8 px-2 py-1 text-xs"
+                                          value={editForm.purchasePrice ?? record.purchasePrice}
+                                          onChange={(e) =>
+                                            setEditForm((f) => ({
+                                              ...f,
+                                              purchasePrice: parseFloat(e.target.value) || 0,
+                                            }))
+                                          }
+                                        />
+                                      </div>
+                                    ) : (
+                                      `৳${record.purchasePrice.toFixed(2)}`
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {editingBatchId === record.id ? (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-muted-foreground text-xs">৳</span>
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          step="0.01"
+                                          id={`batch-price-edit-${record.id}`}
+                                          className="w-full max-w-[100px] h-8 px-2 py-1 text-xs"
+                                          value={editForm.retailPrice ?? record.retailPrice}
+                                          onChange={(e) =>
+                                            setEditForm((f) => ({
+                                              ...f,
+                                              retailPrice: parseFloat(e.target.value) || 0,
+                                            }))
+                                          }
+                                        />
+                                      </div>
+                                    ) : (
+                                      `৳${record.retailPrice.toFixed(2)}`
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">{record.quantity}</TableCell>
+                                  <TableCell className="whitespace-nowrap">
+                                    {record.expiryDate
+                                      ? formatDate(record.expiryDate)
+                                      : '—'}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {editingBatchId === record.id ? (
+                                      <div className="flex justify-end gap-1">
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handleSave(record.id)}
+                                          disabled={updateMutation.isPending}
+                                          className="h-8 px-2.5 text-xs"
+                                        >
+                                          Save
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setEditingBatchId(null)}
+                                          className="h-8 px-2.5 text-xs"
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    ) : (
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => setEditingBatchId(null)}
-                                        className="h-8 px-2.5 text-xs"
+                                        onClick={() => {
+                                          setEditingBatchId(record.id);
+                                          setEditForm({});
+                                        }}
+                                        className="h-8 px-3 text-xs"
                                       >
-                                        Cancel
+                                        Edit
                                       </Button>
-                                    </div>
-                                  ) : (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        setEditingBatchId(record.id);
-                                        setEditForm({});
-                                      }}
-                                      className="h-8 px-3 text-xs"
-                                    >
-                                      Edit
-                                    </Button>
-                                  )}
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={7} className="text-center py-6 text-muted-foreground text-sm">
+                                  No batches found.
                                 </TableCell>
                               </TableRow>
-                            ))
-                          ) : (
-                            <TableRow>
-                              <TableCell colSpan={7} className="text-center py-6 text-muted-foreground text-sm">
-                                No batches found.
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
-                  </div>
+
+                    {/* Mobile card layout */}
+                    <div className="sm:hidden space-y-3">
+                      {sortedBatches.length > 0 ? (
+                        sortedBatches.map(renderBatchCard)
+                      ) : (
+                        <div className="text-center py-6 text-muted-foreground text-sm">
+                          No batches found.
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             )}

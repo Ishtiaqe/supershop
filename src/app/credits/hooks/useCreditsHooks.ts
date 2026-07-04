@@ -14,6 +14,7 @@ export interface CreditCustomer {
 export interface CreditPayment {
   id: string;
   amount: number;
+  paymentMethod: string;
   paymentDate: string;
   note: string | null;
 }
@@ -70,12 +71,13 @@ export function useCreditsByPhone(phone: string | null) {
 export function useRecordPayment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ saleId, amount, note }: { saleId: string; amount: number; note?: string }) =>
-      api.post(`/credits/${saleId}/payments`, { amount, note }),
+    mutationFn: ({ saleId, amount, note, paymentMethod }: { saleId: string; amount: number; note?: string; paymentMethod?: string }) =>
+      api.post(`/credits/${saleId}/payments`, { amount, note, paymentMethod }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['credit-customers'] });
       qc.invalidateQueries({ queryKey: ['credits-by-phone'] });
       qc.invalidateQueries({ queryKey: ['credit-summary'] });
+      qc.invalidateQueries({ queryKey: ['cash-box'] });
       toast.success('Payment recorded successfully');
     },
     onError: (err: unknown) => {

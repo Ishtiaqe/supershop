@@ -107,6 +107,7 @@ export const sanitizeCashBoxEntry = (data: any) => ({
   amount: typeof data.amount === 'number' ? data.amount : 0,
   note: data.note || null,
   referenceId: data.referenceId || null,
+  referenceType: data.referenceType || null,
   entryDate: data.entryDate || new Date().toISOString(),
   createdById: data.createdById,
   updatedAt: new Date().toISOString()
@@ -121,6 +122,7 @@ export const sanitizeSale = (data: any) => ({
   totalProfit: typeof data.totalProfit === 'number' ? data.totalProfit : 0,
   customerName: data.customerName || null,
   customerPhone: data.customerPhone || null,
+  customerId: data.customerId || null,
   saleType: data.saleType || 'POS',
   paymentMethod: data.paymentMethod || 'CASH',
   discountType: data.discountType || null,

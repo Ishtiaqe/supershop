@@ -64,12 +64,14 @@ const getCreditByPhone: RouteHandler = async ({ tenantId, params }) => {
 const createCreditPayment: RouteHandler = async ({ tenantId, userId, params, requestData }) => {
   const saleId = params.saleId
   const paymentId = requestData.id || generateUUID()
+  const paymentMethod = requestData.paymentMethod || 'CASH'
   const { data: payment, error } = await supabase
     .from('credit_payments')
     .insert({
       id: paymentId,
       saleId,
       amount: requestData.amount,
+      paymentMethod,
       note: requestData.note,
       tenantId,
       createdById: userId,
@@ -81,7 +83,7 @@ const createCreditPayment: RouteHandler = async ({ tenantId, userId, params, req
 
   const { data: sale } = await supabase
     .from('sales')
-    .select('amountPaid, dueAmount')
+    .select('amountPaid, dueAmount, receiptNumber')
     .eq('id', saleId)
     .single()
   if (sale) {
@@ -91,6 +93,21 @@ const createCreditPayment: RouteHandler = async ({ tenantId, userId, params, req
       .from('sales')
       .update({ amountPaid: newPaid, dueAmount: newDue, updatedAt: new Date().toISOString() })
       .eq('id', saleId)
+
+    if (requestData.amount > 0) {
+      await supabase.from('cash_box_entries').insert({
+        id: generateUUID(),
+        tenantId,
+        entryType: 'CREDIT_PAYMENT_IN',
+        amount: requestData.amount,
+        note: `Credit payment for #${sale.receiptNumber} — ${paymentMethod}`,
+        referenceId: paymentId,
+        referenceType: 'CREDIT_PAYMENT',
+        createdById: userId,
+        entryDate: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+    }
   }
 
   return formatResponse(payment)

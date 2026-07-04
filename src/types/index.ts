@@ -67,12 +67,13 @@ export interface Sale {
   totalProfit: number
   customerName?: string
   customerPhone?: string
+  customerId?: string
   saleType: 'POS' | 'ONLINE' | 'WHOLESALE'
   paymentMethod: 'CASH' | 'CARD' | 'MOBILE_PAYMENT' | 'CREDIT' | 'OTHER'
   discountType?: 'PERCENTAGE' | 'FIXED'
   discountValue?: number
-  amountPaid?: number
-  dueAmount?: number
+  amountPaid: number
+  dueAmount: number
   employee?: { fullName?: string }
   employeeName?: string
   employeeFullName?: string
@@ -86,6 +87,49 @@ export interface SaleItem {
   unitPrice: number
   discount: number
   subtotal: number
+}
+
+export interface Customer {
+  id: string
+  tenantId: string
+  name: string
+  phone?: string
+  email?: string
+  address?: string
+  creditLimit?: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface StockMovement {
+  id: string
+  tenantId: string
+  inventoryId: string
+  movementType: string
+  quantityChange: number
+  reason?: string
+  referenceId?: string
+  createdAt: string
+}
+
+export interface SaleReturn {
+  id: string
+  tenantId: string
+  saleId: string
+  returnDate: string
+  totalRefund: number
+  reason?: string
+  createdById: string
+  items?: SaleReturnItem[]
+}
+
+export interface SaleReturnItem {
+  id: string
+  saleReturnId: string
+  saleItemId: string
+  inventoryId: string
+  quantity: number
+  refundAmount: number
 }
 
 export interface MedicineGeneric {

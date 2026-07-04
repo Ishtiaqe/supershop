@@ -223,6 +223,19 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
       if (updErr) throw updErr
       mergedItem = updated
 
+      // Log stock movement (restock)
+      if (quantity && quantity > 0) {
+        await supabase.from('stock_movements').insert({
+          id: generateUUID(),
+          tenantId,
+          inventoryId: targetItem.id,
+          movementType: 'RESTOCK',
+          quantityChange: quantity,
+          reason: `Restock — batch ${batchNo}`,
+          referenceId: targetItem.id,
+        })
+      }
+
       // Auto-remove from shortlist if quantity is now above 50% of lastRestockQty
       if (quantity && newQuantity > quantity * 0.5) {
         const { data: shortlistItem } = await supabase
@@ -272,6 +285,19 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
       .single()
     if (insErr) throw insErr
     finalItem = inserted
+
+    // Log stock movement (new inventory)
+    if (quantity && quantity > 0) {
+      await supabase.from('stock_movements').insert({
+        id: generateUUID(),
+        tenantId,
+        inventoryId: finalItem.id,
+        movementType: 'RESTOCK',
+        quantityChange: quantity,
+        reason: `Initial stock — batch ${batchNo}`,
+        referenceId: finalItem.id,
+      })
+    }
   }
 
   if (fundSource && purchasePrice && quantity) {
@@ -284,6 +310,7 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
         amount: totalCost,
         note: `Stock purchase: ${derivedItemName}`,
         referenceId: finalItem.id,
+        referenceType: 'INVENTORY',
         createdById: userId,
         entryDate: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -297,6 +324,7 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
           amount: totalCost,
           note: `New investment for: ${derivedItemName}`,
           referenceId: finalItem.id,
+          referenceType: 'INVESTMENT',
           createdById: userId,
           entryDate: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -308,6 +336,7 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
           amount: totalCost,
           note: `Stock purchase (new investment): ${derivedItemName}`,
           referenceId: finalItem.id,
+          referenceType: 'INVENTORY',
           createdById: userId,
           entryDate: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -322,6 +351,7 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
           amount: totalCost,
           note: `Loan for stock: ${derivedItemName}`,
           referenceId: finalItem.id,
+          referenceType: 'LOAN',
           createdById: userId,
           entryDate: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -333,6 +363,7 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
           amount: totalCost,
           note: `Stock purchase (loan): ${derivedItemName}`,
           referenceId: finalItem.id,
+          referenceType: 'INVENTORY',
           createdById: userId,
           entryDate: new Date().toISOString(),
           updatedAt: new Date().toISOString()
