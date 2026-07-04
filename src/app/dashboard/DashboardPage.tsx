@@ -18,6 +18,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 
 interface DashboardSummaryType {
@@ -179,6 +180,13 @@ function DashboardCharts({ period }: { period: string }) {
     profitPercentage: point.sales > 0 ? (point.profit / point.sales) * 100 : 0
   })) || [];
 
+  const avgSales = chartData.length > 0
+    ? chartData.reduce((sum, p) => sum + p.sales, 0) / chartData.length
+    : 0;
+  const avgProfitPercentage = chartData.length > 0
+    ? chartData.reduce((sum, p) => sum + (p.profitPercentage || 0), 0) / chartData.length
+    : 0;
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -272,6 +280,12 @@ function DashboardCharts({ period }: { period: string }) {
                         boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                       }}
                     />
+                    <ReferenceLine
+                      y={avgSales}
+                      stroke="hsl(var(--destructive))"
+                      strokeDasharray="4 4"
+                      label={{ value: `Avg: ${formatCurrency(avgSales)}`, position: "insideTopRight", fontSize: 11, fill: "hsl(var(--destructive))" }}
+                    />
                     <Area
                       type="monotone"
                       dataKey="sales"
@@ -339,6 +353,12 @@ function DashboardCharts({ period }: { period: string }) {
                         boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                       }}
                     />
+                    <ReferenceLine
+                      y={avgProfitPercentage}
+                      stroke="#15803d"
+                      strokeDasharray="4 4"
+                      label={{ value: `Avg: ${avgProfitPercentage.toFixed(1)}%`, position: "insideTopRight", fontSize: 11, fill: "#15803d" }}
+                    />
                     <Area
                       type="monotone"
                       dataKey="profitPercentage"
@@ -378,19 +398,10 @@ interface TopProduct {
 
 function DashboardExtraMetrics({ period }: { period: string }) {
   const { currentTenantId } = useTenant();
-  const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
 
   const { data: extra, isLoading: isLoadingExtra } = useQuery<ExtraMetrics[]>({
     queryKey: ["dashboard-extra", currentTenantId],
     queryFn: () => api.get("/dashboard/extra-metrics").then((r) => r.data),
-    refetchOnWindowFocus: false,
-    staleTime: 30 * 1000,
-    enabled: !!currentTenantId,
-  });
-
-  const { data: topProducts, isLoading: isLoadingTop } = useQuery<TopProduct[]>({
-    queryKey: ["dashboard-top-products", currentTenantId, period],
-    queryFn: () => api.get(`/dashboard/top-products?period=${period}`).then((r) => r.data),
     refetchOnWindowFocus: false,
     staleTime: 30 * 1000,
     enabled: !!currentTenantId,
@@ -478,47 +489,65 @@ function DashboardExtraMetrics({ period }: { period: string }) {
         </Card>
       )}
 
-      {/* Top Products */}
-      <Card className="shadow-sm border-border/60">
-        <CardHeader className="p-5 pb-4 border-b border-border/60">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-amber-500" />
-            Top Products ({periodLabel(period)})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {isLoadingTop ? (
-            <div className="p-4 space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : topProducts && topProducts.length > 0 ? (
-            <div className="divide-y divide-border">
-              {topProducts.map((p, i) => (
-                <div key={i} className="flex items-center justify-between p-4 hover:bg-muted/30">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
-                      {i + 1}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-foreground truncate">{p.product_name}</div>
-                      <div className="text-xs text-muted-foreground">{Number(p.total_quantity)} units sold</div>
-                    </div>
+    </div>
+  );
+}
+
+function DashboardTopProducts({ period }: { period: string }) {
+  const { currentTenantId } = useTenant();
+
+  const { data: topProducts, isLoading: isLoadingTop } = useQuery<TopProduct[]>({
+    queryKey: ["dashboard-top-products", currentTenantId, period],
+    queryFn: () => api.get(`/dashboard/top-products?period=${period}`).then((r) => r.data),
+    refetchOnWindowFocus: false,
+    staleTime: 30 * 1000,
+    enabled: !!currentTenantId,
+  });
+
+  const sortedTopProducts = [...(topProducts || [])].sort(
+    (a, b) => Number(b.total_profit) - Number(a.total_profit)
+  );
+
+  return (
+    <Card className="shadow-sm border-border/60">
+      <CardHeader className="p-5 pb-4 border-b border-border/60">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <Trophy className="h-4 w-4 text-amber-500" />
+          Top Products ({periodLabel(period)})
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        {isLoadingTop ? (
+          <div className="p-4 space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        ) : sortedTopProducts.length > 0 ? (
+          <div className="divide-y divide-border">
+            {sortedTopProducts.map((p, i) => (
+              <div key={i} className="flex items-center justify-between p-4 hover:bg-muted/30">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                    {i + 1}
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-semibold text-foreground">৳{fmt(Number(p.total_revenue))}</div>
-                    <div className="text-xs text-emerald-600">৳{fmt(Number(p.total_profit))} profit</div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-foreground truncate">{p.product_name}</div>
+                    <div className="text-xs text-muted-foreground">{Number(p.total_quantity)} units sold</div>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 text-center text-sm text-muted-foreground">No sales data for this period</div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-sm font-semibold text-emerald-600">৳{fmt(Number(p.total_profit))} profit</div>
+                  <div className="text-xs text-muted-foreground">৳{fmt(Number(p.total_revenue))} revenue</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 text-center text-sm text-muted-foreground">No sales data for this period</div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -556,6 +585,13 @@ export default function DashboardPage() {
           <h3 className="text-base font-semibold text-foreground">Summary</h3>
         </div>
         <DashboardSummary period={period} />
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold text-foreground">Top Products</h3>
+        </div>
+        <DashboardTopProducts period={period} />
       </section>
 
       <section className="space-y-4">

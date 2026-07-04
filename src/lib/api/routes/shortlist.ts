@@ -6,6 +6,9 @@ const getShortlist: RouteHandler = async ({ tenantId, query }) => {
   const sortBy = query.get('sortBy') || 'addedAt'
   const sortOrder = query.get('sortOrder') || 'asc'
   const filterSlow = query.get('filterSlow')
+  const search = query.get('search') || ''
+  const limit = Number(query.get('limit') || '50')
+  const offset = Number(query.get('offset') || '0')
 
   const { data, error } = await supabase
     .from('short_list')
@@ -13,10 +16,43 @@ const getShortlist: RouteHandler = async ({ tenantId, query }) => {
     .eq('tenantId', tenantId)
   if (error) throw error
 
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  thirtyDaysAgo.setHours(0, 0, 0, 0)
+
+  const { data: sales } = await supabase
+    .from('sales')
+    .select('id, items:sale_items(inventoryId, quantity)')
+    .eq('tenantId', tenantId)
+    .gte('saleTime', thirtyDaysAgo.toISOString())
+
+  const salesByInventory: Record<string, number> = {}
+  for (const sale of (sales || [])) {
+    for (const saleItem of (sale.items || [])) {
+      if (saleItem.inventoryId) {
+        salesByInventory[saleItem.inventoryId] = (salesByInventory[saleItem.inventoryId] || 0) + (saleItem.quantity || 0)
+      }
+    }
+  }
+
   let items = data || []
   if (filterSlow !== null) {
     const isSlow = filterSlow === 'true'
     items = items.filter((item: any) => item.isSlowItem === isSlow)
+  }
+
+  if (search) {
+    const searchLower = search.toLowerCase()
+    items = items.filter((item: any) => {
+      const inventory = item.inventory || {}
+      const variant = inventory.variant || {}
+      const product = variant.product || {}
+      return (
+        (inventory.itemName || '').toLowerCase().includes(searchLower) ||
+        (variant.sku || '').toLowerCase().includes(searchLower) ||
+        (product.name || '').toLowerCase().includes(searchLower)
+      )
+    })
   }
 
   const sortAsc = sortOrder === 'asc'
@@ -36,8 +72,12 @@ const getShortlist: RouteHandler = async ({ tenantId, query }) => {
     return sortAsc ? comparison : -comparison
   })
 
-  const transformed = items.map((item: any) => ({
+  const total = items.length
+  const paginated = items.slice(offset, offset + limit)
+
+  const transformed = paginated.map((item: any) => ({
     ...item,
+    sales30Days: salesByInventory[item.inventoryId] || 0,
     inventory: item.inventory ? {
       ...item.inventory,
       variant: item.inventory.variant ? {
@@ -49,7 +89,7 @@ const getShortlist: RouteHandler = async ({ tenantId, query }) => {
     } : null
   }))
 
-  return formatResponse({ data: transformed })
+  return formatResponse({ data: transformed, total })
 }
 
 async function toggleShortlistItem(tenantId: string, userId: string, inventoryId: string) {

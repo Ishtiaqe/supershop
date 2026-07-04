@@ -11,11 +11,30 @@ const generateShortListPdf = async (tenantId: string) => {
     .select('*, inventory:inventory_items(*, variant:product_variants(*, product:products(*)))')
     .eq('tenantId', tenantId)
 
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  thirtyDaysAgo.setHours(0, 0, 0, 0)
+
+  const { data: sales } = await supabase
+    .from('sales')
+    .select('id, items:sale_items(inventoryId, quantity)')
+    .eq('tenantId', tenantId)
+    .gte('saleTime', thirtyDaysAgo.toISOString())
+
+  const salesByInventory: Record<string, number> = {}
+  for (const sale of (sales || [])) {
+    for (const saleItem of (sale.items || [])) {
+      if (saleItem.inventoryId) {
+        salesByInventory[saleItem.inventoryId] = (salesByInventory[saleItem.inventoryId] || 0) + (saleItem.quantity || 0)
+      }
+    }
+  }
+
   const rows = (items || []).map((item: any) => [
     item.inventory?.itemName || item.inventory?.variant?.product?.name || 'N/A',
     String(item.inventory?.quantity || 0),
+    String(salesByInventory[item.inventoryId] || 0),
     String(item.inventory?.purchasePrice?.toFixed(2) || 'N/A'),
-    item.reason || 'manual',
     item.addedAt ? formatDate(item.addedAt) : '—'
   ])
 
@@ -23,7 +42,7 @@ const generateShortListPdf = async (tenantId: string) => {
   doc.text('SHORT LIST REPORT', 14, 15)
   doc.text(`Generated on: ${formatDate(new Date())}`, 14, 23)
   autoTable(doc, {
-    head: [['Item Name', 'Current Qty', 'Purchase Price', 'Reason', 'Added Date']],
+    head: [['Item Name', 'Current Qty', '30 day sales', 'Purchase Price', 'Added Date']],
     body: rows,
     startY: 30
   })

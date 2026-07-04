@@ -26,6 +26,7 @@ interface ShortListItem {
   tenantId: string;
   isSlowItem: boolean;
   reason: string;
+  sales30Days: number;
   addedAt: string;
   inventory: {
     id: string;
@@ -58,6 +59,8 @@ export default function ShortListPage() {
   const [shortlistSearchTerm, setShortlistSearchTerm] = useState("");
   const [debouncedShortlistSearch, setDebouncedShortlistSearch] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   // Debounce inventory search (stable ref + cleanup)
   const debouncedInventorySearch = useRef(
@@ -93,13 +96,24 @@ export default function ShortListPage() {
 
   // Fetch short list items
   const { data, isLoading, error } = useQuery({
-    queryKey: ["shortlist", sortBy, sortOrder, filterSlow],
+    queryKey: [
+      "shortlist",
+      sortBy,
+      sortOrder,
+      filterSlow,
+      debouncedShortlistSearch,
+      currentPage,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filterSlow !== null)
         params.append("filterSlow", filterSlow.toString());
       params.append("sortBy", sortBy);
       params.append("sortOrder", sortOrder);
+      params.append("limit", String(PAGE_SIZE));
+      params.append("offset", String((currentPage - 1) * PAGE_SIZE));
+      if (debouncedShortlistSearch)
+        params.append("search", debouncedShortlistSearch);
 
       const response = await api.get(`/shortlist?${params.toString()}`);
       return response.data;
@@ -219,26 +233,14 @@ export default function ShortListPage() {
     },
   });
 
-  // Filter shortlist items based on debounced search term
-  const filteredShortlistItems = (items: ShortListItem[] | undefined) => {
-    if (!items) return [];
-    if (!debouncedShortlistSearch) return items;
+  // Reset pagination when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedShortlistSearch, sortBy, sortOrder, filterSlow]);
 
-    return items.filter((item) => {
-      const searchLower = debouncedShortlistSearch.toLowerCase();
-      return (
-        item.inventory.itemName.toLowerCase().includes(searchLower) ||
-        (item.inventory.variant?.sku || "")
-          .toLowerCase()
-          .includes(searchLower) ||
-        (item.inventory.variant?.product?.productName || "")
-          .toLowerCase()
-          .includes(searchLower)
-      );
-    });
-  };
-
-  const shortlistItems = filteredShortlistItems(data?.data);
+  const shortlistItems = (data?.data ?? []) as ShortListItem[];
+  const totalCount = data?.total ?? 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -340,13 +342,13 @@ export default function ShortListPage() {
             >
               <Download className="w-4 h-4" /> Download Inventory
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               onClick={() => exportPdf("analytics")}
               className="flex items-center gap-2"
             >
               <Download className="w-4 h-4" /> Download Analytics
-            </Button>
+            </Button> */}
             <Button
               variant="outline"
               onClick={() => exportBackup()}
@@ -354,13 +356,13 @@ export default function ShortListPage() {
             >
               <Download className="w-4 h-4" /> Download Backup
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               onClick={downloadAsImage}
               className="flex items-center gap-2"
             >
               <Download className="w-4 h-4" /> Download as Image
-            </Button>
+            </Button> */}
           </div>
         </CardContent>
       </Card>
@@ -374,7 +376,7 @@ export default function ShortListPage() {
         <Card className="shadow-sm border-border/60" ref={shortlistTableRef}>
           <CardHeader className="pb-4 p-5 border-b border-border/60">
             <CardTitle className="text-lg font-semibold flex items-center justify-between flex-wrap gap-2">
-              <span>Shortlist Items ({shortlistItems.length})</span>
+              <span>Shortlist Items ({totalCount})</span>
               <Input
                 id="shortlist-filter-search"
                 value={shortlistSearchTerm}
@@ -393,6 +395,7 @@ export default function ShortListPage() {
                   <TableRow>
                     <TableHead>Item Name</TableHead>
                     <TableHead>Current Qty</TableHead>
+                    <TableHead>30 day sales</TableHead>
                     <TableHead>Last Restock Qty</TableHead>
                     <TableHead>Last Restock Price</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -401,7 +404,7 @@ export default function ShortListPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                       </TableCell>
                     </TableRow>
@@ -423,6 +426,7 @@ export default function ShortListPage() {
                             )}
                           </TableCell>
                           <TableCell className="font-semibold">{item.inventory.quantity}</TableCell>
+                          <TableCell>{item.sales30Days ?? 0}</TableCell>
                           <TableCell>{item.inventory.lastRestockQty || "N/A"}</TableCell>
                           <TableCell>৳{item.inventory.purchasePrice?.toLocaleString("en-IN") || "N/A"}</TableCell>
                           <TableCell className="text-right">
@@ -465,7 +469,7 @@ export default function ShortListPage() {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         {shortlistSearchTerm
                           ? `No items found matching "${shortlistSearchTerm}"`
                           : "No items in short list"}
@@ -499,6 +503,7 @@ export default function ShortListPage() {
                         )}
                       </div>
                       <MobileTableCardRow label="Current Qty" value={item.inventory.quantity} />
+                      <MobileTableCardRow label="30 day sales" value={item.sales30Days ?? 0} />
                       <MobileTableCardRow label="Last Restock" value={item.inventory.lastRestockQty || "N/A"} />
                       <MobileTableCardRow label="Last Restock Price" value={`৳${item.inventory.purchasePrice?.toLocaleString("en-IN") || "N/A"}`} />
                       <div className="pt-2 border-t border-border mt-2 flex justify-end">
@@ -547,6 +552,34 @@ export default function ShortListPage() {
                 </div>
               )}
             </div>
+
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center p-4 border-t border-border/60">
+                <div className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setCurrentPage(Math.min(totalPages, currentPage + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
