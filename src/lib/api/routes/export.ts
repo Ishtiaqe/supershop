@@ -38,18 +38,16 @@ const generateInventoryPdf = async (tenantId: string) => {
 
   const rows = (inventoryItems || []).map((item: any) => [
     item.itemName || item.variant?.product?.name || 'N/A',
-    item.variant?.sku || 'N/A',
     String(item.quantity || 0),
     String(item.purchasePrice?.toFixed(2) || '0.00'),
-    String(item.retailPrice?.toFixed(2) || '0.00'),
-    item.expiryDate ? formatDate(item.expiryDate) : '—'
+    String(item.retailPrice?.toFixed(2) || '0.00')
   ])
 
   const doc = new jsPDF()
   doc.text('INVENTORY REPORT', 14, 15)
   doc.text(`Generated on: ${formatDate(new Date())}`, 14, 23)
   autoTable(doc, {
-    head: [['Item Name', 'SKU', 'Qty', 'Cost Price', 'Retail Price', 'Expiry']],
+    head: [['Item Name', 'Qty', 'Cost Price', 'Retail Price']],
     body: rows,
     startY: 30
   })
