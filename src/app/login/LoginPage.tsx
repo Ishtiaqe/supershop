@@ -50,6 +50,25 @@ export default function LoginPage() {
     }
   }, [authLoading, user, navigate])
 
+  useEffect(() => {
+    const handleResize = () => {
+      const active = document.activeElement
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+        window.setTimeout(() => {
+          active.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 100)
+      }
+    }
+    window.visualViewport?.addEventListener('resize', handleResize)
+    return () => window.visualViewport?.removeEventListener('resize', handleResize)
+  }, [])
+
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    window.setTimeout(() => {
+      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 250)
+  }
+
   const submit = async (values: LoginFormData) => {
     setError(null)
     setLoading(true)
@@ -70,15 +89,14 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-background px-4 pt-safe pb-safe">
+    <main className="min-h-dvh flex flex-col items-center justify-start sm:justify-center overflow-y-auto bg-background px-4 py-4 sm:py-8 pt-safe pb-safe">
       <div className="w-full max-w-md">
-        <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
-              <ShoppingBag className="text-2xl text-primary-foreground" />
+        <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm">
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-primary mb-4">
+              <ShoppingBag className="text-xl sm:text-2xl text-primary-foreground" />
             </div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Welcome back</h1>
-            <p className="text-muted-foreground mt-2">Sign in to access your shop dashboard</p>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">Supershop</h1>
           </div>
 
           {error && (
@@ -102,6 +120,7 @@ export default function LoginPage() {
                           placeholder="Enter your email"
                           autoComplete="email"
                           className="pl-10 h-12 rounded-lg"
+                          onFocus={handleInputFocus}
                           {...field}
                         />
                       </FormControl>
@@ -125,6 +144,7 @@ export default function LoginPage() {
                           placeholder="Enter your password"
                           autoComplete="current-password"
                           className="pl-10 h-12 rounded-lg"
+                          onFocus={handleInputFocus}
                           {...field}
                         />
                       </FormControl>
@@ -143,10 +163,6 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
-
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Powered by Supabase Auth</p>
-          </div>
         </div>
       </div>
     </main>
