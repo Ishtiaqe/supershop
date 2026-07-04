@@ -17,21 +17,25 @@ import {
 import dayjs from "dayjs";
 import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 import {
-  useCashBoxSummary,
-  useCashBoxEntries,
-  useDeleteCashBoxEntry,
-  CashBoxEntry,
-} from "./hooks/useCashBoxHooks";
+  useCashRegisterSummary,
+  useCashRegisterEntries,
+  useDeleteCashRegisterEntry,
+  CashRegisterEntry,
+} from "./hooks/useCashRegisterHooks";
 import { AddEntryModal } from "./components/AddEntryModal";
 
 const ENTRY_TYPE_CONFIG: Record<
-  CashBoxEntry["entryType"],
+  CashRegisterEntry["entryType"],
   { label: string; badgeClass: string; sign: "+" | "-" }
 > = {
   SALE_IN: { label: "Sale (Cash)", badgeClass: "bg-green-500/10 text-green-600 border-green-500/20", sign: "+" },
   MANUAL_IN: { label: "Deposit", badgeClass: "bg-blue-500/10 text-blue-600 border-blue-500/20", sign: "+" },
+  NEW_INVESTMENT_IN: { label: "Capital In", badgeClass: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20", sign: "+" },
+  LOAN_IN: { label: "Loan In", badgeClass: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20", sign: "+" },
+  CREDIT_PAYMENT_IN: { label: "Credit Payment", badgeClass: "bg-teal-500/10 text-teal-600 border-teal-500/20", sign: "+" },
   EXPENSE_OUT: { label: "Expense", badgeClass: "bg-red-500/10 text-red-600 border-red-500/20", sign: "-" },
   MANUAL_OUT: { label: "Withdrawal", badgeClass: "bg-amber-500/10 text-amber-600 border-amber-500/20", sign: "-" },
+  INVENTORY_OUT: { label: "Stock Purchase", badgeClass: "bg-purple-500/10 text-purple-600 border-purple-500/20", sign: "-" },
 };
 
 function formatBDT(amount: number) {
@@ -41,7 +45,7 @@ function formatBDT(amount: number) {
   })}`;
 }
 
-export default function CashBoxPage() {
+export default function CashRegisterPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [dateRange, setDateRange] = useState<[string, string]>(() => {
     const today = new Date();
@@ -54,27 +58,27 @@ export default function CashBoxPage() {
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
 
-  const { data: summary, isLoading: summaryLoading } = useCashBoxSummary(
+  const { data: summary, isLoading: summaryLoading } = useCashRegisterSummary(
     startDate,
     endDate
   );
-  const { data: entriesData, isLoading: entriesLoading } = useCashBoxEntries({
+  const { data: entriesData, isLoading: entriesLoading } = useCashRegisterEntries({
     startDate,
     endDate,
     page,
     limit: pageSize,
   });
-  const { mutate: deleteEntry } = useDeleteCashBoxEntry();
+  const { mutate: deleteEntry } = useDeleteCashRegisterEntry();
 
   const balanceColor =
     (summary?.currentBalance ?? 0) >= 0 ? "text-green-600 dark:text-green-500" : "text-destructive";
 
   const entries = entriesData?.data ?? [];
   const periodIn = entries
-    .filter((e) => e.entryType === "SALE_IN" || e.entryType === "MANUAL_IN")
+    .filter((e) => e.entryType === "SALE_IN" || e.entryType === "MANUAL_IN" || e.entryType === "NEW_INVESTMENT_IN" || e.entryType === "LOAN_IN" || e.entryType === "CREDIT_PAYMENT_IN")
     .reduce((s, e) => s + e.amount, 0);
   const periodOut = entries
-    .filter((e) => e.entryType === "EXPENSE_OUT" || e.entryType === "MANUAL_OUT")
+    .filter((e) => e.entryType === "EXPENSE_OUT" || e.entryType === "MANUAL_OUT" || e.entryType === "INVENTORY_OUT")
     .reduce((s, e) => s + e.amount, 0);
   const net = periodIn - periodOut;
 
@@ -126,7 +130,7 @@ export default function CashBoxPage() {
           <span className="text-sm font-semibold text-muted-foreground">From:</span>
           <Input
             type="date"
-            id="cashbox-start-date"
+            id="cashregister-start-date"
             value={startDate}
             onChange={(e) => {
               setDateRange([e.target.value, endDate]);
@@ -140,7 +144,7 @@ export default function CashBoxPage() {
           <span className="text-sm font-semibold text-muted-foreground">To:</span>
           <Input
             type="date"
-            id="cashbox-end-date"
+            id="cashregister-end-date"
             value={endDate}
             onChange={(e) => {
               setDateRange([startDate, e.target.value]);

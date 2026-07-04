@@ -394,13 +394,14 @@ export default function ShortListPage() {
                     <TableHead>Item Name</TableHead>
                     <TableHead>Current Qty</TableHead>
                     <TableHead>Last Restock Qty</TableHead>
+                    <TableHead>Last Restock Price</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
+                      <TableCell colSpan={5} className="text-center py-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                       </TableCell>
                     </TableRow>
@@ -423,6 +424,7 @@ export default function ShortListPage() {
                           </TableCell>
                           <TableCell className="font-semibold">{item.inventory.quantity}</TableCell>
                           <TableCell>{item.inventory.lastRestockQty || "N/A"}</TableCell>
+                          <TableCell>৳{item.inventory.purchasePrice?.toLocaleString("en-IN") || "N/A"}</TableCell>
                           <TableCell className="text-right">
                             {confirmDeleteId === item.id ? (
                               <div className="flex items-center gap-1 bg-destructive/10 px-2 py-0.5 rounded border border-destructive/20 justify-end w-fit ml-auto">
@@ -463,7 +465,7 @@ export default function ShortListPage() {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                         {shortlistSearchTerm
                           ? `No items found matching "${shortlistSearchTerm}"`
                           : "No items in short list"}
@@ -498,6 +500,7 @@ export default function ShortListPage() {
                       </div>
                       <MobileTableCardRow label="Current Qty" value={item.inventory.quantity} />
                       <MobileTableCardRow label="Last Restock" value={item.inventory.lastRestockQty || "N/A"} />
+                      <MobileTableCardRow label="Last Restock Price" value={`৳${item.inventory.purchasePrice?.toLocaleString("en-IN") || "N/A"}`} />
                       <div className="pt-2 border-t border-border mt-2 flex justify-end">
                         {confirmDeleteId === item.id ? (
                           <div className="flex items-center gap-2">

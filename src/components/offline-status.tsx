@@ -96,7 +96,7 @@ export function OfflineIndicator() {
             {lastSyncTime && (
               <div className="text-sm">
                 <span className="font-semibold text-foreground">Last synced: </span>
-                <span className="text-muted-foreground">{formatDateTime(lastSyncTime)}</span>
+                <span className="text-muted-foreground">{formatDateTime(new Date(lastSyncTime))}</span>
               </div>
             )}
 

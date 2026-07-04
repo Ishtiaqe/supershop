@@ -123,7 +123,7 @@ export function OfflineProvider({ children }: OfflineProviderProps) {
   };
 
   const clearStorage = async (opts?: { force?: boolean }) => {
-    // Real sales/inventory/cash-box writes can be sitting unsynced in the
+    // Real sales/inventory/cash-register writes can be sitting unsynced in the
     // offline queue (still pending, or failed after retries but deliberately
     // kept — see offline-queue.ts). Wiping IndexedDB here would delete that
     // data with no way to recover it, so this refuses unless the caller

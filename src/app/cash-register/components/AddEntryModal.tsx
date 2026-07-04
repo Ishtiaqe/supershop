@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import dayjs from "dayjs";
-import { useCreateCashBoxEntry } from "../hooks/useCashBoxHooks";
+import { useCreateCashRegisterEntry } from "../hooks/useCashRegisterHooks";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,14 +22,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-const cashBoxEntrySchema = z.object({
+const cashRegisterEntrySchema = z.object({
   entryType: z.enum(["MANUAL_IN", "MANUAL_OUT"]),
   amount: z.coerce.number().min(0.01, "Amount must be at least 0.01"),
   entryDate: z.string().min(1, "Please select date"),
   note: z.string().optional(),
 });
 
-type CashBoxEntryFormData = z.infer<typeof cashBoxEntrySchema>;
+type CashRegisterEntryFormData = z.infer<typeof cashRegisterEntrySchema>;
 
 interface AddEntryModalProps {
   isOpen: boolean;
@@ -37,10 +37,10 @@ interface AddEntryModalProps {
 }
 
 export function AddEntryModal({ isOpen, onClose }: AddEntryModalProps) {
-  const { mutate: createEntry, isPending } = useCreateCashBoxEntry();
+  const { mutate: createEntry, isPending } = useCreateCashRegisterEntry();
 
-  const form = useForm<CashBoxEntryFormData>({
-    resolver: zodResolver(cashBoxEntrySchema) as Resolver<CashBoxEntryFormData>,
+  const form = useForm<CashRegisterEntryFormData>({
+    resolver: zodResolver(cashRegisterEntrySchema) as Resolver<CashRegisterEntryFormData>,
     defaultValues: {
       entryType: "MANUAL_IN",
       amount: 0,
@@ -60,7 +60,7 @@ export function AddEntryModal({ isOpen, onClose }: AddEntryModalProps) {
     }
   }, [isOpen, form]);
 
-  const handleSubmit = (values: CashBoxEntryFormData) => {
+  const handleSubmit = (values: CashRegisterEntryFormData) => {
     createEntry(
       {
         entryType: values.entryType,
@@ -93,7 +93,7 @@ export function AddEntryModal({ isOpen, onClose }: AddEntryModalProps) {
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Cash Box Entry</DialogTitle>
+          <DialogTitle>Add Cash Register Entry</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -195,4 +195,3 @@ export function AddEntryModal({ isOpen, onClose }: AddEntryModalProps) {
     </Dialog>
   );
 }
-

@@ -17,7 +17,7 @@ const CatalogPage = lazy(() => import('@/app/catalog/CatalogPage'));
 const CategoriesPage = lazy(() => import('@/app/categories/CategoriesPage'));
 const BrandsPage = lazy(() => import('@/app/brands/BrandsPage'));
 const ExpensesPage = lazy(() => import('@/app/expenses/ExpensesPage'));
-const CashBoxPage = lazy(() => import('@/app/cash-box/CashBoxPage'));
+const CashRegisterPage = lazy(() => import('@/app/cash-register/CashRegisterPage'));
 const ShortlistPage = lazy(() => import('@/app/shortlist/ShortListPage'));
 const CreditsPage = lazy(() => import('@/app/credits/CreditsPage'));
 const CustomersPage = lazy(() => import('@/app/customers/CustomersPage'));
@@ -62,7 +62,7 @@ export const router = createBrowserRouter([
       { path: '/categories', element: <CategoriesPage /> },
       { path: '/brands', element: <BrandsPage /> },
       { path: '/expenses', element: <ExpensesPage /> },
-      { path: '/cash-box', element: <CashBoxPage /> },
+      { path: '/cash-register', element: <CashRegisterPage /> },
       { path: '/shifts', element: <ShiftsPage /> },
       { path: '/shortlist', element: <ShortlistPage /> },
       { path: '/credits', element: <CreditsPage /> },

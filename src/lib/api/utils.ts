@@ -101,7 +101,7 @@ export const sanitizeExpense = (data: any) => ({
   updatedAt: new Date().toISOString()
 })
 
-export const sanitizeCashBoxEntry = (data: any) => ({
+export const sanitizeCashRegisterEntry = (data: any) => ({
   tenantId: data.tenantId,
   entryType: data.entryType,
   amount: typeof data.amount === 'number' ? data.amount : 0,

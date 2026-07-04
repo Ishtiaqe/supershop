@@ -7,9 +7,20 @@ export function useOffline() {
         // Return default values during HMR or if context is not available
         return {
             isOnline: true,
+            isSyncing: false,
+            lastSyncTime: null,
+            offlineStatus: {
+                isOnline: true,
+                lastOnline: 0,
+                syncInProgress: false,
+                pendingOperations: 0
+            },
             failedItems: [],
+            forceSync: async () => {},
             retryFailedItem: async () => {},
             discardFailedItem: async () => {},
+            clearStorage: async () => {},
+            getStorageUsage: async () => null,
         };
     }
     return context;

@@ -22,7 +22,7 @@ export class OfflineQueue {
     entityType: OfflineQueueItem['entityType'],
     entityId: string,
     data: Record<string, unknown>,
-    tenantId?: string
+    tenantId: string
   ): Promise<void> {
     const queueItem: OfflineQueueItem = {
       id: offlineUtils.generateId(),

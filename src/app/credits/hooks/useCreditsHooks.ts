@@ -77,7 +77,7 @@ export function useRecordPayment() {
       qc.invalidateQueries({ queryKey: ['credit-customers'] });
       qc.invalidateQueries({ queryKey: ['credits-by-phone'] });
       qc.invalidateQueries({ queryKey: ['credit-summary'] });
-      qc.invalidateQueries({ queryKey: ['cash-box'] });
+      qc.invalidateQueries({ queryKey: ['cash-register'] });
       toast.success('Payment recorded successfully');
     },
     onError: (err: unknown) => {

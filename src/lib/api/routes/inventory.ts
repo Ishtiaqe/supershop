@@ -2,7 +2,6 @@ import { supabase } from '@/lib/supabase'
 import { formatResponse, generateUUID, sanitizeInventoryItem, sanitizeUpdate } from '../utils'
 import { RouteHandler } from '../types'
 import { masterDataCache } from '@/lib/cache/masterData'
-import { sendShortlistRemovedNotification } from '../services/notificationService'
 
 const getInventory: RouteHandler = async ({ tenantId, query }) => {
   const q = query.get('q') || ''
@@ -238,23 +237,11 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
 
       // Auto-remove from shortlist if quantity is now above 50% of lastRestockQty
       if (quantity && newQuantity > quantity * 0.5) {
-        const { data: shortlistItem } = await supabase
+        await supabase
           .from('short_list')
-          .select('id')
+          .delete()
           .eq('inventoryId', targetItem.id)
           .eq('tenantId', tenantId)
-          .single()
-
-        if (shortlistItem) {
-          await supabase
-            .from('short_list')
-            .delete()
-            .eq('inventoryId', targetItem.id)
-            .eq('tenantId', tenantId)
-
-          // Send push notification
-          await sendShortlistRemovedNotification(tenantId, derivedItemName || 'Unknown item', newQuantity)
-        }
       }
     }
   }

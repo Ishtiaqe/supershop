@@ -439,7 +439,7 @@ function DashboardExtraMetrics({ period }: { period: string }) {
       subColor: "text-muted-foreground",
     },
     {
-      title: "Cash Box Balance",
+      title: "Cash Register",
       value: `৳ ${fmt(e?.cash_box_balance || 0)}`,
       sub: "Current balance",
       icon: <Wallet className="h-4 w-4 text-purple-500" />,

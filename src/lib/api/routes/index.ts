@@ -3,7 +3,7 @@ import { registerCatalogRoutes } from './catalog'
 import { registerInventoryRoutes } from './inventory'
 import { registerSalesRoutes } from './sales-history'
 import { registerExpensesRoutes } from './expenses'
-import { registerCashBoxRoutes } from './cashBox'
+import { registerCashRegisterRoutes } from './cashRegister'
 import { registerCreditsRoutes } from './credits'
 import { registerShortlistRoutes } from './shortlist'
 import { registerBackupRoutes } from './backup'
@@ -25,7 +25,7 @@ export function registerAllRoutes(router: { register: (method: string, pattern: 
   registerInventoryRoutes(router)
   registerSalesRoutes(router)
   registerExpensesRoutes(router)
-  registerCashBoxRoutes(router)
+  registerCashRegisterRoutes(router)
   registerCreditsRoutes(router)
   registerShortlistRoutes(router)
   registerBackupRoutes(router)

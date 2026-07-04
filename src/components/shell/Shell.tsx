@@ -21,7 +21,6 @@ import {
   User,
   Menu as MenuIcon,
 } from "lucide-react";
-import NotificationSetup from "@/components/notifications/NotificationSetup";
 import { BottomSheet } from "@/components/mobile/BottomSheet";
 
 const PATH_LABELS: Record<string, string> = {
@@ -33,7 +32,7 @@ const PATH_LABELS: Record<string, string> = {
   "/medicine-database": "Medicine Database",
   "/shortlist": "Short List",
   "/expenses": "Expenses",
-  "/cash-box": "Cash Box",
+  "/cash-register": "Cash Register",
   "/credits": "Credits",
   "/data-management": "Data Management",
   "/admin/tenants": "Tenants",
@@ -352,7 +351,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Content */}
-        <NotificationSetup />
         <main
           className={`flex-1 overflow-y-auto ${
             isMobile ? "p-4" : "p-6"

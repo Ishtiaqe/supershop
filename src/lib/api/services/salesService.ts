@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase'
 import { generateUUID, formatResponse } from '../utils'
-import { sendShortlistAddedNotification } from './notificationService'
 
 export async function createSale(requestData: any, tenantId: string, userId: string) {
   const inventoryIds = requestData.items.map((item: any) => item.inventoryId)
@@ -148,17 +147,10 @@ export async function createSale(requestData: any, tenantId: string, userId: str
     if (newShortlistEntries.length > 0) {
       const { error: slErr } = await supabase.from('short_list').insert(newShortlistEntries)
       if (slErr) throw slErr
-
-      // Send push notifications for each new shortlist entry
-      for (const c of shortlistCandidates) {
-        if (!existingIds.has(c.inventoryId)) {
-          await sendShortlistAddedNotification(tenantId, c.itemName, c.newQty)
-        }
-      }
     }
   }
 
-  // Insert cash box entry
+  // Insert cash register entry
   const cashReceivedNow = requestData.paymentMethod === 'CREDIT' ? amountPaid : totalAmount
   if (cashReceivedNow > 0) {
     await supabase.from('cash_box_entries').insert({
