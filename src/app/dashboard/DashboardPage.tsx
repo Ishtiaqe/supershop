@@ -406,10 +406,21 @@ function DashboardExtraMetrics() {
     enabled: !!currentTenantId,
   });
 
+  const { data: summary30d } = useQuery<DashboardSummaryType>({
+    queryKey: ["dashboard-summary", currentTenantId, "30d"],
+    queryFn: () =>
+      api.get(`/sales-history/analytics/summary?period=30d`).then((r) => r.data),
+    refetchOnWindowFocus: false,
+    staleTime: 30 * 1000,
+    enabled: !!currentTenantId,
+  });
+
   const e = extra?.[0];
   const todayVsYesterday = e && e.yesterday_sales > 0
     ? (((e.today_sales - e.yesterday_sales) / e.yesterday_sales) * 100).toFixed(1)
     : null;
+  const avgSales30d = summary30d ? summary30d.totalRevenue / 30 : 0;
+  const avgProfit30d = summary30d ? summary30d.totalProfit / 30 : 0;
 
   if (isLoadingExtra) {
     return (
@@ -431,6 +442,7 @@ function DashboardExtraMetrics() {
       sub: todayVsYesterday !== null
         ? `${Number(todayVsYesterday) >= 0 ? "↑" : "↓"} ${Math.abs(Number(todayVsYesterday))}% vs yesterday`
         : `${e?.today_orders || 0} orders`,
+      sub2: `Daily avg (30d): ৳${fmt(avgSales30d)}`,
       icon: <CalendarDays className="h-4 w-4 text-blue-500" />,
       subColor: todayVsYesterday !== null && Number(todayVsYesterday) >= 0 ? "text-emerald-600" : "text-red-500",
     },
@@ -438,6 +450,7 @@ function DashboardExtraMetrics() {
       title: "Today's Profit",
       value: `৳ ${fmt(e?.today_profit || 0)}`,
       sub: `${e?.today_orders || 0} orders today`,
+      sub2: `Daily avg (30d): ৳${fmt(avgProfit30d)}`,
       icon: <Wallet className="h-4 w-4 text-emerald-500" />,
       subColor: "text-muted-foreground",
     },
@@ -471,6 +484,7 @@ function DashboardExtraMetrics() {
             <CardContent className="p-5 pt-0">
               <div className="text-lg font-bold text-foreground">{stat.value}</div>
               <div className={`text-xs mt-1 ${stat.subColor}`}>{stat.sub}</div>
+              {stat.sub2 && <div className="text-xs mt-1 text-muted-foreground">{stat.sub2}</div>}
             </CardContent>
           </Card>
         ))}
