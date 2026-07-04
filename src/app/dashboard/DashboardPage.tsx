@@ -75,14 +75,14 @@ function DashboardSummary({ period }: { period: string }) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {Array.from({ length: 8 }).map((_, index) => (
           <Card key={index} className="shadow-sm border-border/60">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-5">
-              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-5 w-28" />
             </CardHeader>
             <CardContent className="p-5 pt-0">
-              <Skeleton className="h-8 w-32" />
+              <Skeleton className="h-9 w-36" />
             </CardContent>
           </Card>
         ))}
@@ -140,17 +140,17 @@ function DashboardSummary({ period }: { period: string }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
       {stats.map((stat, i) => (
         <Card key={i} className="shadow-sm border-border/60 hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-5">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               {stat.title}
             </CardTitle>
             {stat.icon}
           </CardHeader>
           <CardContent className="p-5 pt-0">
-            <div className="text-lg font-bold text-foreground">{stat.value}</div>
+            <div className="text-xl font-bold text-foreground">{stat.value}</div>
           </CardContent>
         </Card>
       ))}
@@ -438,11 +438,11 @@ function DashboardExtraMetrics({ period }: { period: string }) {
 
   if (isLoadingExtra) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i} className="shadow-sm border-border/60">
-            <CardHeader className="p-5 pb-2"><Skeleton className="h-4 w-20" /></CardHeader>
-            <CardContent className="p-5 pt-0"><Skeleton className="h-8 w-28" /></CardContent>
+            <CardHeader className="p-5 pb-2"><Skeleton className="h-5 w-24" /></CardHeader>
+            <CardContent className="p-5 pt-0"><Skeleton className="h-9 w-32" /></CardContent>
           </Card>
         ))}
       </div>
@@ -486,19 +486,19 @@ function DashboardExtraMetrics({ period }: { period: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((stat, i) => (
           <Card key={i} className="shadow-sm border-border/60 hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 p-5">
-              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 {stat.title}
               </CardTitle>
               {stat.icon}
             </CardHeader>
             <CardContent className="p-5 pt-0">
-              <div className="text-lg font-bold text-foreground">{stat.value}</div>
-              <div className={`text-xs mt-1 ${stat.subColor}`}>{stat.sub}</div>
-              {stat.sub2 && <div className="text-xs mt-1 text-muted-foreground">{stat.sub2}</div>}
+              <div className="text-xl font-bold text-foreground">{stat.value}</div>
+              <div className={`text-sm mt-1 ${stat.subColor}`}>{stat.sub}</div>
+              {stat.sub2 && <div className="text-sm mt-1 text-muted-foreground">{stat.sub2}</div>}
             </CardContent>
           </Card>
         ))}
