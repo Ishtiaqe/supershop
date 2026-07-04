@@ -9,7 +9,6 @@ import { registerShortlistRoutes } from './shortlist'
 import { registerBackupRoutes } from './backup'
 import { registerAuthRoutes } from './auth'
 import { registerTenantRoutes } from './tenants'
-import { registerNotificationRoutes } from './notifications'
 import { registerExportRoutes } from './export'
 import { registerCustomersRoutes } from './customers'
 import { registerSaleReturnsRoutes } from './saleReturns'
@@ -29,7 +28,6 @@ export function registerAllRoutes(router: { register: (method: string, pattern: 
   registerCreditsRoutes(router)
   registerShortlistRoutes(router)
   registerBackupRoutes(router)
-  registerNotificationRoutes(router)
   registerExportRoutes(router)
   registerCustomersRoutes(router)
   registerSaleReturnsRoutes(router)
