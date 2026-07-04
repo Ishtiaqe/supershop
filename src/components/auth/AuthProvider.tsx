@@ -104,6 +104,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (data) {
+          // Detect tenant change: if the new profile's tenant differs from the
+          // currently cached one, clear ALL caches from the previous tenant.
+          const prevTenantId = cachedProfileRef.current?.tenant?.id || authStorage.getTenant()?.id
+          const newTenantId = data.tenant?.id
+          if (prevTenantId && newTenantId && prevTenantId !== newTenantId) {
+            try {
+              await masterDataCache.invalidateTenant(prevTenantId)
+            } catch (e) {
+              console.error('Failed to clear previous tenant IndexedDB cache:', e)
+            }
+            try {
+              api.clearCache(prevTenantId)
+            } catch (e) {
+              console.error('Failed to clear previous tenant API cache:', e)
+            }
+            try {
+              const queryClient = (window as any).__queryClient
+              if (queryClient) {
+                clearTenantQueries(queryClient, prevTenantId)
+                // Also clear any non-tenant-prefixed queries that might leak
+                queryClient.invalidateQueries({ queryKey: ['inventory'] })
+                queryClient.invalidateQueries({ queryKey: ['catalog'] })
+                queryClient.invalidateQueries({ queryKey: ['shortlist'] })
+              }
+            } catch (e) {
+              console.error('Failed to clear previous tenant query cache:', e)
+            }
+            try {
+              // Clear all POS sessionStorage cache entries
+              for (let i = sessionStorage.length - 1; i >= 0; i--) {
+                const key = sessionStorage.key(i)
+                if (key && key.startsWith('pos-inventory:')) {
+                  sessionStorage.removeItem(key)
+                }
+              }
+            } catch (e) {
+              console.error('Failed to clear sessionStorage:', e)
+            }
+          }
+
           setCachedProfile(data)
           authStorage.setUser(data)
           if (data.tenant) {

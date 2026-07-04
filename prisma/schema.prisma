@@ -51,9 +51,12 @@ model PushSubscription {
   keys      Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  tenantId  String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([tenantId])
   @@map("push_subscriptions")
 }
 
@@ -85,6 +88,10 @@ model Tenant {
   expenses           Expense[]
   cashBoxEntries     CashBoxEntry[]
   creditPayments     CreditPayment[]
+  customers          Customer[]
+  stockMovements     StockMovement[]
+  saleReturns        SaleReturn[]
+  pushSubscriptions  PushSubscription[]
 
   @@index([status])
   @@map("tenants")
@@ -200,6 +207,8 @@ model InventoryItem {
   variant         ProductVariant? @relation(fields: [variantId], references: [id])
   saleItems       SaleItem[]
   shortListEntry  ShortList?
+  stockMovements  StockMovement[]
+  saleReturnItems SaleReturnItem[]
 
   @@index([tenantId])
   @@index([variantId])
@@ -229,15 +238,17 @@ model ShortList {
 }
 
 model RestockReceipt {
-  id            String    @id @default(uuid())
+  id            String        @id @default(uuid())
   tenantId      String
   receiptNumber String
   supplierId    String?
   notes         String?
-  createdAt     DateTime  @default(now())
-  supplier      Supplier? @relation(fields: [supplierId], references: [id])
-  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+  items         RestockItem[]
+  supplier      Supplier?     @relation(fields: [supplierId], references: [id])
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@unique([receiptNumber, tenantId])
   @@index([tenantId])
   @@index([receiptNumber])
   @@map("restock_receipts")
@@ -253,36 +264,41 @@ model Sale {
   totalProfit   Float
   customerName  String?
   customerPhone String?
+  customerId    String?
   saleType      SaleType      @default(POS)
   paymentMethod PaymentMethod @default(CASH)
   discountType  DiscountType?
   discountValue Float?        @default(0)
-  amountPaid    Float?
-  dueAmount     Float?
+  amountPaid    Float         @default(0)
+  dueAmount     Float         @default(0)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   items         SaleItem[]
   creditPayments CreditPayment[]
+  saleReturns   SaleReturn[]
   employee      User          @relation(fields: [employeeId], references: [id])
   tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer      Customer?     @relation(fields: [customerId], references: [id])
 
   @@index([tenantId])
   @@index([saleTime])
   @@index([receiptNumber])
+  @@index([customerId])
   @@map("sales")
 }
 
 model SaleItem {
-  id          String        @id @default(uuid())
-  saleId      String
-  inventoryId String
-  quantity    Int
-  unitPrice   Float
-  subtotal    Float
-  createdAt   DateTime      @default(now())
-  discount    Float         @default(0)
-  inventory   InventoryItem @relation(fields: [inventoryId], references: [id])
-  sale        Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  id              String          @id @default(uuid())
+  saleId          String
+  inventoryId     String
+  quantity        Int
+  unitPrice       Float
+  subtotal        Float
+  createdAt       DateTime      @default(now())
+  discount        Float         @default(0)
+  inventory       InventoryItem @relation(fields: [inventoryId], references: [id])
+  sale            Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  saleReturnItems SaleReturnItem[]
 
   @@index([saleId])
   @@index([inventoryId])
@@ -476,16 +492,17 @@ model Expense {
 }
 
 model CashBoxEntry {
-  id          String           @id @default(uuid())
-  tenantId    String
-  entryType   CashBoxEntryType
-  amount      Float
-  note        String?
-  referenceId String?          // Links to Sale.id or Expense.id
-  entryDate   DateTime         @default(now())
-  createdById String
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id            String           @id @default(uuid())
+  tenantId      String
+  entryType     CashBoxEntryType
+  amount        Float
+  note          String?
+  referenceId   String?          // Links to Sale.id, Expense.id, CreditPayment.id, etc.
+  referenceType String?          // 'SALE', 'EXPENSE', 'INVENTORY', 'INVESTMENT', 'LOAN', 'MANUAL', 'CREDIT_PAYMENT'
+  entryDate     DateTime         @default(now())
+  createdById   String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdBy User   @relation(fields: [createdById], references: [id])
@@ -497,14 +514,15 @@ model CashBoxEntry {
 }
 
 model CreditPayment {
-  id          String   @id @default(uuid())
-  tenantId    String
-  saleId      String
-  amount      Float
-  paymentDate DateTime @default(now())
-  note        String?
-  createdById String
-  createdAt   DateTime @default(now())
+  id            String        @id @default(uuid())
+  tenantId      String
+  saleId        String
+  amount        Float
+  paymentMethod PaymentMethod @default(CASH)
+  paymentDate   DateTime      @default(now())
+  note          String?
+  createdById   String
+  createdAt     DateTime      @default(now())
 
   sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -523,4 +541,99 @@ enum CashBoxEntryType {
   INVENTORY_OUT
   NEW_INVESTMENT_IN
   LOAN_IN
+  CREDIT_PAYMENT_IN
+}
+
+model Customer {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  phone       String?
+  email       String?
+  address     String?
+  creditLimit Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  sales       Sale[]
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([phone, tenantId])
+  @@index([tenantId])
+  @@index([name])
+  @@map("customers")
+}
+
+model RestockItem {
+  id               String         @id @default(uuid())
+  restockReceiptId String
+  variantId        String?
+  itemName         String?
+  quantity         Int
+  purchasePrice    Float
+  batchNo          String?
+  expiryDate       DateTime?
+  mfgDate          DateTime?
+  createdAt        DateTime       @default(now())
+  restockReceipt   RestockReceipt @relation(fields: [restockReceiptId], references: [id], onDelete: Cascade)
+  variant          ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([restockReceiptId])
+  @@index([variantId])
+  @@map("restock_items")
+}
+
+model StockMovement {
+  id             String   @id @default(uuid())
+  tenantId       String
+  inventoryId    String
+  movementType   String   // SALE, RESTOCK, ADJUSTMENT, RETURN
+  quantityChange Int      // positive = in, negative = out
+  reason         String?
+  referenceId    String?  // saleId, restockReceiptId, saleReturnId, etc.
+  createdAt      DateTime @default(now())
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  inventory      InventoryItem  @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([inventoryId])
+  @@index([movementType])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+model SaleReturn {
+  id          String           @id @default(uuid())
+  tenantId    String
+  saleId      String
+  returnDate  DateTime         @default(now())
+  totalRefund Float            @default(0)
+  reason      String?
+  createdById String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  items       SaleReturnItem[]
+  sale        Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy   User             @relation(fields: [createdById], references: [id])
+
+  @@index([tenantId])
+  @@index([saleId])
+  @@map("sale_returns")
+}
+
+model SaleReturnItem {
+  id           String        @id @default(uuid())
+  saleReturnId String
+  saleItemId   String
+  inventoryId  String
+  quantity     Int
+  refundAmount Float         @default(0)
+  createdAt    DateTime      @default(now())
+  saleReturn   SaleReturn    @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
+  saleItem     SaleItem      @relation(fields: [saleItemId], references: [id])
+  inventory    InventoryItem @relation(fields: [inventoryId], references: [id])
+
+  @@index([saleReturnId])
+  @@index([saleItemId])
+  @@map("sale_return_items")
 }

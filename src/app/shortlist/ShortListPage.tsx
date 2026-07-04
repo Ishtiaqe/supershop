@@ -252,7 +252,7 @@ export default function ShortListPage() {
             {/* Add to Shortlist Search */}
             <div className="md:col-span-2 relative">
               <label htmlFor="shortlist-add-item" className="block text-xs font-semibold text-muted-foreground mb-2">
-                Add Item to Shortlist
+                Add Item to Shortlist <span className="ml-1 text-muted-foreground/70">[Search Box #5: Shortlist Add Item Search]</span>
               </label>
               <div className="relative">
                 <Input
@@ -261,6 +261,8 @@ export default function ShortListPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pr-10"
+                  data-search-box="shortlist-add-search"
+                  aria-label="Search Box #5: Shortlist Add Item Search"
                 />
                 {isSearching && (
                   <div className="absolute right-3 top-2.5">
@@ -379,6 +381,8 @@ export default function ShortListPage() {
                 onChange={(e) => setShortlistSearchTerm(e.target.value)}
                 placeholder="Search shortlist by item name, SKU, or product..."
                 className="w-full md:max-w-md"
+                data-search-box="shortlist-table-search"
+                aria-label="Search Box #6: Shortlist Table Search"
               />
             </CardTitle>
           </CardHeader>

@@ -13,6 +13,7 @@ import { useOffline } from "@/hooks/useOffline";
 import { debounce } from "lodash";
 import dayjs from "dayjs";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { authStorage } from "@/lib/auth-storage";
 import { useItemDetail } from "@/components/providers/ItemDetailContext";
 import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 
@@ -34,6 +35,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Eye } from "lucide-react";
@@ -136,6 +138,12 @@ export default function InventoryPage() {
   });
 
   useEffect(() => {
+    if (!addSuccessOpen) return;
+    const timer = setTimeout(() => setAddSuccessOpen(false), 2500);
+    return () => clearTimeout(timer);
+  }, [addSuccessOpen]);
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.key === "/" &&
@@ -161,8 +169,9 @@ export default function InventoryPage() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const tenantId = authStorage.getTenant()?.id || "unknown";
   const { data: items = [], isLoading } = useQuery<InventoryItem[], Error>({
-    queryKey: ["inventory", isOnline],
+    queryKey: ["inventory", tenantId, isOnline],
     queryFn: () => fetchInventory(isOnline),
     select: (data) => (Array.isArray(data) ? data : []),
   });
@@ -181,6 +190,9 @@ export default function InventoryPage() {
   const [selectedFromCatalog, setSelectedFromCatalog] =
     useState<CatalogItem | null>(null);
   const [search, setSearch] = useState("");
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [addSuccessOpen, setAddSuccessOpen] = useState(false);
+  const [addedItemName, setAddedItemName] = useState("");
 
   const addMutation = useMutation<InventoryItem, Error, Partial<InventoryItem>>(
     {
@@ -249,12 +261,16 @@ export default function InventoryPage() {
       mfgDate: values.mfgDate ? dayjs(values.mfgDate).toISOString() : undefined,
     };
 
+    setIsAddingItem(true);
+    setAddedItemName(values.itemName || "New item");
     try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
       await addMutation.mutateAsync(payload as unknown as Partial<InventoryItem>);
       addForm.reset();
       setSelectedFromCatalog(null);
       setCatalogOptions([]);
       toast.success("Item added successfully");
+      setAddSuccessOpen(true);
 
       setTimeout(() => {
         itemNameRef.current?.focus();
@@ -263,6 +279,8 @@ export default function InventoryPage() {
       toast.error(
         error instanceof Error ? error.message : "Failed to add item"
       );
+    } finally {
+      setIsAddingItem(false);
     }
   };
 
@@ -637,10 +655,10 @@ export default function InventoryPage() {
 
               <Button
                 type="submit"
-                disabled={addMutation.isPending}
-                className="w-full md:w-auto"
+                disabled={addMutation.isPending || isAddingItem}
+                className="w-full md:w-auto active:scale-95 transition-transform duration-150"
               >
-                Add Item
+                {isAddingItem || addMutation.isPending ? "Adding Item..." : "Add Item"}
               </Button>
             </form>
           </CardContent>
@@ -797,6 +815,21 @@ export default function InventoryPage() {
                 Delete
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Item Success Popup */}
+        <Dialog open={addSuccessOpen} onOpenChange={setAddSuccessOpen}>
+          <DialogContent className="sm:max-w-[360px]" showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle className="text-emerald-600">Item Added!</DialogTitle>
+              <DialogDescription>
+                {addedItemName || "New item"} has been added to inventory.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-3 text-center text-xs text-muted-foreground">
+              This confirmation will close automatically.
+            </div>
           </DialogContent>
         </Dialog>
 
