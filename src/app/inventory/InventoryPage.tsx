@@ -38,7 +38,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Eye } from "lucide-react";
+import { Eye, Loader2 } from "lucide-react";
 
 interface CatalogItem {
   variantId: string;
@@ -138,12 +138,6 @@ export default function InventoryPage() {
   });
 
   useEffect(() => {
-    if (!addSuccessOpen) return;
-    const timer = setTimeout(() => setAddSuccessOpen(false), 2500);
-    return () => clearTimeout(timer);
-  }, [addSuccessOpen]);
-
-  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.key === "/" &&
@@ -193,6 +187,12 @@ export default function InventoryPage() {
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [addSuccessOpen, setAddSuccessOpen] = useState(false);
   const [addedItemName, setAddedItemName] = useState("");
+
+  useEffect(() => {
+    if (!addSuccessOpen) return;
+    const timer = setTimeout(() => setAddSuccessOpen(false), 2500);
+    return () => clearTimeout(timer);
+  }, [addSuccessOpen]);
 
   const addMutation = useMutation<InventoryItem, Error, Partial<InventoryItem>>(
     {
@@ -658,6 +658,9 @@ export default function InventoryPage() {
                 disabled={addMutation.isPending || isAddingItem}
                 className="w-full md:w-auto active:scale-95 transition-transform duration-150"
               >
+                {(isAddingItem || addMutation.isPending) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {isAddingItem || addMutation.isPending ? "Adding Item..." : "Add Item"}
               </Button>
             </form>

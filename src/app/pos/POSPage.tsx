@@ -8,7 +8,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { authStorage } from "@/lib/auth-storage";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { toast } from "sonner";
-import { Minus, Plus, Trash2, ShoppingCart, User } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, User, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -862,10 +862,13 @@ export default function POSPage() {
             <Button
               size="lg"
               onClick={checkout}
-              disabled={cart.length === 0 || saleMutation.isPending}
-              className="h-14 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base"
+              disabled={cart.length === 0 || saleMutation.isPending || isProcessingSale}
+              className="h-14 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base active:scale-95 transition-transform duration-150"
             >
-              {saleMutation.isPending ? "Processing..." : "Complete Sale"}
+              {(isProcessingSale || saleMutation.isPending) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {isProcessingSale || saleMutation.isPending ? "Processing..." : "Complete Sale"}
             </Button>
           </div>
         </div>
@@ -1175,6 +1178,9 @@ export default function POSPage() {
           disabled={cart.length === 0 || saleMutation.isPending || isProcessingSale}
           className="w-full sm:w-[220px] h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold active:scale-95 transition-transform duration-150"
         >
+          {(isProcessingSale || saleMutation.isPending) && (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          )}
           {isProcessingSale || saleMutation.isPending ? "Processing Sale..." : "Complete Sale"}
         </Button>
         </CardContent>
