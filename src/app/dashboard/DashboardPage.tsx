@@ -430,11 +430,22 @@ function DashboardExtraMetrics({ period }: { period: string }) {
   });
 
   const e = extra?.[0];
-  const todayVsYesterday = e && e.yesterday_sales > 0
-    ? (((e.today_sales - e.yesterday_sales) / e.yesterday_sales) * 100).toFixed(1)
-    : null;
   const avgSales = summary ? summary.totalRevenue / days : 0;
   const avgProfit = summary ? summary.totalProfit / days : 0;
+  const avgOrders = summary ? summary.ordersCount / days : 0;
+
+  const pctDiff = (today: number, avg: number) =>
+    avg > 0 ? ((today - avg) / avg) * 100 : null;
+  const salesDiff = pctDiff(e?.today_sales || 0, avgSales);
+  const profitDiff = pctDiff(e?.today_profit || 0, avgProfit);
+  const ordersDiff = pctDiff(e?.today_orders || 0, avgOrders);
+
+  const diffLabel = (diff: number | null) => {
+    if (diff === null) return "No avg data";
+    return `${diff >= 0 ? "↑" : "↓"} ${Math.abs(diff).toFixed(1)}% vs avg`;
+  };
+  const diffColor = (diff: number | null) =>
+    diff !== null && diff >= 0 ? "text-emerald-600" : "text-red-500";
 
   if (isLoadingExtra) {
     return (
@@ -453,27 +464,26 @@ function DashboardExtraMetrics({ period }: { period: string }) {
     {
       title: "Today's Sales",
       value: `৳ ${fmt(e?.today_sales || 0)}`,
-      sub: todayVsYesterday !== null
-        ? `${Number(todayVsYesterday) >= 0 ? "↑" : "↓"} ${Math.abs(Number(todayVsYesterday))}% vs yesterday`
-        : `${e?.today_orders || 0} orders`,
+      sub: diffLabel(salesDiff),
       sub2: `Daily avg (${periodLabel(period)}): ৳${fmt(avgSales)}`,
       icon: <CalendarDays className="h-4 w-4 text-blue-500" />,
-      subColor: todayVsYesterday !== null && Number(todayVsYesterday) >= 0 ? "text-emerald-600" : "text-red-500",
+      subColor: diffColor(salesDiff),
     },
     {
       title: "Today's Profit",
       value: `৳ ${fmt(e?.today_profit || 0)}`,
-      sub: `${e?.today_orders || 0} orders today`,
+      sub: diffLabel(profitDiff),
       sub2: `Daily avg (${periodLabel(period)}): ৳${fmt(avgProfit)}`,
       icon: <Wallet className="h-4 w-4 text-emerald-500" />,
-      subColor: "text-muted-foreground",
+      subColor: diffColor(profitDiff),
     },
     {
       title: "Today's Orders",
       value: (e?.today_orders || 0).toLocaleString("en-IN"),
-      sub: "Total orders today",
+      sub: diffLabel(ordersDiff),
+      sub2: `Daily avg (${periodLabel(period)}): ${Math.round(avgOrders).toLocaleString("en-IN")} orders`,
       icon: <ShoppingCart className="h-4 w-4 text-amber-500" />,
-      subColor: "text-muted-foreground",
+      subColor: diffColor(ordersDiff),
     },
     {
       title: "Cash Register",
