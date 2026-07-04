@@ -317,13 +317,13 @@ export default function ShortListPage() {
             >
               <Download className="w-4 h-4" /> Download Shortlist
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               onClick={() => exportPdf("inventory")}
               className="flex items-center gap-2"
             >
               <Download className="w-4 h-4" /> Download Inventory
-            </Button>
+            </Button> */}
             {/* <Button
               variant="outline"
               onClick={() => exportPdf("analytics")}
@@ -331,13 +331,13 @@ export default function ShortListPage() {
             >
               <Download className="w-4 h-4" /> Download Analytics
             </Button> */}
-            <Button
+            {/* <Button
               variant="outline"
               onClick={() => exportBackup()}
               className="flex items-center gap-2"
             >
               <Download className="w-4 h-4" /> Download Backup
-            </Button>
+            </Button> */}
           </div>
         </CardContent>
       </Card>

@@ -129,7 +129,7 @@ const getTopProducts: RouteHandler = async ({ tenantId, query }) => {
   const period = query.get('period') || '30d'
   const days = period === '7d' ? 7 : period === '90d' ? 90 : 30
   const { data, error } = await supabase
-    .rpc('get_top_products', { p_tenant_id: tenantId, p_days: days, p_limit: 5 })
+    .rpc('get_top_products', { p_tenant_id: tenantId, p_days: days, p_limit: 100 })
   if (error) throw error
   return formatResponse(data)
 }
