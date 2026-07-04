@@ -395,8 +395,9 @@ interface TopProduct {
   total_profit: number;
 }
 
-function DashboardExtraMetrics() {
+function DashboardExtraMetrics({ period }: { period: string }) {
   const { currentTenantId } = useTenant();
+  const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
 
   const { data: extra, isLoading: isLoadingExtra } = useQuery<ExtraMetrics[]>({
     queryKey: ["dashboard-extra", currentTenantId],
@@ -406,10 +407,10 @@ function DashboardExtraMetrics() {
     enabled: !!currentTenantId,
   });
 
-  const { data: summary30d } = useQuery<DashboardSummaryType>({
-    queryKey: ["dashboard-summary", currentTenantId, "30d"],
+  const { data: summary } = useQuery<DashboardSummaryType>({
+    queryKey: ["dashboard-summary", currentTenantId, period],
     queryFn: () =>
-      api.get(`/sales-history/analytics/summary?period=30d`).then((r) => r.data),
+      api.get(`/sales-history/analytics/summary?period=${period}`).then((r) => r.data),
     refetchOnWindowFocus: false,
     staleTime: 30 * 1000,
     enabled: !!currentTenantId,
@@ -419,8 +420,8 @@ function DashboardExtraMetrics() {
   const todayVsYesterday = e && e.yesterday_sales > 0
     ? (((e.today_sales - e.yesterday_sales) / e.yesterday_sales) * 100).toFixed(1)
     : null;
-  const avgSales30d = summary30d ? summary30d.totalRevenue / 30 : 0;
-  const avgProfit30d = summary30d ? summary30d.totalProfit / 30 : 0;
+  const avgSales = summary ? summary.totalRevenue / days : 0;
+  const avgProfit = summary ? summary.totalProfit / days : 0;
 
   if (isLoadingExtra) {
     return (
@@ -442,7 +443,7 @@ function DashboardExtraMetrics() {
       sub: todayVsYesterday !== null
         ? `${Number(todayVsYesterday) >= 0 ? "↑" : "↓"} ${Math.abs(Number(todayVsYesterday))}% vs yesterday`
         : `${e?.today_orders || 0} orders`,
-      sub2: `Daily avg (30d): ৳${fmt(avgSales30d)}`,
+      sub2: `Daily avg (${periodLabel(period)}): ৳${fmt(avgSales)}`,
       icon: <CalendarDays className="h-4 w-4 text-blue-500" />,
       subColor: todayVsYesterday !== null && Number(todayVsYesterday) >= 0 ? "text-emerald-600" : "text-red-500",
     },
@@ -450,7 +451,7 @@ function DashboardExtraMetrics() {
       title: "Today's Profit",
       value: `৳ ${fmt(e?.today_profit || 0)}`,
       sub: `${e?.today_orders || 0} orders today`,
-      sub2: `Daily avg (30d): ৳${fmt(avgProfit30d)}`,
+      sub2: `Daily avg (${periodLabel(period)}): ৳${fmt(avgProfit)}`,
       icon: <Wallet className="h-4 w-4 text-emerald-500" />,
       subColor: "text-muted-foreground",
     },
@@ -590,7 +591,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-foreground">Today's Overview</h3>
         </div>
-        <DashboardExtraMetrics />
+        <DashboardExtraMetrics period={period} />
       </section>
 
       <section className="space-y-4">
