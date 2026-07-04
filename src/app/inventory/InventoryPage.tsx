@@ -48,6 +48,7 @@ interface CatalogItem {
   genericName?: string;
   manufacturerName?: string;
   purchasePrice?: number;
+  stockQuantity?: number;
 }
 
 interface ApiClient {
@@ -84,7 +85,7 @@ type EditInventoryFormData = z.infer<typeof editInventorySchema>;
 
 function fetchInventory(isOnline: boolean): Promise<InventoryItem[]> {
   const client = (isOnline ? api : offlineApi) as unknown as ApiClient;
-  return client.get("/inventory").then((r) => r.data as InventoryItem[]);
+  return client.get("/inventory?limit=10000").then((r) => r.data as InventoryItem[]);
 }
 
 async function searchCatalog(
@@ -440,7 +441,16 @@ export default function InventoryPage() {
         }`
         : item.itemName || "";
       const itemName = item.itemName || "";
-      return name.toLowerCase().includes(s) || itemName.toLowerCase().includes(s);
+      const sku = item.variant?.sku || "";
+      const genericName = item.variant?.product?.genericName || "";
+      const manufacturerName = item.variant?.product?.manufacturerName || "";
+      return (
+        name.toLowerCase().includes(s) ||
+        itemName.toLowerCase().includes(s) ||
+        sku.toLowerCase().includes(s) ||
+        genericName.toLowerCase().includes(s) ||
+        manufacturerName.toLowerCase().includes(s)
+      );
     });
   }, [dataSource, search]);
 
@@ -474,6 +484,7 @@ export default function InventoryPage() {
               <div className="space-y-2">
                 <label htmlFor="add-item-name" className="text-sm font-medium text-foreground">
                   Item Name (Search catalog or enter new)
+                  <span className="ml-1 text-xs text-muted-foreground">[Search Box #1: Catalog Search]</span>
                 </label>
                 <Controller
                   name="itemName"
@@ -515,6 +526,11 @@ export default function InventoryPage() {
                               <div className="text-xs text-muted-foreground">
                                 ৳{item.retailPrice}
                                 {item.genericName && ` | ${item.genericName}`}
+                                {typeof item.stockQuantity === "number" && (
+                                  <span className={item.stockQuantity > 0 ? "text-green-600 font-medium" : "text-destructive"}>
+                                    {" | "}{item.stockQuantity > 0 ? `${item.stockQuantity} in stock` : "Out of stock"}
+                                  </span>
+                                )}
                               </div>
                             </button>
                           ))}
@@ -640,6 +656,8 @@ export default function InventoryPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full md:w-80"
+              data-search-box="inventory-table-search"
+              aria-label="Search Box #2: Inventory Table Search"
             />
           </CardHeader>
           <CardContent className="p-0">

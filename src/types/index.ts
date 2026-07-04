@@ -28,6 +28,9 @@ export interface Product {
   description?: string
   brandId?: string
   categoryId?: string
+  genericName?: string
+  manufacturerName?: string
+  productType?: string
 }
 
 export interface ProductVariant {

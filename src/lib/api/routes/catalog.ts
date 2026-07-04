@@ -32,20 +32,24 @@ const searchCatalog: RouteHandler = async ({ tenantId, query }) => {
 
   const variantIdSet = new Set((variants || []).map((v: any) => v.id).filter(Boolean))
   const latestInventoryByVariant: Record<string, { purchasePrice: number; retailPrice: number }> = {}
+  const stockByVariant: Record<string, number> = {}
   if (variantIdSet.size > 0) {
     const { data: inventoryItems } = await supabase
       .from('inventory_items')
-      .select('variantId, purchasePrice, retailPrice, createdAt')
+      .select('variantId, purchasePrice, retailPrice, quantity, createdAt')
       .eq('tenantId', tenantId)
+      .in('variantId', Array.from(variantIdSet))
       .order('createdAt', { ascending: false })
-      .limit(1000)
 
     for (const item of (inventoryItems || [])) {
       const key = item.variantId
-      if (key && variantIdSet.has(key) && !latestInventoryByVariant[key]) {
-        latestInventoryByVariant[key] = {
-          purchasePrice: item.purchasePrice || 0,
-          retailPrice: item.retailPrice || 0
+      if (key && variantIdSet.has(key)) {
+        stockByVariant[key] = (stockByVariant[key] || 0) + (item.quantity || 0)
+        if (!latestInventoryByVariant[key]) {
+          latestInventoryByVariant[key] = {
+            purchasePrice: item.purchasePrice || 0,
+            retailPrice: item.retailPrice || 0
+          }
         }
       }
     }
@@ -62,7 +66,8 @@ const searchCatalog: RouteHandler = async ({ tenantId, query }) => {
       productType: v.product?.productType || 'GENERAL',
       genericName: v.product?.genericName || '',
       manufacturerName: v.product?.manufacturerName || '',
-      purchasePrice: latest?.purchasePrice ?? v.retailPrice * 0.7
+      purchasePrice: latest?.purchasePrice ?? v.retailPrice * 0.7,
+      stockQuantity: stockByVariant[v.id] || 0
     }
   })
 

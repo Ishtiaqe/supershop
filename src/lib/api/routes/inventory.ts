@@ -23,10 +23,11 @@ const getInventory: RouteHandler = async ({ tenantId, query }) => {
   let inventoryData: any[] | null = null
   let error: any = null
 
-  if (q && !hasCachedData) {
-    // Single-join search via RPC — PostgREST's .or() across embedded resources
+  if (q) {
+    // Always use RPC for search queries — PostgREST's .or() across embedded resources
     // joins product_variants once per referenced column (3x for this search),
     // so this query is pushed into a real SQL function instead.
+    // The RPC searches ALL items, not just the first N.
     const rpcResult = await supabase.rpc('search_inventory_items', {
       p_tenant_id: tenantId,
       p_query: q,
@@ -67,8 +68,9 @@ const getInventory: RouteHandler = async ({ tenantId, query }) => {
 
   let result = inventoryData || []
 
-  // If we have cached master data, embed it manually
-  if (hasCachedData) {
+  // If we have cached master data and no search query, embed variant data manually
+  // (when q is provided, the RPC already returns variant data with product embedded)
+  if (hasCachedData && !q) {
     const variantMap = new Map(
       variantsWithProducts.value.map((v: any) => [v.id, v])
     )
@@ -77,26 +79,6 @@ const getInventory: RouteHandler = async ({ tenantId, query }) => {
       ...item,
       variant: variantMap.get(item.variantId) || null
     }))
-
-    // Apply client-side search if needed
-    if (q) {
-      const lowerQ = q.toLowerCase()
-      result = result.filter((item: any) => {
-        const itemName = (item.itemName || '').toLowerCase()
-        const sku = item.variant?.sku?.toLowerCase() || ''
-        const variantName = item.variant?.variantName?.toLowerCase() || ''
-        const productName = item.variant?.product?.name?.toLowerCase() || ''
-        const genericName = item.variant?.product?.genericName?.toLowerCase() || ''
-        const manufacturerName = item.variant?.product?.manufacturerName?.toLowerCase() || ''
-
-        return itemName.includes(lowerQ) ||
-          sku.includes(lowerQ) ||
-          variantName.includes(lowerQ) ||
-          productName.includes(lowerQ) ||
-          genericName.includes(lowerQ) ||
-          manufacturerName.includes(lowerQ)
-      })
-    }
   }
 
   return formatResponse(result)
