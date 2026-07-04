@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import type { User } from '@/types';
-import api from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { authStorage } from '@/lib/auth-storage';
 
@@ -80,7 +79,7 @@ export default function ProfilePage() {
 
     try {
       // 1. Update Supabase Auth metadata
-      const { data: authData, error: authError } = await supabase.auth.updateUser({
+      const { error: authError } = await supabase.auth.updateUser({
         email: values.email,
         data: { full_name: values.fullName }
       });

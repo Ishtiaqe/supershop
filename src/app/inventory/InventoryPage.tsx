@@ -38,7 +38,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Eye, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface CatalogItem {
   variantId: string;

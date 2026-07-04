@@ -6,7 +6,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { ApiResponse, BackupStatus, ErrorResponse } from '@/types'
+import { ApiResponse, BackupStatus } from '@/types'
 
 /**
  * Hook for fetching backup status

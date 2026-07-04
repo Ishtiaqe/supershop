@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { formatResponse, generateUUID } from '../utils'
+import { formatResponse } from '../utils'
 import { RouteHandler } from '../types'
 
 const register: RouteHandler = async ({ requestData }) => {

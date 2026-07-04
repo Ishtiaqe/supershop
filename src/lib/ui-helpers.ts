@@ -44,7 +44,7 @@ export function getStatusMessage(percentage: number): string {
 /**
  * Format date in consistent manner
  */
-export function formatDate(date: Date | string, format: 'short' | 'long' = 'short'): string {
+export function formatDate(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date
     // Always return dd/mm/yyyy
     const day = String(d.getDate()).padStart(2, '0');

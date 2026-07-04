@@ -5,8 +5,9 @@
 ### 1. Dashboard (`/dashboard`)
 - Summary cards: Revenue, Profit, Profit Margin, Current Capital (asset value), Inventory Selling Value, Orders count
 - Period selector: 7d / 30d / 90d
-- Sales trend area chart (daily revenue)
-- Profit margin trend area chart (daily profit %)
+- Top Products table sorted by profit, displayed above analytics
+- Sales trend area chart (daily revenue) with average reference line
+- Profit margin trend area chart (daily profit %) with average reference line
 
 ### 2. POS / Sales Portal (`/pos`)
 - Search inventory by name/SKU/generic/manufacturer
@@ -60,6 +61,8 @@
 - Manual add/remove
 - Sort by quantity / added date / name
 - Filter slow-moving items
+- 30-day sales column per item
+- Server-side pagination (10 per page) with search
 - Export PDF (shortlist, inventory, analytics)
 - Export backup
 
@@ -153,11 +156,10 @@
    - Multi-warehouse/location support
    - Transfer logs with stock movements
 
-6. **Daily Cash Box Reconciliation / Shift Management**
+6. **Daily Cash Box Reconciliation / Shift Management** ✅
    - `Shift` model: opening balance, closing balance, expected vs actual
    - Employee login/logout at shift start/end
    - Discrepancy reporting
-   - Currently cash box is a running total — no shift-level accountability
 
 7. **Automated Reorder Points**
    - Per-item `reorderLevel` and `reorderQty` fields
@@ -173,9 +175,8 @@
 
 ### B. Optimize Existing Operations
 
-9. **Server-side Pagination on Sales History**
-   - Currently fetches all 4,282 sales then paginates client-side
-   - Add `limit`/`offset` to the API query (the endpoint supports it but the frontend doesn't use it)
+9. **Server-side Pagination on Sales History** ✅
+   - Frontend uses `limit`/`offset` with the API query
 
 10. **Batch N+1 in `createSale`**
     - 50 DB calls per 10-item sale → reduce to ~6 with batch queries
@@ -183,11 +184,8 @@
     - Batch-insert all stock_movements in one call
     - Batch-check short_list existence with `.in('inventoryId', itemIds)`
 
-11. **SQL Aggregates for Analytics**
-    - Replace fetch-all + JS sum with SQL `GROUP BY` + `SUM()`
-    - Cash box summary: `SELECT "entryType", SUM(amount) GROUP BY`
-    - Sales analytics: `GROUP BY DATE(saleTime)` instead of JS grouping
-    - Credits summary: SQL `SUM(dueAmount), COUNT(DISTINCT customerPhone)`
+11. **SQL Aggregates for Analytics** ✅
+    - Implemented via Supabase RPCs: `get_sales_analytics_summary`, `get_sales_analytics_graphs`, `get_inventory_summary`, `get_cash_box_summary`, `get_top_products`
 
 12. **POS: Customer Selector from Customers Table**
     - Currently credit sales use free-text name/phone
@@ -204,13 +202,13 @@
     - Export current inventory to CSV
     - Useful for initial setup and stock takes
 
-15. **Dashboard: More Metrics**
+15. **Dashboard: More Metrics** ✅
     - Today's sales vs yesterday comparison
-    - Top-selling products (by quantity and revenue)
+    - Top-selling products (sorted by profit)
     - Low stock count badge
     - Credit outstanding as a dashboard card
     - Cash box balance as a dashboard card
-    - Dead stock value (items not sold in 90 days)
+    - Dead stock value (items not sold in 90 days) — still pending
 
 ### C. UX / UI Improvements
 

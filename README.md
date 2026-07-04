@@ -1,6 +1,6 @@
 # 🏪 SuperShop Frontend - Multi-Tenant Shop Management Dashboard
 
-A modern, responsive admin dashboard for the SuperShop multi-tenant shop management system. Built with Vite, React, TypeScript, and Tailwind CSS, talking directly to Supabase (Postgres + Auth) — there is no separate backend API server.
+A modern, responsive admin dashboard for the SuperShop multi-tenant shop management system. Built with Vite, React, TypeScript, and Tailwind CSS, backed by Supabase (Postgres + Auth). The frontend uses an in-process API router (`src/lib/api/routes/*`) that calls Supabase directly, so no separate backend server is required.
 
 ## 📋 Overview
 
@@ -13,7 +13,7 @@ SuperShop Frontend provides a comprehensive dashboard for managing multiple shop
 ✅ **POS System Interface** - Fast transaction management  
 ✅ **Sales Analytics** - Revenue, profit, and forecasting dashboards  
 ✅ **Role-Based Access** - SUPER_ADMIN, OWNER, EMPLOYEE permissions  
-✅ **Responsive Design** - Modern UI built with Next.js & Tailwind  
+✅ **Responsive Design** - Modern UI built with Vite, React Router & Tailwind  
 ✅ **Vercel Ready** - One-click deployment  
 
 ## 🛠️ **Technology Stack**
@@ -22,8 +22,8 @@ SuperShop Frontend provides a comprehensive dashboard for managing multiple shop
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS + shadcn/ui
 - **State Management**: React Query (TanStack Query), persisted via `idb-keyval`
-- **Data layer**: `@supabase/supabase-js` — direct Postgres/Auth access, no backend API
-- **Deployment**: Vercel (static build), Capacitor for Android/iOS
+- **Data layer**: `@supabase/supabase-js` — direct Postgres/Auth access via in-process route handlers
+- **Deployment**: Vercel (static build)
 
 ## 📦 **Project Structure**
 
@@ -130,7 +130,7 @@ Some `NEXT_PUBLIC_*`-prefixed vars (API URLs, Firebase, GA, AdSense) are still r
 
 **Zero configuration required!**
 
-📖 **Detailed deployment instructions:** See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)
+📖 **Deployment URL:** `https://supershop.shomaj.one`
 
 ## 📊 **Features**
 
@@ -190,11 +190,11 @@ MIT License - feel free to use for personal or commercial projects.
 
 ## 🎯 **Roadmap**
 
-- [ ] Mobile app (React Native)
+- [x] Export reports (PDF)
+- [ ] Mobile app (Capacitor)
 - [ ] Advanced analytics & forecasting
 - [ ] Barcode scanner integration
 - [ ] Email notifications
-- [ ] Export reports (PDF/Excel)
 - [ ] Customer loyalty program
 
 ---

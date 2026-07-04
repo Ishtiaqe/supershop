@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosRequestConfig } from 'axios';
 import { offlineDb } from './offline-db';
 import { offlineQueue } from './offline-queue';
 import { NetworkDetector } from './offline-utils';

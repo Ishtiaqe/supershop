@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 function getSnapshot(query: string) {
   return () => window.matchMedia(query).matches;

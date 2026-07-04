@@ -83,11 +83,6 @@ const closeShift: RouteHandler = async ({ tenantId, userId, params, requestData 
     return formatResponse({ error: 'Shift is already closed' })
   }
 
-  // Get cash register balance at shift close time
-  const { data: cashSummary } = await supabase
-    .rpc('get_cash_box_summary', { p_tenant_id: tenantId })
-  const cashBalance = cashSummary?.[0]?.current_balance || 0
-
   // Calculate expected balance: opening + all entries during shift
   const { data: shiftEntries } = await supabase
     .from('cash_box_entries')

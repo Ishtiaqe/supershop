@@ -144,7 +144,7 @@ export default function UserDataExportComponent() {
                           {record.role}
                         </Badge>
                       </TableCell>
-                      <TableCell>{record.createdAt ? formatDate(record.createdAt, "short") : "—"}</TableCell>
+                      <TableCell>{record.createdAt ? formatDate(record.createdAt) : "—"}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           size="sm"

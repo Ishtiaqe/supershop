@@ -66,6 +66,8 @@ const getShortlist: RouteHandler = async ({ tenantId, query }) => {
       const nameA = invA.itemName || ''
       const nameB = invB.itemName || ''
       comparison = nameA.localeCompare(nameB)
+    } else if (sortBy === 'sales30Days') {
+      comparison = (salesByInventory[b.inventoryId] || 0) - (salesByInventory[a.inventoryId] || 0)
     } else {
       comparison = new Date(a.addedAt || 0).getTime() - new Date(b.addedAt || 0).getTime()
     }

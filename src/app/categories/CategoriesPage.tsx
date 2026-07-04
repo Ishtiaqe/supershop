@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash } from "lucide-react";
 import api from "@/lib/api";
 import { useCachedQuery } from "@/hooks/useCachedQuery";

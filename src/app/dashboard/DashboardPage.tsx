@@ -5,7 +5,6 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { TrendingUp, Wallet, Package, ShoppingCart, Store, Boxes, Loader2, CreditCard, AlertTriangle, CalendarDays, Trophy } from "lucide-react";
 import api from "@/lib/api";
 import { useTenant } from "@/components/providers/TenantProvider";
-import { queryKeys } from "@/components/providers";
 
 // Import shadcn UI components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -396,7 +395,7 @@ interface TopProduct {
   total_profit: number;
 }
 
-function DashboardExtraMetrics({ period }: { period: string }) {
+function DashboardExtraMetrics() {
   const { currentTenantId } = useTenant();
 
   const { data: extra, isLoading: isLoadingExtra } = useQuery<ExtraMetrics[]>({
@@ -577,7 +576,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-foreground">Today's Overview</h3>
         </div>
-        <DashboardExtraMetrics period={period} />
+        <DashboardExtraMetrics />
       </section>
 
       <section className="space-y-4">

@@ -114,7 +114,7 @@ export default function DataManagementPage() {
                 <p className="text-sm text-muted-foreground">
                   <strong className="text-foreground">Last Backup:</strong>{" "}
                   {backupStatus.data.lastBackupTime
-                    ? formatDate(backupStatus.data.lastBackupTime, "short")
+                    ? formatDate(backupStatus.data.lastBackupTime)
                     : "Never"}
                 </p>
                 {backupStatus.data.backupSize && (

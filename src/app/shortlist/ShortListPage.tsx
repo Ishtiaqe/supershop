@@ -48,10 +48,9 @@ interface ShortListItem {
 export default function ShortListPage() {
   const queryClient = useQueryClient();
   const { openItem } = useItemDetail();
-  const shortlistTableRef = useRef<HTMLDivElement>(null);
-  const [sortBy, setSortBy] = useState<"quantity" | "addedAt" | "name">(
-    "quantity",
-  );
+  const [sortBy, setSortBy] = useState<
+    "quantity" | "addedAt" | "name" | "sales30Days"
+  >("quantity");
   const [sortOrder] = useState<"asc" | "desc">("asc");
   const [filterSlow] = useState<boolean | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -185,24 +184,6 @@ export default function ShortListPage() {
     }
   };
 
-  // Download shortlist as image
-  const downloadAsImage = async () => {
-    if (!shortlistTableRef.current) return;
-    try {
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(shortlistTableRef.current, { scale: 2 });
-      const link = document.createElement("a");
-      const today = new Date().toISOString().split("T")[0];
-      link.download = `shortlist-${today}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-      toast.success("Shortlist image downloaded successfully");
-    } catch (err) {
-      console.error("Failed to download shortlist as image:", err);
-      toast.error("Failed to download shortlist as image. Please try again.");
-    }
-  };
-
   // Search inventory items (not shortlist items)
   const { data: inventorySearchResults = [], isLoading: isSearching } =
     useQuery({
@@ -323,6 +304,7 @@ export default function ShortListPage() {
                 <option value="quantity">Lowest Stock First</option>
                 <option value="addedAt">Recently Added</option>
                 <option value="name">Item Name</option>
+                <option value="sales30Days">30 Day Sales</option>
               </select>
             </div>
           </div>
@@ -356,13 +338,6 @@ export default function ShortListPage() {
             >
               <Download className="w-4 h-4" /> Download Backup
             </Button>
-            {/* <Button
-              variant="outline"
-              onClick={downloadAsImage}
-              className="flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" /> Download as Image
-            </Button> */}
           </div>
         </CardContent>
       </Card>
@@ -373,7 +348,7 @@ export default function ShortListPage() {
           Error loading short list
         </div>
       ) : (
-        <Card className="shadow-sm border-border/60" ref={shortlistTableRef}>
+        <Card className="shadow-sm border-border/60">
           <CardHeader className="pb-4 p-5 border-b border-border/60">
             <CardTitle className="text-lg font-semibold flex items-center justify-between flex-wrap gap-2">
               <span>Shortlist Items ({totalCount})</span>

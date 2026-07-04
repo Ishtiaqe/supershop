@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">SuperShop</string>
-    <string name="title_activity_main">SuperShop</string>
-    <string name="package_name">one.shomaj.supershop</string>
-    <string name="custom_url_scheme">one.shomaj.supershop</string>
-</resources>
