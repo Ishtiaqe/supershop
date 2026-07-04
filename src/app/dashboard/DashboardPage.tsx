@@ -8,6 +8,7 @@ import { useTenant } from "@/components/providers/TenantProvider";
 
 // Import shadcn UI components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AreaChart,
@@ -532,6 +533,8 @@ function DashboardExtraMetrics({ period }: { period: string }) {
 
 function DashboardTopProducts({ period }: { period: string }) {
   const { currentTenantId } = useTenant();
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 5;
 
   const { data: topProducts, isLoading: isLoadingTop } = useQuery<TopProduct[]>({
     queryKey: ["dashboard-top-products", currentTenantId, period],
@@ -541,17 +544,52 @@ function DashboardTopProducts({ period }: { period: string }) {
     enabled: !!currentTenantId,
   });
 
+  // Reset pagination when period changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [period]);
+
   const sortedTopProducts = [...(topProducts || [])].sort(
     (a, b) => Number(b.total_profit) - Number(a.total_profit)
+  );
+  const totalPages = Math.ceil(sortedTopProducts.length / PAGE_SIZE);
+  const paginatedProducts = sortedTopProducts.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
   );
 
   return (
     <Card className="shadow-sm border-border/60">
       <CardHeader className="p-5 pb-4 border-b border-border/60">
-        <CardTitle className="text-sm font-semibold flex items-center gap-2">
-          <Trophy className="h-4 w-4 text-amber-500" />
-          Top Products ({periodLabel(period)})
-        </CardTitle>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-amber-500" />
+            Top Products ({periodLabel(period)})
+          </CardTitle>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         {isLoadingTop ? (
@@ -560,9 +598,9 @@ function DashboardTopProducts({ period }: { period: string }) {
               <Skeleton key={i} className="h-10 w-full" />
             ))}
           </div>
-        ) : sortedTopProducts.length > 0 ? (
+        ) : paginatedProducts.length > 0 ? (
           <div className="divide-y divide-border">
-            {sortedTopProducts.map((p, i) => (
+            {paginatedProducts.map((p, i) => (
               <div key={i} className="flex items-center justify-between p-4 hover:bg-muted/30">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
