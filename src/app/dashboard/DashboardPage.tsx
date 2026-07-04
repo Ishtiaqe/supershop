@@ -604,7 +604,7 @@ function DashboardTopProducts({ period }: { period: string }) {
               <div key={i} className="flex items-center justify-between p-4 hover:bg-muted/30">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
-                    {i + 1}
+                    {(currentPage - 1) * PAGE_SIZE + i + 1}
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-foreground truncate">{p.product_name}</div>
