@@ -5,7 +5,12 @@ import { formatResponse } from '../utils'
 import { RouteHandler } from '../types'
 import { formatDate } from '@/lib/ui-helpers'
 
-const generateShortListPdf = async (tenantId: string) => {
+const generateShortListPdf = async (tenantId: string, query: URLSearchParams) => {
+  const sortBy = query.get('sortBy') || 'addedAt'
+  const sortOrder = query.get('sortOrder') || 'asc'
+  const filterSlow = query.get('filterSlow')
+  const search = query.get('search') || ''
+
   const { data: items } = await supabase
     .from('short_list')
     .select('*, inventory:inventory_items(*, variant:product_variants(*, product:products(*)))')
@@ -30,7 +35,48 @@ const generateShortListPdf = async (tenantId: string) => {
     }
   }
 
-  const rows = (items || []).map((item: any) => [
+  let filtered = items || []
+  if (filterSlow !== null) {
+    const isSlow = filterSlow === 'true'
+    filtered = filtered.filter((item: any) => item.isSlowItem === isSlow)
+  }
+
+  if (search) {
+    const searchLower = search.toLowerCase()
+    filtered = filtered.filter((item: any) => {
+      const inventory = item.inventory || {}
+      const variant = inventory.variant || {}
+      const product = variant.product || {}
+      return (
+        (inventory.itemName || '').toLowerCase().includes(searchLower) ||
+        (variant.sku || '').toLowerCase().includes(searchLower) ||
+        (product.name || '').toLowerCase().includes(searchLower)
+      )
+    })
+  }
+
+  const sortAsc = sortOrder === 'asc'
+  filtered.sort((a: any, b: any) => {
+    const invA = a.inventory || {}
+    const invB = b.inventory || {}
+    let comparison = 0
+    if (sortBy === 'quantity') {
+      comparison = (invA.quantity || 0) - (invB.quantity || 0)
+    } else if (sortBy === 'name') {
+      const nameA = invA.itemName || ''
+      const nameB = invB.itemName || ''
+      comparison = nameA.localeCompare(nameB)
+    } else if (sortBy === 'sales30Days') {
+      comparison = (salesByInventory[b.inventoryId] || 0) - (salesByInventory[a.inventoryId] || 0)
+    } else {
+      comparison = new Date(a.addedAt || 0).getTime() - new Date(b.addedAt || 0).getTime()
+    }
+    return sortAsc ? comparison : -comparison
+  })
+
+  const limited = filtered.slice(0, 50)
+
+  const rows = limited.map((item: any) => [
     item.inventory?.itemName || item.inventory?.variant?.product?.name || 'N/A',
     String(item.inventory?.quantity || 0),
     String(salesByInventory[item.inventoryId] || 0),
@@ -102,11 +148,11 @@ const generateAnalyticsPdf = async (tenantId: string) => {
   return doc.output('blob')
 }
 
-const exportPdf: RouteHandler = async ({ tenantId, params }) => {
+const exportPdf: RouteHandler = async ({ tenantId, params, query }) => {
   const type = params.type
   let blob: Blob
   if (type === 'shortlist') {
-    blob = await generateShortListPdf(tenantId)
+    blob = await generateShortListPdf(tenantId, query)
   } else if (type === 'inventory') {
     blob = await generateInventoryPdf(tenantId)
   } else if (type === 'analytics') {

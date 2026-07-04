@@ -137,7 +137,17 @@ export default function ShortListPage() {
   // Export PDF
   const exportPdf = async (type: "shortlist" | "inventory" | "analytics") => {
     try {
-      const response = await api.get(`/export/pdf/${type}`, {
+      const params = new URLSearchParams();
+      if (type === "shortlist") {
+        params.append("sortBy", sortBy);
+        params.append("sortOrder", sortOrder);
+        if (filterSlow !== null)
+          params.append("filterSlow", filterSlow.toString());
+        if (debouncedShortlistSearch)
+          params.append("search", debouncedShortlistSearch);
+      }
+
+      const response = await api.get(`/export/pdf/${type}?${params.toString()}`, {
         responseType: "blob",
       });
 
