@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   })
   const cachedProfileRef = useRef(cachedProfile)
   const [profileLoading, setProfileLoading] = React.useState(false)
+  const lastFetchedUserIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     cachedProfileRef.current = cachedProfile
@@ -59,25 +60,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCachedProfile(null)
             authStorage.setUser(null as any)
             authStorage.setTenant(null as any)
+            lastFetchedUserIdRef.current = null
           }
+          return
+        }
+
+        // Skip fetch if we already have a profile for this user ID
+        // This prevents unnecessary re-fetching on tab switch (TOKEN_REFRESHED events)
+        if (lastFetchedUserIdRef.current === supabaseUser.id && cachedProfileRef.current) {
           return
         }
 
         setProfileLoading(true)
 
-        // Fetch full profile from Supabase directly using email (to handle user ID mismatches)
+        // Fetch full profile from Supabase using user ID (more private than email)
         let queryResult = await supabase
           .from('users')
           .select('*, tenant:tenants(*)')
-          .eq('email', supabaseUser.email)
+          .eq('id', supabaseUser.id)
           .single()
 
         if (queryResult.error) {
-          console.warn('Query by email failed, trying query by ID:', queryResult.error)
+          console.warn('Query by ID failed, trying query by email:', queryResult.error)
           queryResult = await supabase
             .from('users')
             .select('*, tenant:tenants(*)')
-            .eq('id', supabaseUser.id)
+            .eq('email', supabaseUser.email)
             .single()
         }
 
@@ -104,6 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (data) {
+          // Track that we've fetched this user's profile
+          lastFetchedUserIdRef.current = supabaseUser.id
+
           // Detect tenant change: if the new profile's tenant differs from the
           // currently cached one, clear ALL caches from the previous tenant.
           const prevTenantId = cachedProfileRef.current?.tenant?.id || authStorage.getTenant()?.id
@@ -171,17 +182,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: { user: currentUser } } = await supabase.auth.getUser()
       if (!currentUser) return null
 
+      // Query by user ID first (more private than email)
       let queryResult = await supabase
         .from('users')
         .select('*, tenant:tenants(*)')
-        .eq('email', currentUser.email)
+        .eq('id', currentUser.id)
         .single()
 
       if (queryResult.error) {
         queryResult = await supabase
           .from('users')
           .select('*, tenant:tenants(*)')
-          .eq('id', currentUser.id)
+          .eq('email', currentUser.email)
           .single()
       }
 
