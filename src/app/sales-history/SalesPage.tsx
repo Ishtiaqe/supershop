@@ -114,14 +114,14 @@ export default function SalesPage() {
   };
 
   const voidMutation = useMutation({
-    mutationFn: (saleId: string) => api.delete(`/sales-history/${saleId}`),
+    mutationFn: (saleId: string) => api.post(`/sales-history/${saleId}/void`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
-      toast.success("Sale voided successfully");
+      toast.success("Sale refunded and undone successfully");
       handleCloseModal();
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to void sale");
+      toast.error(error.response?.data?.message || "Failed to refund sale");
     },
   });
 

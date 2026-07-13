@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { formatResponse } from '../utils'
+import { formatResponse, generateUUID, evaluateShortlistForVariant } from '../utils'
 import { RouteHandler } from '../types'
 import { createSale } from '../services/salesService'
 
@@ -140,6 +140,135 @@ const getTopProducts: RouteHandler = async ({ tenantId, query }) => {
   return formatResponse(data)
 }
 
+const voidSale: RouteHandler = async ({ tenantId, userId, params }) => {
+  const saleId = params.id
+
+  // 1. Fetch the sale with its items
+  const { data: sale, error: saleErr } = await supabase
+    .from('sales')
+    .select('id, receiptNumber, totalAmount, amountPaid, dueAmount, paymentMethod')
+    .eq('id', saleId)
+    .eq('tenantId', tenantId)
+    .single()
+  if (saleErr) throw new Error('Sale not found')
+
+  // 2. Check if this sale already has a return (prevent double-voiding)
+  const { data: existingReturn } = await supabase
+    .from('sale_returns')
+    .select('id')
+    .eq('saleId', saleId)
+    .eq('tenantId', tenantId)
+    .limit(1)
+  if (existingReturn && existingReturn.length > 0) {
+    throw new Error('This sale has already been refunded/voided')
+  }
+
+  // 3. Fetch all sale items
+  const { data: saleItems, error: itemsErr } = await supabase
+    .from('sale_items')
+    .select('id, quantity, unitPrice, discount, inventoryId')
+    .eq('saleId', saleId)
+  if (itemsErr) throw itemsErr
+  if (!saleItems || saleItems.length === 0) {
+    throw new Error('Sale has no items to return')
+  }
+
+  // 4. Create the sale return record
+  const returnId = generateUUID()
+  const totalRefund = sale.totalAmount
+  const { error: returnErr } = await supabase
+    .from('sale_returns')
+    .insert({
+      id: returnId,
+      tenantId,
+      saleId,
+      returnDate: new Date().toISOString(),
+      totalRefund,
+      reason: 'Voided sale (full refund)',
+      createdById: userId,
+      updatedAt: new Date().toISOString(),
+    })
+  if (returnErr) throw returnErr
+
+  // 5. Create return items + restore inventory stock
+  const returnItems = saleItems.map((item: any) => ({
+    id: generateUUID(),
+    saleReturnId: returnId,
+    saleItemId: item.id,
+    inventoryId: item.inventoryId,
+    quantity: item.quantity,
+    refundAmount: item.unitPrice * (1 - (item.discount || 0) / 100) * item.quantity,
+  }))
+  const { error: riErr } = await supabase.from('sale_return_items').insert(returnItems)
+  if (riErr) throw riErr
+
+  // 6. Restore stock for each item + log stock movements + evaluate shortlist
+  for (const item of saleItems) {
+    const { data: invItem } = await supabase
+      .from('inventory_items')
+      .select('quantity, itemName, variantId')
+      .eq('id', item.inventoryId)
+      .single()
+
+    if (invItem) {
+      const newQty = invItem.quantity + item.quantity
+      await supabase
+        .from('inventory_items')
+        .update({ quantity: newQty, lastMovedDate: new Date().toISOString(), updatedAt: new Date().toISOString() })
+        .eq('id', item.inventoryId)
+
+      await supabase.from('stock_movements').insert({
+        id: generateUUID(),
+        tenantId,
+        inventoryId: item.inventoryId,
+        movementType: 'RETURN',
+        quantityChange: item.quantity,
+        reason: `Void sale #${sale.receiptNumber}`,
+        referenceId: returnId,
+      })
+
+      // Evaluate shortlist — stock went up, may need to remove from shortlist
+      await evaluateShortlistForVariant(
+        tenantId,
+        invItem.variantId || null,
+        invItem.itemName || null,
+        item.inventoryId,
+        userId
+      )
+    }
+  }
+
+  // 7. Record cash box refund entry
+  const refundAmount = sale.amountPaid || 0
+  if (refundAmount > 0) {
+    await supabase.from('cash_box_entries').insert({
+      id: generateUUID(),
+      tenantId,
+      entryType: 'MANUAL_OUT',
+      amount: refundAmount,
+      note: `Void/refund for sale #${sale.receiptNumber}`,
+      referenceId: returnId,
+      referenceType: 'SALE_RETURN',
+      createdById: userId,
+      entryDate: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+  }
+
+  // 8. Reset the sale's due amount to 0 (the sale record is NOT deleted —
+  //    it stays as historical data with an associated return)
+  await supabase
+    .from('sales')
+    .update({
+      amountPaid: 0,
+      dueAmount: 0,
+      updatedAt: new Date().toISOString(),
+    })
+    .eq('id', saleId)
+
+  return formatResponse({ success: true, saleReturnId: returnId, totalRefund })
+}
+
 export function registerSalesRoutes(router: { register: (method: string, pattern: string, handler: RouteHandler) => void }) {
   router.register('GET', '/sales-history/analytics/summary', getSalesAnalyticsSummary)
   router.register('GET', '/sales-history/analytics/graphs', getSalesAnalyticsGraphs)
@@ -148,4 +277,5 @@ export function registerSalesRoutes(router: { register: (method: string, pattern
   router.register('GET', '/sales-history', getSales)
   router.register('GET', '/sales-history/:id', getSaleById)
   router.register('POST', '/sales-history', createSaleHandler)
+  router.register('POST', '/sales-history/:id/void', voidSale)
 }

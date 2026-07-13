@@ -380,12 +380,44 @@ const updateInventory: RouteHandler = async ({ params, requestData }) => {
   return formatResponse(item)
 }
 
-const deleteInventory: RouteHandler = async ({ params }) => {
+const deleteInventory: RouteHandler = async ({ tenantId, params }) => {
   const invId = params.id
+
+  // Safeguard: prevent deletion if the inventory item has been sold
+  // (has sale_items referencing it) or has stock movements. This protects
+  // historical data integrity — you can't delete something that was sold.
+  const { data: saleItems, error: siErr } = await supabase
+    .from('sale_items')
+    .select('id')
+    .eq('inventoryId', invId)
+    .limit(1)
+  if (siErr) throw siErr
+  if (saleItems && saleItems.length > 0) {
+    throw new Error('Cannot delete inventory item that has been sold. Use a stock adjustment to zero out the quantity instead.')
+  }
+
+  const { data: stockMovements, error: smErr } = await supabase
+    .from('stock_movements')
+    .select('id')
+    .eq('inventoryId', invId)
+    .limit(1)
+  if (smErr) throw smErr
+  if (stockMovements && stockMovements.length > 0) {
+    throw new Error('Cannot delete inventory item that has stock movement history. Use a stock adjustment to zero out the quantity instead.')
+  }
+
+  // Safe to delete — remove shortlist entry first (if any), then the item
+  await supabase
+    .from('short_list')
+    .delete()
+    .eq('inventoryId', invId)
+    .eq('tenantId', tenantId)
+
   const { error } = await supabase
     .from('inventory_items')
     .delete()
     .eq('id', invId)
+    .eq('tenantId', tenantId)
   if (error) throw error
   return formatResponse({ success: true })
 }
