@@ -555,7 +555,7 @@ export default function POSPage() {
                       onClick={() => {
                         setSelectedKey(it.key);
                         setSelectedItemName(it.name);
-                        setQty(1);
+                        setQty(null);
                         setItemDiscount(0);
                         setIsDropdownOpen(false);
                       }}
@@ -610,8 +610,8 @@ export default function POSPage() {
                     type="number"
                     inputMode="numeric"
                     min={1}
-                    value={qty ?? 1}
-                    onChange={(e) => setQty(parseInt(e.target.value) || 1)}
+                    value={qty ?? ""}
+                    onChange={(e) => setQty(parseInt(e.target.value) || null)}
                     className="w-16 h-10 text-center"
                   />
                   <Button
@@ -621,7 +621,7 @@ export default function POSPage() {
                     onClick={() => {
                       const item = aggregatedItems.find((i) => i.key === selectedKey);
                       if (item) {
-                        setQty(Math.min(item.totalQty, (qty ?? 1) + 1));
+                        setQty(Math.min(item.totalQty, (qty ?? 0) + 1));
                       }
                     }}
                   >
@@ -652,7 +652,7 @@ export default function POSPage() {
                   setSelectedKey(null);
                   setSelectedItemName("");
                   setSearch("");
-                  setQty(1);
+                  setQty(null);
                 }}
                 disabled={
                   !selectedKey ||
