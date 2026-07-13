@@ -124,6 +124,8 @@ export default function InventoryPage() {
       genericName: "",
       manufacturerName: "",
       batchNo: "",
+      mfgDate: "",
+      expiryDate: "",
     },
   });
 
@@ -654,6 +656,60 @@ export default function InventoryPage() {
                   </div>
                 )}
               />
+
+              {/* Batch / Expiry / Mfg — optional */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Controller
+                  name="batchNo"
+                  control={addForm.control}
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <label htmlFor="add-batch-no" className="text-sm font-medium text-foreground">
+                        Batch No. <span className="text-xs text-muted-foreground">(optional)</span>
+                      </label>
+                      <Input
+                        id="add-batch-no"
+                        placeholder="Auto-generated if empty"
+                        {...field}
+                      />
+                    </div>
+                  )}
+                />
+
+                <Controller
+                  name="mfgDate"
+                  control={addForm.control}
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <label htmlFor="add-mfg-date" className="text-sm font-medium text-foreground">
+                        Mfg. Date <span className="text-xs text-muted-foreground">(optional)</span>
+                      </label>
+                      <Input
+                        type="date"
+                        id="add-mfg-date"
+                        {...field}
+                      />
+                    </div>
+                  )}
+                />
+
+                <Controller
+                  name="expiryDate"
+                  control={addForm.control}
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <label htmlFor="add-expiry-date" className="text-sm font-medium text-foreground">
+                        Expiry Date <span className="text-xs text-muted-foreground">(optional)</span>
+                      </label>
+                      <Input
+                        type="date"
+                        id="add-expiry-date"
+                        {...field}
+                      />
+                    </div>
+                  )}
+                />
+              </div>
 
               <Button
                 type="submit"
