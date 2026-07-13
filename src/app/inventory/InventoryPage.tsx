@@ -38,7 +38,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil, Trash2 } from "lucide-react";
 
 interface CatalogItem {
   variantId: string;
@@ -479,6 +479,21 @@ export default function InventoryPage() {
     if (variantId) openItem(variantId, { showBatches: true });
   };
 
+  const openEdit = (e: React.MouseEvent, subItem: InventoryItem) => {
+    e.stopPropagation();
+    editForm.reset({
+      itemName: subItem.itemName || "",
+      quantity: subItem.quantity,
+      purchasePrice: subItem.purchasePrice,
+      retailPrice: subItem.retailPrice,
+    });
+    setEditFormState({
+      id: subItem.id,
+      variantId: subItem.variantId || undefined,
+    });
+    setModalOpen(true);
+  };
+
   if (!user || (user.role !== "OWNER" && user.role !== "EMPLOYEE")) {
     return <div className="p-6">Access denied — Owners and employees only</div>;
   }
@@ -748,12 +763,13 @@ export default function InventoryPage() {
                     <TableHead className="text-right">Total Stock</TableHead>
                     <TableHead className="text-right">Purchase Price</TableHead>
                     <TableHead className="text-right">MRP/Unit</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
                       </TableCell>
                     </TableRow>
@@ -785,11 +801,68 @@ export default function InventoryPage() {
                         </TableCell>
                         <TableCell className="text-right">৳{item.latestPurchasePrice}</TableCell>
                         <TableCell className="text-right">৳{item.latestRetailPrice}</TableCell>
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          {item.subItems.length === 1 ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={(e) => openEdit(e, item.subItems[0])}
+                                title="Edit"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditFormState({ id: item.subItems[0].id, variantId: item.subItems[0].variantId || undefined });
+                                  setDeleteConfirmOpen(true);
+                                }}
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center gap-1 flex-wrap">
+                              {item.subItems.map((sub) => (
+                                <div key={sub.id} className="flex items-center gap-0.5">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0"
+                                    onClick={(e) => openEdit(e, sub)}
+                                    title={`Edit batch ${sub.batchNo || ""}`}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditFormState({ id: sub.id, variantId: sub.variantId || undefined });
+                                      setDeleteConfirmOpen(true);
+                                    }}
+                                    title={`Delete batch ${sub.batchNo || ""}`}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         No inventory items found.
                       </TableCell>
                     </TableRow>
@@ -818,10 +891,14 @@ export default function InventoryPage() {
                       key={item.key}
                       onClick={() => openRow(item)}
                     >
-                      <div className="font-semibold text-sm">{itemName}</div>
-                      {variantName && (
-                        <div className="text-xs text-muted-foreground mb-2">{variantName}</div>
-                      )}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-sm">{itemName}</div>
+                          {variantName && (
+                            <div className="text-xs text-muted-foreground mb-2">{variantName}</div>
+                          )}
+                        </div>
+                      </div>
                       <MobileTableCardRow
                         label="Stock"
                         value={
@@ -838,6 +915,39 @@ export default function InventoryPage() {
                         label="MRP/Unit"
                         value={`৳${item.latestRetailPrice}`}
                       />
+                      <div className="pt-2 border-t border-border mt-2 space-y-2">
+                        {item.subItems.map((sub) => (
+                          <div key={sub.id} className="flex items-center justify-between gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {item.subItems.length > 1 ? `Batch: ${sub.batchNo || "—"}` : "Actions"}
+                            </span>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 px-3"
+                                onClick={(e) => openEdit(e, sub)}
+                              >
+                                <Pencil className="h-3.5 w-3.5 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 px-3 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditFormState({ id: sub.id, variantId: sub.variantId || undefined });
+                                  setDeleteConfirmOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </MobileTableCard>
                   );
                 })
@@ -854,8 +964,15 @@ export default function InventoryPage() {
             <DialogHeader>
               <DialogTitle>Delete Item</DialogTitle>
             </DialogHeader>
-            <div className="py-4 text-sm text-muted-foreground">
-              Are you sure you want to delete this inventory item?
+            <div className="py-4 text-sm text-muted-foreground space-y-2">
+              <p>Are you sure you want to delete this inventory item?</p>
+              <p className="text-xs text-muted-foreground">
+                This will also revert any cash box entries created when the item was added
+                (stock purchase, investment, or loan). This action cannot be undone.
+              </p>
+              <p className="text-xs text-destructive font-medium">
+                Note: Items that have been sold or have stock movements cannot be deleted.
+              </p>
             </div>
             <DialogFooter className="gap-2">
               <Button

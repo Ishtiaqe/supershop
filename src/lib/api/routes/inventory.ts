@@ -380,7 +380,7 @@ const updateInventory: RouteHandler = async ({ params, requestData }) => {
   return formatResponse(item)
 }
 
-const deleteInventory: RouteHandler = async ({ tenantId, params }) => {
+const deleteInventory: RouteHandler = async ({ tenantId, userId, params }) => {
   const invId = params.id
 
   // Safeguard: prevent deletion if the inventory item has been sold
@@ -406,13 +406,49 @@ const deleteInventory: RouteHandler = async ({ tenantId, params }) => {
     throw new Error('Cannot delete inventory item that has stock movement history. Use a stock adjustment to zero out the quantity instead.')
   }
 
-  // Safe to delete — remove shortlist entry first (if any), then the item
+  // Revert cash box entries that were created when this inventory item was added.
+  // The entries are linked via referenceId = inventory item id.
+  // We delete them to reverse the financial impact of the mistaken addition.
+  const { data: cashEntries, error: ceErr } = await supabase
+    .from('cash_box_entries')
+    .select('id, entryType, amount, referenceType')
+    .eq('referenceId', invId)
+    .eq('tenantId', tenantId)
+  if (ceErr) throw ceErr
+
+  if (cashEntries && cashEntries.length > 0) {
+    // Log a reversal note for audit trail before deleting
+    for (const entry of cashEntries) {
+      await supabase.from('cash_box_entries').insert({
+        id: generateUUID(),
+        tenantId,
+        entryType: 'MANUAL_OUT',
+        amount: -Math.abs(entry.amount),
+        note: `Reversal: ${entry.entryType} for deleted inventory item ${invId.slice(0, 8)}`,
+        referenceId: invId,
+        referenceType: 'INVENTORY_DELETE_REVERSAL',
+        createdById: userId,
+        entryDate: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+    }
+    // Delete the original entries
+    await supabase
+      .from('cash_box_entries')
+      .delete()
+      .eq('referenceId', invId)
+      .eq('tenantId', tenantId)
+      .in('referenceType', ['INVENTORY', 'INVESTMENT', 'LOAN'])
+  }
+
+  // Remove shortlist entry first (if any)
   await supabase
     .from('short_list')
     .delete()
     .eq('inventoryId', invId)
     .eq('tenantId', tenantId)
 
+  // Delete the inventory item
   const { error } = await supabase
     .from('inventory_items')
     .delete()
