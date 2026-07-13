@@ -365,7 +365,7 @@ export default function SalesPage() {
                               setDeletingId(record.id);
                             }}
                           >
-                            Void Sale
+                            Refund and Undo Sale
                           </Button>
                         )}
                       </div>
@@ -546,7 +546,7 @@ export default function SalesPage() {
                   </div>
                 ) : (
                   <Button variant="destructive" onClick={() => setDeletingId(saleDetails.id)}>
-                    Void Sale
+                    Refund and Undo Sale
                   </Button>
                 )}
               </DialogFooter>
