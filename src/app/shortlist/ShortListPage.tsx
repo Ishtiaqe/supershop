@@ -16,7 +16,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { useItemDetail } from "@/components/providers/ItemDetailContext";
-import { Loader2, Download, Trash2, Check, X } from "lucide-react";
+import { Loader2, Download, Trash2, Check, X, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
 
@@ -224,6 +224,32 @@ export default function ShortListPage() {
     },
   });
 
+  // One-time cleanup: remove items that already have healthy stock
+  const cleanupMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/shortlist/cleanup");
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["shortlist"] });
+      queryClient.invalidateQueries({ queryKey: ["shortlist-stats"] });
+      const removed = data?.removed ?? 0;
+      const checked = data?.checked ?? 0;
+      if (removed > 0) {
+        toast.success(`Cleanup complete`, {
+          description: `Removed ${removed} item${removed > 1 ? "s" : ""} with healthy stock (checked ${checked} product${checked > 1 ? "s" : ""}).`,
+        });
+      } else {
+        toast.success(`Cleanup complete`, {
+          description: `All ${checked} item${checked > 1 ? "s" : ""} are correctly on the shortlist.`,
+        });
+      }
+    },
+    onError: () => {
+      toast.error("Failed to run cleanup");
+    },
+  });
+
   // Reset pagination when filters or search change
   useEffect(() => {
     setCurrentPage(1);
@@ -236,7 +262,27 @@ export default function ShortListPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Short List</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Items running low on stock (below 50% of last restock)
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => cleanupMutation.mutate()}
+          disabled={cleanupMutation.isPending}
+        >
+          {cleanupMutation.isPending ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4 mr-2" />
+          )}
+          Cleanup stale entries
+        </Button>
+      </div>
 
       {/* Controls */}
       <Card className="shadow-sm border-border/60">

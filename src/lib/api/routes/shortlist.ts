@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { formatResponse, generateUUID } from '../utils'
+import { formatResponse, generateUUID, getAggregatedStockForVariant, removeShortlistForInventoryIds } from '../utils'
 import { RouteHandler } from '../types'
 
 const getShortlist: RouteHandler = async ({ tenantId, query }) => {
@@ -213,9 +213,75 @@ const batchAddShortlist: RouteHandler = async ({ tenantId, userId, requestData }
   return formatResponse({ added: data?.length || 0, skipped: existingIds.size, data })
 }
 
+const cleanupShortlist: RouteHandler = async ({ tenantId }) => {
+  // Fetch all shortlist entries with their linked inventory items
+  const { data: entries, error } = await supabase
+    .from('short_list')
+    .select('id, inventoryId, inventory:inventory_items(id, variantId, itemName, quantity, lastRestockQty)')
+    .eq('tenantId', tenantId)
+  if (error) throw error
+
+  if (!entries || entries.length === 0) {
+    return formatResponse({ checked: 0, removed: 0, removedIds: [] })
+  }
+
+  // Group shortlist entries by product (variantId or itemName) so we
+  // evaluate the 50% rule per-product, not per-batch.
+  const productGroups = new Map<string, { variantId: string | null; itemName: string | null; inventoryIds: string[] }>()
+  for (const entry of entries) {
+    const inv = entry.inventory as any
+    if (!inv) continue
+    const key = inv.variantId || inv.itemName || inv.id
+    const existing = productGroups.get(key)
+    if (existing) {
+      existing.inventoryIds.push(inv.id)
+    } else {
+      productGroups.set(key, {
+        variantId: inv.variantId || null,
+        itemName: inv.itemName || null,
+        inventoryIds: [inv.id],
+      })
+    }
+  }
+
+  // For each product group, check aggregated stock against the 50% rule
+  const toRemove: string[] = []
+  let checked = 0
+  for (const [, group] of productGroups) {
+    const { totalStock, latestRestockQty, inventoryIds } = await getAggregatedStockForVariant(
+      tenantId,
+      group.variantId,
+      group.itemName
+    )
+    checked++
+
+    // Remove from shortlist if:
+    // - stock is above 50% of lastRestockQty (no longer running low), OR
+    // - total stock is 0 and there's no restock record (stale entry)
+    const threshold = latestRestockQty * 0.5
+    if (latestRestockQty > 0 && totalStock > threshold) {
+      toRemove.push(...inventoryIds)
+    } else if (totalStock === 0 && latestRestockQty === 0) {
+      // Stale entry — no stock and no restock history
+      toRemove.push(...inventoryIds)
+    }
+  }
+
+  // Deduplicate
+  const uniqueToRemove = [...new Set(toRemove)]
+  await removeShortlistForInventoryIds(tenantId, uniqueToRemove)
+
+  return formatResponse({
+    checked,
+    removed: uniqueToRemove.length,
+    removedIds: uniqueToRemove,
+  })
+}
+
 export function registerShortlistRoutes(router: { register: (method: string, pattern: string, handler: RouteHandler) => void }) {
   router.register('GET', '/shortlist', getShortlist)
   router.register('GET', '/shortlist/stats', getShortlistStats)
+  router.register('POST', '/shortlist/cleanup', cleanupShortlist)
   router.register('POST', '/shortlist/:id/toggle', toggleShortlist)
   router.register('POST', '/shortlist/add/:id', addShortlist)
   router.register('POST', '/shortlist/batch-add', batchAddShortlist)
