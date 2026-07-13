@@ -267,8 +267,10 @@ export default function POSPage() {
     }
     return [];
   });
-  const [isCreditSale, setIsCreditSale] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
   const [cashReceived, setCashReceived] = useState<number>(0);
+
+  const isCreditSale = paymentMethod === "CREDIT";
 
   useEffect(() => {
     try {
@@ -327,7 +329,7 @@ export default function POSPage() {
       setCustomerPhone("");
       customerNameRef.current = "";
       customerPhoneRef.current = "";
-      setIsCreditSale(false);
+      setPaymentMethod("CASH");
       setCashReceived(0);
       setSelectedItemName("");
     },
@@ -461,7 +463,7 @@ export default function POSPage() {
         items: payloadItems,
         customerName: customerName || undefined,
         customerPhone: customerPhone || undefined,
-        paymentMethod: isCreditSale ? "CREDIT" : undefined,
+        paymentMethod: paymentMethod,
         amountPaid: isCreditSale ? cashReceived : undefined,
         dueAmount: isCreditSale ? Math.max(0, total - cashReceived) : undefined,
       });
@@ -791,20 +793,35 @@ export default function POSPage() {
                 <User className="w-4 h-4" />
                 Customer Info
               </span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={isCreditSale}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setIsCreditSale(checked);
-                    if (!checked) setCashReceived(0);
-                  }}
-                />
-                <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-background after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                <span className="ml-2 text-xs text-muted-foreground">Credit Sale</span>
-              </label>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-muted-foreground">Payment Method</label>
+              <div className="grid grid-cols-5 gap-2">
+                {[
+                  { value: "CASH", label: "Cash" },
+                  { value: "NAGAD", label: "Nagad" },
+                  { value: "BKASH", label: "bKash" },
+                  { value: "ROCKET", label: "Rocket" },
+                  { value: "CREDIT", label: "Credit" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      setPaymentMethod(opt.value);
+                      if (opt.value !== "CREDIT") setCashReceived(0);
+                    }}
+                    className={`h-10 rounded-lg text-xs font-semibold border transition-colors ${
+                      paymentMethod === opt.value
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border text-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -1153,21 +1170,31 @@ export default function POSPage() {
             Total: ৳{total.toFixed(2)}
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={isCreditSale}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setIsCreditSale(checked);
-                  if (!checked) setCashReceived(0);
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-foreground mr-1">Payment:</span>
+            {[
+              { value: "CASH", label: "Cash" },
+              { value: "NAGAD", label: "Nagad" },
+              { value: "BKASH", label: "bKash" },
+              { value: "ROCKET", label: "Rocket" },
+              { value: "CREDIT", label: "Credit" },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setPaymentMethod(opt.value);
+                  if (opt.value !== "CREDIT") setCashReceived(0);
                 }}
-              />
-              <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-background after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-            </label>
-            <span className="text-sm font-medium text-foreground">Credit Sale (Due)</span>
+                className={`h-8 px-3 rounded-lg text-xs font-semibold border transition-colors ${
+                  paymentMethod === opt.value
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-border text-foreground hover:bg-accent"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
 
           {isCreditSale && (

@@ -69,7 +69,7 @@ export interface Sale {
   customerPhone?: string
   customerId?: string
   saleType: 'POS' | 'ONLINE' | 'WHOLESALE'
-  paymentMethod: 'CASH' | 'CARD' | 'MOBILE_PAYMENT' | 'CREDIT' | 'OTHER'
+  paymentMethod: 'CASH' | 'CARD' | 'MOBILE_PAYMENT' | 'CREDIT' | 'NAGAD' | 'BKASH' | 'ROCKET' | 'OTHER'
   discountType?: 'PERCENTAGE' | 'FIXED'
   discountValue?: number
   amountPaid: number

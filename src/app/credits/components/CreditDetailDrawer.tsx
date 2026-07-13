@@ -141,6 +141,9 @@ export default function CreditDetailDrawer({ phone, customerName, onClose }: Pro
                               className="h-8 px-2 py-1 text-xs rounded-md border border-input bg-background"
                             >
                               <option value="CASH">Cash</option>
+                              <option value="NAGAD">Nagad</option>
+                              <option value="BKASH">bKash</option>
+                              <option value="ROCKET">Rocket</option>
                               <option value="CARD">Card</option>
                               <option value="MOBILE_PAYMENT">Mobile</option>
                               <option value="OTHER">Other</option>

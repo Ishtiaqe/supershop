@@ -178,10 +178,13 @@ export default function SalesPage() {
               >
                 <option value="">All Payment Methods</option>
                 <option value="CASH">Cash</option>
+                <option value="NAGAD">Nagad</option>
+                <option value="BKASH">bKash</option>
+                <option value="ROCKET">Rocket</option>
                 <option value="CARD">Card</option>
                 <option value="MOBILE_PAYMENT">Mobile Payment</option>
-                <option value="OTHER">Other</option>
                 <option value="CREDIT">Credit (Due)</option>
+                <option value="OTHER">Other</option>
               </select>
             </div>
           </CardHeader>
