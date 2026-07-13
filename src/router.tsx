@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import Shell from '@/components/shell/Shell';
+import { lazyWithRetry, LazyImportErrorBoundary } from '@/components/LazyImportErrorBoundary';
 
 // Critical path — loaded eagerly
 import LoginPage from '@/app/login/LoginPage';
@@ -8,25 +9,25 @@ import RootPage from '@/app/HomePage';
 import OfflinePage from '@/app/offline/OfflinePage';
 import AuthCallbackPage from '@/app/auth/callback/AuthCallbackPage';
 
-// App pages — code split
-const DashboardPage = lazy(() => import('@/app/dashboard/DashboardPage'));
-const PosPage = lazy(() => import('@/app/pos/POSPage'));
-const SalesPage = lazy(() => import('@/app/sales-history/SalesPage'));
-const InventoryPage = lazy(() => import('@/app/inventory/InventoryPage'));
-const CatalogPage = lazy(() => import('@/app/catalog/CatalogPage'));
-const CategoriesPage = lazy(() => import('@/app/categories/CategoriesPage'));
-const BrandsPage = lazy(() => import('@/app/brands/BrandsPage'));
-const ExpensesPage = lazy(() => import('@/app/expenses/ExpensesPage'));
-const CashRegisterPage = lazy(() => import('@/app/cash-register/CashRegisterPage'));
-const ShortlistPage = lazy(() => import('@/app/shortlist/ShortListPage'));
-const CreditsPage = lazy(() => import('@/app/credits/CreditsPage'));
-const CustomersPage = lazy(() => import('@/app/customers/CustomersPage'));
-const MedicinePage = lazy(() => import('@/app/medicine-database/MedicineDatabasePage'));
-const DataManagementPage = lazy(() => import('@/app/data-management/DataManagementPage'));
-const ProfilePage = lazy(() => import('@/app/profile/ProfilePage'));
-const TenantSetupPage = lazy(() => import('@/app/tenant/setup/TenantSetupPage'));
-const AdminTenantsPage = lazy(() => import('@/app/admin/tenants/AdminTenantsPage'));
-const ShiftsPage = lazy(() => import('@/app/shifts/ShiftsPage'));
+// App pages — code split with retry + error boundary
+const DashboardPage = lazyWithRetry(() => import('@/app/dashboard/DashboardPage'));
+const PosPage = lazyWithRetry(() => import('@/app/pos/POSPage'));
+const SalesPage = lazyWithRetry(() => import('@/app/sales-history/SalesPage'));
+const InventoryPage = lazyWithRetry(() => import('@/app/inventory/InventoryPage'));
+const CatalogPage = lazyWithRetry(() => import('@/app/catalog/CatalogPage'));
+const CategoriesPage = lazyWithRetry(() => import('@/app/categories/CategoriesPage'));
+const BrandsPage = lazyWithRetry(() => import('@/app/brands/BrandsPage'));
+const ExpensesPage = lazyWithRetry(() => import('@/app/expenses/ExpensesPage'));
+const CashRegisterPage = lazyWithRetry(() => import('@/app/cash-register/CashRegisterPage'));
+const ShortlistPage = lazyWithRetry(() => import('@/app/shortlist/ShortListPage'));
+const CreditsPage = lazyWithRetry(() => import('@/app/credits/CreditsPage'));
+const CustomersPage = lazyWithRetry(() => import('@/app/customers/CustomersPage'));
+const MedicinePage = lazyWithRetry(() => import('@/app/medicine-database/MedicineDatabasePage'));
+const DataManagementPage = lazyWithRetry(() => import('@/app/data-management/DataManagementPage'));
+const ProfilePage = lazyWithRetry(() => import('@/app/profile/ProfilePage'));
+const TenantSetupPage = lazyWithRetry(() => import('@/app/tenant/setup/TenantSetupPage'));
+const AdminTenantsPage = lazyWithRetry(() => import('@/app/admin/tenants/AdminTenantsPage'));
+const ShiftsPage = lazyWithRetry(() => import('@/app/shifts/ShiftsPage'));
 
 function PageLoader() {
   return (
@@ -39,9 +40,11 @@ function PageLoader() {
 function ShellLayout() {
   return (
     <Shell>
-      <Suspense fallback={<PageLoader />}>
-        <Outlet />
-      </Suspense>
+      <LazyImportErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
+      </LazyImportErrorBoundary>
     </Shell>
   );
 }
