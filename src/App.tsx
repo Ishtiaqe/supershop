@@ -1,11 +1,14 @@
 import { RouterProvider } from "react-router-dom";
 import { Providers } from "./components/providers";
 import { router } from "./router";
+import { LazyImportErrorBoundary } from "@/components/LazyImportErrorBoundary";
 
 export default function App() {
   return (
-    <Providers>
-      <RouterProvider router={router} />
-    </Providers>
+    <LazyImportErrorBoundary>
+      <Providers>
+        <RouterProvider router={router} />
+      </Providers>
+    </LazyImportErrorBoundary>
   );
 }

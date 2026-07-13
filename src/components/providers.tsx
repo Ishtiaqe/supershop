@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClient as QueryClientType } from "@tanstack/react-query";
-import { lazy, Suspense, useState, useEffect, useMemo } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import React from "react";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
@@ -13,8 +13,9 @@ import { TenantProvider } from "@/components/providers/TenantProvider";
 import { PWAUpdatePrompt } from "@/components/pwa-update-prompt";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { FailedSyncAlert } from "@/components/offline-status";
+import { lazyWithRetry } from "@/components/LazyImportErrorBoundary";
 
-const ReactQueryDevtools = lazy(() =>
+const ReactQueryDevtools = lazyWithRetry(() =>
   import("@tanstack/react-query-devtools").then((m) => ({
     default: m.ReactQueryDevtools,
   }))

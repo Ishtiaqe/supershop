@@ -1,11 +1,12 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { lazyWithRetry, LazyImportErrorBoundary } from "@/components/LazyImportErrorBoundary";
 
-const Analytics = lazy(() =>
+const Analytics = lazyWithRetry(() =>
   import("@vercel/analytics/react").then((m) => ({ default: m.Analytics }))
 );
-const SpeedInsights = lazy(() =>
+const SpeedInsights = lazyWithRetry(() =>
   import("@vercel/speed-insights/react").then((m) => ({ default: m.SpeedInsights }))
 );
 
@@ -27,9 +28,11 @@ export default function DeferredTelemetry() {
   if (!enabled) return null;
 
   return (
-    <Suspense fallback={null}>
-      <SpeedInsights />
-      <Analytics />
-    </Suspense>
+    <LazyImportErrorBoundary>
+      <Suspense fallback={null}>
+        <SpeedInsights />
+        <Analytics />
+      </Suspense>
+    </LazyImportErrorBoundary>
   );
 }

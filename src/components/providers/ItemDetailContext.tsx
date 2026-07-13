@@ -1,5 +1,6 @@
 'use client';
-import { lazy, Suspense, createContext, useCallback, useContext, useState } from 'react';
+import { Suspense, createContext, useCallback, useContext, useState } from 'react';
+import { lazyWithRetry, LazyImportErrorBoundary } from '@/components/LazyImportErrorBoundary';
 
 interface ItemDetailOptions {
   showBatches?: boolean;
@@ -19,7 +20,7 @@ export function useItemDetail() {
   return useContext(ItemDetailContext);
 }
 
-const ItemDetailModalLazy = lazy(() => import('@/components/shared/ItemDetailModal'));
+const ItemDetailModalLazy = lazyWithRetry(() => import('@/components/shared/ItemDetailModal'));
 
 export function ItemDetailProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<{ variantId: string | null; showBatches: boolean }>({
@@ -39,13 +40,15 @@ export function ItemDetailProvider({ children }: { children: React.ReactNode }) 
     <ItemDetailContext.Provider value={{ openItem, closeItem }}>
       {children}
       {state.variantId && (
-        <Suspense fallback={null}>
-          <ItemDetailModalLazy
-            variantId={state.variantId}
-            showBatches={state.showBatches}
-            onClose={closeItem}
-          />
-        </Suspense>
+        <LazyImportErrorBoundary>
+          <Suspense fallback={null}>
+            <ItemDetailModalLazy
+              variantId={state.variantId}
+              showBatches={state.showBatches}
+              onClose={closeItem}
+            />
+          </Suspense>
+        </LazyImportErrorBoundary>
       )}
     </ItemDetailContext.Provider>
   );
