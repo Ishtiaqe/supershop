@@ -30,7 +30,13 @@ const getSales: RouteHandler = async ({ tenantId, query }) => {
     dbQuery = dbQuery.lte('saleTime', new Date(endDate + 'T23:59:59').toISOString())
   }
   if (paymentMethod) {
-    dbQuery = dbQuery.eq('paymentMethod', paymentMethod)
+    if (paymentMethod === 'CREDIT') {
+      // "Credit (Due)" filter: show all sales with an outstanding balance,
+      // regardless of the actual payment method used (Cash, Nagad, bKash, etc.)
+      dbQuery = dbQuery.gt('dueAmount', 0)
+    } else {
+      dbQuery = dbQuery.eq('paymentMethod', paymentMethod)
+    }
   }
 
   const { data, error, count } = await dbQuery

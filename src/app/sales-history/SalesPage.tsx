@@ -310,8 +310,8 @@ export default function SalesPage() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="font-semibold text-sm">{record.receiptNumber}</div>
-                      <Badge variant={record.paymentMethod === "CASH" ? "default" : "secondary"}>
-                        {record.paymentMethod?.toUpperCase() || "CASH"}
+                      <Badge variant={(record.dueAmount ?? 0) > 0 ? "destructive" : record.paymentMethod === "CASH" ? "default" : "secondary"}>
+                        {(record.dueAmount ?? 0) > 0 ? "CREDIT" : (record.paymentMethod?.toUpperCase() || "CASH")}
                       </Badge>
                     </div>
                     <MobileTableCardRow label="Customer" value={record.customerName || "—"} />
@@ -449,10 +449,13 @@ export default function SalesPage() {
                   </div>
                   <div className="space-y-1">
                     <div className="text-xs text-muted-foreground font-medium">Payment Method</div>
-                    <div>
+                    <div className="flex items-center gap-2">
                       <Badge variant={saleDetails.paymentMethod === "CASH" ? "default" : "secondary"}>
                         {saleDetails.paymentMethod?.toUpperCase()}
                       </Badge>
+                      {(saleDetails.dueAmount ?? 0) > 0 && (
+                        <Badge variant="destructive">CREDIT (Due ৳{saleDetails.dueAmount.toFixed(2)})</Badge>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-1">

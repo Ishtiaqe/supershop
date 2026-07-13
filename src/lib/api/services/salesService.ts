@@ -38,8 +38,9 @@ export async function createSale(requestData: any, tenantId: string, userId: str
   }
 
   const totalProfit = requestData.totalProfit || calculatedTotalProfit
-  const amountPaid = requestData.paymentMethod === 'CREDIT' ? requestData.amountPaid ?? 0 : totalAmount
-  const dueAmount = requestData.paymentMethod === 'CREDIT' ? Math.max(0, totalAmount - amountPaid) : 0
+  const isCredit = requestData.isCredit === true || requestData.paymentMethod === 'CREDIT'
+  const amountPaid = isCredit ? requestData.amountPaid ?? 0 : totalAmount
+  const dueAmount = isCredit ? Math.max(0, totalAmount - amountPaid) : 0
 
   const saleId = requestData.id || generateUUID()
   const sanitizedSale = {
@@ -139,7 +140,7 @@ export async function createSale(requestData: any, tenantId: string, userId: str
   }
 
   // Insert cash register entry
-  const cashReceivedNow = requestData.paymentMethod === 'CREDIT' ? amountPaid : totalAmount
+  const cashReceivedNow = isCredit ? amountPaid : totalAmount
   if (cashReceivedNow > 0) {
     await supabase.from('cash_box_entries').insert({
       id: generateUUID(),
