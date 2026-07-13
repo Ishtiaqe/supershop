@@ -607,12 +607,16 @@ export default function POSPage() {
                     <Minus className="w-4 h-4" />
                   </Button>
                   <Input
-                    type="number"
+                    type="text"
                     inputMode="numeric"
-                    min={1}
+                    pattern="[0-9]*"
                     value={qty ?? ""}
-                    onChange={(e) => setQty(parseInt(e.target.value) || null)}
-                    className="w-16 h-10 text-center"
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/[^0-9]/g, "");
+                      setQty(digits ? parseInt(digits, 10) : null);
+                    }}
+                    placeholder="0"
+                    className="w-20 h-10 text-center"
                   />
                   <Button
                     variant="outline"
@@ -975,11 +979,14 @@ export default function POSPage() {
               <Input
                 ref={quantityRef}
                 id="pos-quantity"
-                type="number"
+                type="text"
                 inputMode="numeric"
-                min={1}
+                pattern="[0-9]*"
                 value={qty ?? ""}
-                onChange={(e) => setQty(parseInt(e.target.value) || null)}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/[^0-9]/g, "");
+                  setQty(digits ? parseInt(digits, 10) : null);
+                }}
                 placeholder="Qty"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
