@@ -6,6 +6,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
+import { useVisualViewportLayout } from "@/hooks/useVisualViewportLayout"
 
 function Dialog({
   ...props
@@ -55,19 +56,37 @@ interface DialogContentProps
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, children, showCloseButton = true, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      data-slot="dialog-content"
-      className={cn(
-        // Default auto-fits content on larger screens; callers can override with sm:max-w-*
-        "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] sm:max-w-fit -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-        className
-      )}
-      {...props}
-    >
+>(({ className, children, showCloseButton = true, ...props }, ref) => {
+  const vvLayout = useVisualViewportLayout()
+
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        data-slot="dialog-content"
+        // When the Android soft keyboard is open, re-center the dialog within
+        // the visible (visual) viewport and cap its height so the focused
+        // field stays reachable and the content can scroll. Inline styles win
+        // over the Tailwind `top-1/2` / `max-w-*` utilities, so we only set
+        // them when the keyboard is actually open; otherwise desktop/iOS keep
+        // their default centered behavior.
+        style={
+          vvLayout
+            ? {
+                top: vvLayout.center,
+                maxHeight: vvLayout.height - 16,
+              }
+            : undefined
+        }
+        className={cn(
+          // Default auto-fits content on larger screens; callers can override with sm:max-w-*
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] sm:max-w-fit -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          vvLayout && "overflow-y-auto",
+          className
+        )}
+        {...props}
+      >
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close data-slot="dialog-close" asChild>
@@ -82,8 +101,9 @@ const DialogContent = React.forwardRef<
         </DialogPrimitive.Close>
       )}
     </DialogPrimitive.Content>
-  </DialogPortal>
-))
+    </DialogPortal>
+  )
+})
 DialogContent.displayName = "DialogContent"
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {

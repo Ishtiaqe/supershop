@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Database, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOffline } from '@/hooks/useOffline';
+import { useKeyboardOpen } from '@/hooks/useVisualViewportLayout';
 
 // Import shadcn UI components
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ export function StorageMonitor() {
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
+  const keyboardOpen = useKeyboardOpen();
 
   useEffect(() => {
     const checkStorage = async () => {
@@ -86,7 +88,7 @@ export function StorageMonitor() {
     }
   };
 
-  if (!storageInfo) return null;
+  if (!storageInfo || keyboardOpen) return null;
 
   const getStatusColor = () => {
     switch (storageInfo.status) {

@@ -126,6 +126,7 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                   <span className="text-muted-foreground text-xs">৳</span>
                   <Input
                     type="number"
+                    inputMode="decimal"
                     min={0}
                     step="0.01"
                     className="w-full h-8 px-2 py-1 text-xs"
@@ -151,6 +152,7 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                   <span className="text-muted-foreground text-xs">৳</span>
                   <Input
                     type="number"
+                    inputMode="decimal"
                     min={0}
                     step="0.01"
                     className="w-full h-8 px-2 py-1 text-xs"
@@ -295,6 +297,7 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                                         <span className="text-muted-foreground text-xs">৳</span>
                                         <Input
                                           type="number"
+                                          inputMode="decimal"
                                           min={0}
                                           step="0.01"
                                           id={`batch-cost-edit-${record.id}`}
@@ -318,6 +321,7 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                                         <span className="text-muted-foreground text-xs">৳</span>
                                         <Input
                                           type="number"
+                                          inputMode="decimal"
                                           min={0}
                                           step="0.01"
                                           id={`batch-price-edit-${record.id}`}

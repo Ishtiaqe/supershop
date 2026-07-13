@@ -118,6 +118,7 @@ export default function LoginPage() {
                       <FormControl>
                         <Input
                           placeholder="Enter your email"
+                          type="email"
                           autoComplete="email"
                           className="pl-10 h-12 rounded-lg"
                           onFocus={handleInputFocus}

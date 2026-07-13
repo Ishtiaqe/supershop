@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useOffline } from '@/hooks/useOffline';
+import { useKeyboardOpen } from '@/hooks/useVisualViewportLayout';
 import { formatDateTime } from '@/lib/ui-helpers';
 
 // Import shadcn UI components
@@ -124,6 +125,7 @@ export function OfflineIndicator() {
 export function SyncStatus() {
   const { isSyncing, offlineStatus } = useOffline();
   const [syncProgress, setSyncProgress] = useState(0);
+  const keyboardOpen = useKeyboardOpen();
 
   useEffect(() => {
     if (isSyncing) {
@@ -140,10 +142,10 @@ export function SyncStatus() {
     }
   }, [isSyncing]);
 
-  if (!isSyncing) return null;
+  if (!isSyncing || keyboardOpen) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 bg-card p-4 rounded-xl shadow-lg border border-border min-w-[300px] space-y-3">
+    <div className="fixed bottom-6 right-6 z-50 bg-card p-4 rounded-xl shadow-lg border border-border min-w-[300px] space-y-3 pb-safe">
       <div className="flex items-center gap-2">
         <RefreshCw className="w-4 h-4 animate-spin text-primary" />
         <span className="font-semibold text-sm text-foreground">Syncing data...</span>
@@ -213,8 +215,9 @@ const ENTITY_LABELS: Record<string, string> = {
 export function FailedSyncAlert() {
   const { failedItems, retryFailedItem, discardFailedItem } = useOffline();
   const [retrying, setRetrying] = useState<string | null>(null);
+  const keyboardOpen = useKeyboardOpen();
 
-  if (failedItems.length === 0) return null;
+  if (failedItems.length === 0 || keyboardOpen) return null;
 
   const handleRetry = async (id: string) => {
     setRetrying(id);
@@ -231,7 +234,7 @@ export function FailedSyncAlert() {
   };
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-lg">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-lg pb-safe">
       <Alert variant="destructive" className="shadow-lg border-2">
         <AlertTitle className="font-semibold">
           {failedItems.length} operation{failedItems.length > 1 ? 's' : ''} could not be synced

@@ -195,11 +195,11 @@ export default function CustomersPage() {
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">Phone</label>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone number" />
+              <Input type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone number" />
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">Email</label>
-              <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email (optional)" />
+              <Input type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email (optional)" />
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">Address</label>
@@ -207,7 +207,7 @@ export default function CustomersPage() {
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">Credit Limit (৳)</label>
-              <Input type="number" min="0" step="0.01" value={form.creditLimit} onChange={(e) => setForm({ ...form, creditLimit: e.target.value })} placeholder="0.00" />
+              <Input type="number" inputMode="decimal" min="0" step="0.01" value={form.creditLimit} onChange={(e) => setForm({ ...form, creditLimit: e.target.value })} placeholder="0.00" />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>

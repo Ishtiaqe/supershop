@@ -7,6 +7,7 @@ import type { InventoryItem } from "@/types";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { authStorage } from "@/lib/auth-storage";
 import { useIsMobile } from "@/hooks/useMediaQuery";
+import { useKeyboardOpen } from "@/hooks/useVisualViewportLayout";
 import { toast } from "sonner";
 import { Minus, Plus, Trash2, ShoppingCart, User, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -104,6 +105,7 @@ export default function POSPage() {
   const quantityRef = useRef<HTMLInputElement>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const isMobile = useIsMobile();
+  const keyboardOpen = useKeyboardOpen();
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -852,26 +854,30 @@ export default function POSPage() {
           </CardContent>
         </Card>
 
-        {/* Sticky checkout bar */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border px-4 pt-3 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-          <div className="flex items-center justify-between gap-4 mb-2">
-            <div>
-              <div className="text-xs text-muted-foreground">Total</div>
-              <div className="text-xl font-bold text-foreground">৳{total.toFixed(2)}</div>
+        {/* Sticky checkout bar — hidden while the Android soft keyboard is
+            open so it isn't covered by the keyboard; it reappears when the
+            user dismisses the keyboard and is ready to complete the sale. */}
+        {!keyboardOpen && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border px-4 pt-3 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <div>
+                <div className="text-xs text-muted-foreground">Total</div>
+                <div className="text-xl font-bold text-foreground">৳{total.toFixed(2)}</div>
+              </div>
+              <Button
+                size="lg"
+                onClick={checkout}
+                disabled={cart.length === 0 || saleMutation.isPending || isProcessingSale}
+                className="h-14 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base active:scale-95 transition-transform duration-150"
+              >
+                {(isProcessingSale || saleMutation.isPending) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {isProcessingSale || saleMutation.isPending ? "Processing..." : "Complete Sale"}
+              </Button>
             </div>
-            <Button
-              size="lg"
-              onClick={checkout}
-              disabled={cart.length === 0 || saleMutation.isPending || isProcessingSale}
-              className="h-14 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base active:scale-95 transition-transform duration-150"
-            >
-              {(isProcessingSale || saleMutation.isPending) && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              {isProcessingSale || saleMutation.isPending ? "Processing..." : "Complete Sale"}
-            </Button>
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -970,6 +976,7 @@ export default function POSPage() {
                 ref={quantityRef}
                 id="pos-quantity"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 value={qty ?? ""}
                 onChange={(e) => setQty(parseInt(e.target.value) || null)}
@@ -1015,6 +1022,9 @@ export default function POSPage() {
               <label htmlFor="pos-customer-phone" className="text-xs text-muted-foreground">Customer Phone</label>
               <Input
                 id="pos-customer-phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 placeholder="Enter phone number"
                 value={customerPhone}
                 onChange={(e) => {
@@ -1060,6 +1070,7 @@ export default function POSPage() {
                     <TableCell>
                       <Input
                         type="number"
+                        inputMode="numeric"
                         min={1}
                         id={`cart-qty-${record.key}`}
                         value={record.quantity}
@@ -1081,6 +1092,7 @@ export default function POSPage() {
                       <div className="flex items-center gap-1.5">
                         <Input
                           type="number"
+                          inputMode="decimal"
                           min={0}
                           max={maxAllowed}
                           id={`cart-discount-${record.key}`}
@@ -1159,6 +1171,7 @@ export default function POSPage() {
               <Input
                 id="pos-cash-received"
                 type="number"
+                inputMode="decimal"
                 min={0}
                 max={total}
                 value={cashReceived}

@@ -588,6 +588,7 @@ export default function InventoryPage() {
                       <label htmlFor="add-purchase-price" className="text-sm font-medium text-foreground">Purchase/unit (৳)</label>
                       <Input
                         type="number"
+                        inputMode="decimal"
                         placeholder="0.00"
                         min={0}
                         step="0.01"
@@ -608,6 +609,7 @@ export default function InventoryPage() {
                       <label htmlFor="add-mrp" className="text-sm font-medium text-foreground">MRP/unit (৳)</label>
                       <Input
                         type="number"
+                        inputMode="decimal"
                         min={0}
                         step="0.1"
                         id="add-mrp"
@@ -887,6 +889,7 @@ export default function InventoryPage() {
                     <label htmlFor="edit-purchase-price" className="text-sm font-medium text-foreground">Purchase/unit (৳)</label>
                     <Input
                       type="number"
+                      inputMode="decimal"
                       min={0}
                       step="0.01"
                       id="edit-purchase-price"
@@ -906,6 +909,7 @@ export default function InventoryPage() {
                     <label htmlFor="edit-mrp" className="text-sm font-medium text-foreground">MRP/unit (৳)</label>
                     <Input
                       type="number"
+                      inputMode="decimal"
                       min={0}
                       step="0.01"
                       id="edit-mrp"

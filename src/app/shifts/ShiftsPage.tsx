@@ -331,6 +331,7 @@ export default function ShiftsPage() {
               <label className="text-sm font-medium">Opening Cash Balance</label>
               <Input
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 placeholder="Enter cash in drawer..."
                 value={openingBalance}
@@ -369,6 +370,7 @@ export default function ShiftsPage() {
               <label className="text-sm font-medium">Counted Cash Balance</label>
               <Input
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 placeholder="Enter actual cash counted..."
                 value={closingBalance}

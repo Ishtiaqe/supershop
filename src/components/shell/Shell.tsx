@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "@/components/providers";
-import { getFilteredNavigation } from "@/config/navigation";
+import { getFilteredNavigation, type NavigationItem } from "@/config/navigation";
 import { NetworkStatus } from "./NetworkStatus";
 import { useAuth } from "@/components/auth/AuthProvider";
+import type { User as UserType } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -53,9 +54,9 @@ const AppSidebar = ({
   isMobile: boolean;
   setMobileOpen: (open: boolean) => void;
   setCollapsed: (collapsed: boolean) => void;
-  navigationItems: any[];
+  navigationItems: NavigationItem[];
   selectedKey: string;
-  user: any;
+  user: UserType | null;
   onLogout: () => void;
 }) => (
   <div className="flex flex-col h-full bg-background">
@@ -325,7 +326,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="surface border-border sticky top-0 z-40 h-16 flex items-center justify-between px-6 bg-background">
+        <header className="surface border-border sticky top-0 z-40 h-16 flex items-center justify-between px-6 pt-safe bg-background">
           <div className="flex items-center gap-2">
             {isMobile && (
               <Button

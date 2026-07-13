@@ -180,7 +180,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Email address</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your email" type="email" {...field} />
+                          <Input placeholder="Enter your email" type="email" autoComplete="email" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -202,7 +202,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Current Password</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter current password" type="password" {...field} />
+                          <Input placeholder="Enter current password" type="password" autoComplete="current-password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -216,7 +216,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>New Password</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter new password (min. 8 chars)" type="password" {...field} />
+                          <Input placeholder="Enter new password (min. 8 chars)" type="password" autoComplete="new-password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -230,7 +230,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Confirm New Password</FormLabel>
                         <FormControl>
-                          <Input placeholder="Re-enter new password" type="password" {...field} />
+                          <Input placeholder="Re-enter new password" type="password" autoComplete="new-password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -114,6 +114,7 @@ export default function CreditDetailDrawer({ phone, customerName, onClose }: Pro
                             <label htmlFor={`payment-amount-${sale.id}`} className="text-xs font-semibold text-foreground">Amount (৳)</label>
                             <Input
                               type="number"
+                              inputMode="decimal"
                               min="0.01"
                               max={sale.dueAmount ?? 0}
                               step="0.01"

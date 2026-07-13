@@ -234,6 +234,7 @@ export default function AdminTenantsPage() {
                     <Input
                       id="create-owner-email"
                       type="email"
+                      autoComplete="email"
                       value={ownerEmail}
                       onChange={(e) => setOwnerEmail(e.target.value)}
                       placeholder="email@example.com"
@@ -257,6 +258,7 @@ export default function AdminTenantsPage() {
                     <Input
                       id="create-owner-password"
                       type="password"
+                      autoComplete="new-password"
                       value={ownerPassword}
                       onChange={(e) => setOwnerPassword(e.target.value)}
                       placeholder="••••••••"

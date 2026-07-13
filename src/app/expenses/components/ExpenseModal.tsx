@@ -136,6 +136,7 @@ export function ExpenseModal({ isOpen, onClose, expenseId }: ExpenseModalProps) 
                   <FormControl>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.01"
                       min="0.01"
                       placeholder="0.00"
@@ -198,6 +199,7 @@ export function ExpenseModal({ isOpen, onClose, expenseId }: ExpenseModalProps) 
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
                     <textarea
+                      rows={3}
                       placeholder="Notes or details about this expense..."
                       className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       {...field}
