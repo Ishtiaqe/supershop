@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { formatResponse, generateUUID, sanitizeInventoryItem, sanitizeUpdate } from '../utils'
+import { formatResponse, generateUUID, sanitizeInventoryItem, sanitizeUpdate, getAggregatedStockForVariant, removeShortlistForInventoryIds } from '../utils'
 import { RouteHandler } from '../types'
 import { masterDataCache } from '@/lib/cache/masterData'
 
@@ -235,14 +235,11 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
         })
       }
 
-      // Auto-remove from shortlist if quantity is now above 50% of lastRestockQty
-      if (quantity && newQuantity > quantity * 0.5) {
-        await supabase
-          .from('short_list')
-          .delete()
-          .eq('inventoryId', targetItem.id)
-          .eq('tenantId', tenantId)
-      }
+      // Auto-remove from shortlist: any restock removes ALL batches of this
+      // product from the shortlist (the product was explicitly restocked, so
+      // it's no longer running low).
+      const { inventoryIds } = await getAggregatedStockForVariant(tenantId, variantId, derivedItemName)
+      await removeShortlistForInventoryIds(tenantId, inventoryIds)
     }
   }
 
@@ -284,6 +281,14 @@ const createInventory: RouteHandler = async ({ tenantId, userId, requestData }) 
         reason: `Initial stock — batch ${batchNo}`,
         referenceId: finalItem.id,
       })
+    }
+
+    // Auto-remove from shortlist: creating a new batch for an existing
+    // variant means the product was restocked — remove all old batches
+    // from the shortlist too.
+    if (variantId) {
+      const { inventoryIds } = await getAggregatedStockForVariant(tenantId, variantId, derivedItemName)
+      await removeShortlistForInventoryIds(tenantId, inventoryIds)
     }
   }
 

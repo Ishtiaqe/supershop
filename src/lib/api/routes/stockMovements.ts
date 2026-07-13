@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { formatResponse, generateUUID } from '../utils'
+import { formatResponse, generateUUID, evaluateShortlistForVariant } from '../utils'
 import { RouteHandler } from '../types'
 
 const getStockMovements: RouteHandler = async ({ tenantId, query }) => {
@@ -37,7 +37,7 @@ const createStockAdjustment: RouteHandler = async ({ tenantId, userId, requestDa
 
   const { data: invItem, error: invErr } = await supabase
     .from('inventory_items')
-    .select('quantity, itemName')
+    .select('quantity, itemName, variantId')
     .eq('id', inventoryId)
     .eq('tenantId', tenantId)
     .single()
@@ -47,7 +47,7 @@ const createStockAdjustment: RouteHandler = async ({ tenantId, userId, requestDa
   const newQty = Math.max(0, invItem.quantity + quantityChange)
   const { error: updateErr } = await supabase
     .from('inventory_items')
-    .update({ quantity: newQty, updatedAt: new Date().toISOString() })
+    .update({ quantity: newQty, lastMovedDate: new Date().toISOString(), updatedAt: new Date().toISOString() })
     .eq('id', inventoryId)
 
   if (updateErr) throw updateErr
@@ -67,6 +67,17 @@ const createStockAdjustment: RouteHandler = async ({ tenantId, userId, requestDa
     .single()
 
   if (moveErr) throw moveErr
+
+  // Evaluate the 50% rule — an adjustment changes stock, so the product
+  // may cross the 50% threshold in either direction.
+  await evaluateShortlistForVariant(
+    tenantId,
+    invItem.variantId || null,
+    invItem.itemName || null,
+    inventoryId,
+    userId
+  )
+
   return formatResponse(movement)
 }
 

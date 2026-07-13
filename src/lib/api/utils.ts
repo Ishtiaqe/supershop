@@ -1,4 +1,5 @@
 import { authStorage } from '@/lib/auth-storage'
+import { supabase } from '@/lib/supabase'
 
 export const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -141,4 +142,112 @@ export const sanitizeUpdate = (sanitizeFn: (d: any) => any, data: any) => {
     }
   })
   return sanitized
+}
+
+// ---------------------------------------------------------------------------
+// Shortlist helpers — the 50% rule is evaluated per-product (aggregated
+// across ALL batches of the same variant), not per-batch.
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch all inventory items belonging to the same product (matched by
+ * variantId, or by itemName for ad-hoc items without a variant).
+ * Returns total stock, the most recent lastRestockQty, and all inventory IDs.
+ */
+export async function getAggregatedStockForVariant(
+  tenantId: string,
+  variantId: string | null,
+  itemName?: string | null
+): Promise<{ totalStock: number; latestRestockQty: number; inventoryIds: string[] }> {
+  let query = supabase
+    .from('inventory_items')
+    .select('id, quantity, lastRestockQty, lastRestockDate')
+    .eq('tenantId', tenantId)
+
+  if (variantId) {
+    query = query.eq('variantId', variantId)
+  } else if (itemName) {
+    query = query.eq('itemName', itemName)
+  } else {
+    return { totalStock: 0, latestRestockQty: 0, inventoryIds: [] }
+  }
+
+  const { data, error } = await query
+  if (error || !data || data.length === 0) {
+    return { totalStock: 0, latestRestockQty: 0, inventoryIds: [] }
+  }
+
+  const totalStock = data.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0)
+  // Use the lastRestockQty from the most recent restock across all batches
+  const withRestock = data
+    .filter((item: any) => item.lastRestockQty != null && item.lastRestockDate)
+    .sort((a: any, b: any) => new Date(b.lastRestockDate).getTime() - new Date(a.lastRestockDate).getTime())
+  const latestRestockQty = withRestock.length > 0 ? (withRestock[0].lastRestockQty || 0) : 0
+
+  return { totalStock, latestRestockQty, inventoryIds: data.map((item: any) => item.id) }
+}
+
+/**
+ * Remove ALL shortlist entries for every batch of the given inventory IDs.
+ * Used when a product is restocked — any restock removes the product from
+ * the shortlist regardless of exact stock level.
+ */
+export async function removeShortlistForInventoryIds(
+  tenantId: string,
+  inventoryIds: string[]
+): Promise<void> {
+  if (inventoryIds.length === 0) return
+  await supabase
+    .from('short_list')
+    .delete()
+    .in('inventoryId', inventoryIds)
+    .eq('tenantId', tenantId)
+}
+
+/**
+ * Evaluate the 50% rule for a product (across all batches) and update the
+ * shortlist accordingly:
+ * - If total stock <= 50% of latestRestockQty → add the sold batch to shortlist
+ * - If total stock > 50% of latestRestockQty → remove all batches from shortlist
+ *
+ * Returns the inventory IDs that were added to the shortlist (if any).
+ */
+export async function evaluateShortlistForVariant(
+  tenantId: string,
+  variantId: string | null,
+  itemName: string | null,
+  soldInventoryId: string,
+  userId: string
+): Promise<void> {
+  const { totalStock, latestRestockQty, inventoryIds } = await getAggregatedStockForVariant(tenantId, variantId, itemName)
+
+  if (latestRestockQty <= 0) return // never had a restock — can't evaluate
+
+  const threshold = latestRestockQty * 0.5
+
+  if (totalStock > 0 && totalStock <= threshold) {
+    // Below 50% — add the sold batch to shortlist if not already there
+    const { data: existing } = await supabase
+      .from('short_list')
+      .select('inventoryId')
+      .eq('inventoryId', soldInventoryId)
+      .eq('tenantId', tenantId)
+
+    if (!existing || existing.length === 0) {
+      await supabase.from('short_list').insert({
+        id: generateUUID(),
+        tenantId,
+        inventoryId: soldInventoryId,
+        isSlowItem: false,
+        reason: '50% rule',
+        addedAt: new Date().toISOString(),
+        addedBy: userId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+    }
+  } else if (totalStock > threshold) {
+    // Above 50% — remove all batches of this product from shortlist
+    await removeShortlistForInventoryIds(tenantId, inventoryIds)
+  }
 }

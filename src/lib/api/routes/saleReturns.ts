@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { formatResponse, generateUUID } from '../utils'
+import { formatResponse, generateUUID, evaluateShortlistForVariant } from '../utils'
 import { RouteHandler } from '../types'
 
 const getSaleReturns: RouteHandler = async ({ tenantId, query }) => {
@@ -102,7 +102,7 @@ const createSaleReturn: RouteHandler = async ({ tenantId, userId, requestData })
   for (const item of items) {
     const { data: invItem } = await supabase
       .from('inventory_items')
-      .select('quantity')
+      .select('quantity, itemName, variantId')
       .eq('id', item.inventoryId)
       .single()
 
@@ -110,7 +110,7 @@ const createSaleReturn: RouteHandler = async ({ tenantId, userId, requestData })
       const newQty = invItem.quantity + item.quantity
       await supabase
         .from('inventory_items')
-        .update({ quantity: newQty, updatedAt: new Date().toISOString() })
+        .update({ quantity: newQty, lastMovedDate: new Date().toISOString(), updatedAt: new Date().toISOString() })
         .eq('id', item.inventoryId)
 
       await supabase.from('stock_movements').insert({
@@ -122,6 +122,16 @@ const createSaleReturn: RouteHandler = async ({ tenantId, userId, requestData })
         reason: `Sale return #${returnId.slice(0, 8)}`,
         referenceId: returnId,
       })
+
+      // Evaluate the 50% rule — a return adds stock back, so the product
+      // may now be above 50% and should be removed from the shortlist.
+      await evaluateShortlistForVariant(
+        tenantId,
+        invItem.variantId || null,
+        invItem.itemName || null,
+        item.inventoryId,
+        userId
+      )
     }
   }
 

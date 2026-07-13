@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { generateUUID, formatResponse } from '../utils'
+import { generateUUID, formatResponse, evaluateShortlistForVariant } from '../utils'
 
 export async function createSale(requestData: any, tenantId: string, userId: string) {
   const inventoryIds = requestData.items.map((item: any) => item.inventoryId)
@@ -7,7 +7,7 @@ export async function createSale(requestData: any, tenantId: string, userId: str
   // Batch 1: Fetch all inventory items in one query
   const { data: inventoryItems, error: invFetchErr } = await supabase
     .from('inventory_items')
-    .select('id, purchasePrice, retailPrice, quantity, lastRestockQty, itemName')
+    .select('id, purchasePrice, retailPrice, quantity, lastRestockQty, itemName, variantId')
     .in('id', inventoryIds)
   if (invFetchErr) throw invFetchErr
 
@@ -85,7 +85,7 @@ export async function createSale(requestData: any, tenantId: string, userId: str
 
   // Batch 3: Prepare inventory updates + stock movements
   const stockMovements: any[] = []
-  const shortlistCandidates: { inventoryId: string; itemName: string; newQty: number }[] = []
+  const shortlistEvaluations: { variantId: string | null; itemName: string | null; inventoryId: string }[] = []
 
   const updatePromises = requestData.items.map(async (item: any) => {
     const invItem = inventoryMap.get(item.inventoryId)
@@ -94,7 +94,7 @@ export async function createSale(requestData: any, tenantId: string, userId: str
     const newQty = Math.max(0, invItem.quantity - item.quantity)
     await supabase
       .from('inventory_items')
-      .update({ quantity: newQty, updatedAt: new Date().toISOString() })
+      .update({ quantity: newQty, lastMovedDate: new Date().toISOString(), updatedAt: new Date().toISOString() })
       .eq('id', item.inventoryId)
 
     stockMovements.push({
@@ -107,10 +107,12 @@ export async function createSale(requestData: any, tenantId: string, userId: str
       referenceId: sale.id,
     })
 
-    // Check 50% rule
-    if (invItem.lastRestockQty && newQty > 0 && newQty <= invItem.lastRestockQty * 0.5) {
-      shortlistCandidates.push({ inventoryId: item.inventoryId, itemName: invItem.itemName || 'Unknown item', newQty })
-    }
+    // Queue aggregated 50% rule evaluation (per-product, not per-batch)
+    shortlistEvaluations.push({
+      variantId: invItem.variantId || null,
+      itemName: invItem.itemName || null,
+      inventoryId: item.inventoryId,
+    })
   })
   await Promise.all(updatePromises)
 
@@ -120,34 +122,20 @@ export async function createSale(requestData: any, tenantId: string, userId: str
     if (smErr) throw smErr
   }
 
-  // Batch 5: Check existing shortlist entries for all candidates at once
-  if (shortlistCandidates.length > 0) {
-    const candidateIds = shortlistCandidates.map(c => c.inventoryId)
-    const { data: existingShortlist } = await supabase
-      .from('short_list')
-      .select('inventoryId')
-      .in('inventoryId', candidateIds)
-      .eq('tenantId', tenantId)
-
-    const existingIds = new Set((existingShortlist || []).map((s: any) => s.inventoryId))
-    const newShortlistEntries = shortlistCandidates
-      .filter(c => !existingIds.has(c.inventoryId))
-      .map(c => ({
-        id: generateUUID(),
-        tenantId,
-        inventoryId: c.inventoryId,
-        isSlowItem: false,
-        reason: '50% rule',
-        addedAt: new Date().toISOString(),
-        addedBy: userId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }))
-
-    if (newShortlistEntries.length > 0) {
-      const { error: slErr } = await supabase.from('short_list').insert(newShortlistEntries)
-      if (slErr) throw slErr
-    }
+  // Batch 5: Evaluate the 50% rule per-product (aggregated across all batches)
+  // Deduplicate by variant/itemName so we only evaluate once per product.
+  const seenProducts = new Set<string>()
+  for (const eval_item of shortlistEvaluations) {
+    const productKey = eval_item.variantId || eval_item.itemName || eval_item.inventoryId
+    if (seenProducts.has(productKey)) continue
+    seenProducts.add(productKey)
+    await evaluateShortlistForVariant(
+      tenantId,
+      eval_item.variantId,
+      eval_item.itemName,
+      eval_item.inventoryId,
+      userId
+    )
   }
 
   // Insert cash register entry
