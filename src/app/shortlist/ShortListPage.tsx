@@ -50,7 +50,7 @@ export default function ShortListPage() {
   const { openItem } = useItemDetail();
   const [sortBy, setSortBy] = useState<
     "quantity" | "addedAt" | "name" | "sales30Days"
-  >("quantity");
+  >("sales30Days");
   // Sales sorts best-sellers first; the other columns read low-to-high.
   const sortOrder: "asc" | "desc" = sortBy === "sales30Days" ? "desc" : "asc";
   const [filterSlow] = useState<boolean | null>(null);
