@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase'
-import { formatResponse, generateUUID, getAggregatedStockForVariant, removeShortlistForInventoryIds } from '../utils'
+import { formatResponse, generateUUID } from '../utils'
 import { RouteHandler } from '../types'
-import { runShortlistBackfill } from '../services/shortlistScanService'
+import { loadProductGroups, runShortlistCleanup, runShortlistUpdate } from '../services/shortlistScanService'
 
 const getShortlist: RouteHandler = async ({ tenantId, query }) => {
   const sortBy = query.get('sortBy') || 'addedAt'
@@ -27,13 +27,32 @@ const getShortlist: RouteHandler = async ({ tenantId, query }) => {
     .eq('tenantId', tenantId)
     .gte('saleTime', thirtyDaysAgo.toISOString())
 
-  const salesByInventory: Record<string, number> = {}
+  // Sales are recorded against individual batches, but a shortlist entry points
+  // at one representative batch. Roll sales up to the product so the figure
+  // reflects everything sold for that product, not just the listed batch. Only
+  // the listed products are loaded, not the whole catalogue.
+  const variantIds = [...new Set((data || []).map((e: any) => e.inventory?.variantId).filter(Boolean))] as string[]
+  const itemNames = [...new Set(
+    (data || [])
+      .filter((e: any) => e.inventory && !e.inventory.variantId)
+      .map((e: any) => e.inventory.itemName)
+      .filter(Boolean)
+  )] as string[]
+  const { groupKeyByInventoryId } = await loadProductGroups(supabase, tenantId, { variantIds, itemNames })
+
+  const salesByGroup: Record<string, number> = {}
   for (const sale of (sales || [])) {
     for (const saleItem of (sale.items || [])) {
-      if (saleItem.inventoryId) {
-        salesByInventory[saleItem.inventoryId] = (salesByInventory[saleItem.inventoryId] || 0) + (saleItem.quantity || 0)
-      }
+      if (!saleItem.inventoryId) continue
+      const key = groupKeyByInventoryId.get(saleItem.inventoryId)
+      if (!key) continue
+      salesByGroup[key] = (salesByGroup[key] || 0) + (saleItem.quantity || 0)
     }
+  }
+
+  const salesFor = (inventoryId: string) => {
+    const key = groupKeyByInventoryId.get(inventoryId)
+    return key ? (salesByGroup[key] || 0) : 0
   }
 
   let items = data || []
@@ -68,7 +87,10 @@ const getShortlist: RouteHandler = async ({ tenantId, query }) => {
       const nameB = invB.itemName || ''
       comparison = nameA.localeCompare(nameB)
     } else if (sortBy === 'sales30Days') {
-      comparison = (salesByInventory[b.inventoryId] || 0) - (salesByInventory[a.inventoryId] || 0)
+      // Ascending by sales; the client asks for desc to get best-sellers first.
+      comparison = salesFor(a.inventoryId) - salesFor(b.inventoryId)
+      // Equal sellers: the one closer to running out is the more urgent reorder.
+      if (comparison === 0) comparison = (invB.quantity || 0) - (invA.quantity || 0)
     } else {
       comparison = new Date(a.addedAt || 0).getTime() - new Date(b.addedAt || 0).getTime()
     }
@@ -80,7 +102,7 @@ const getShortlist: RouteHandler = async ({ tenantId, query }) => {
 
   const transformed = paginated.map((item: any) => ({
     ...item,
-    sales30Days: salesByInventory[item.inventoryId] || 0,
+    sales30Days: salesFor(item.inventoryId),
     inventory: item.inventory ? {
       ...item.inventory,
       variant: item.inventory.variant ? {
@@ -215,69 +237,12 @@ const batchAddShortlist: RouteHandler = async ({ tenantId, userId, requestData }
 }
 
 const cleanupShortlist: RouteHandler = async ({ tenantId }) => {
-  // Fetch all shortlist entries with their linked inventory items
-  const { data: entries, error } = await supabase
-    .from('short_list')
-    .select('id, inventoryId, inventory:inventory_items(id, variantId, itemName, quantity, lastRestockQty)')
-    .eq('tenantId', tenantId)
-  if (error) throw error
-
-  if (!entries || entries.length === 0) {
-    return formatResponse({ checked: 0, removed: 0, removedIds: [] })
-  }
-
-  // Group shortlist entries by product (variantId or itemName) so we
-  // evaluate the 50% rule per-product, not per-batch.
-  const productGroups = new Map<string, { variantId: string | null; itemName: string | null; inventoryIds: string[] }>()
-  for (const entry of entries) {
-    const inv = entry.inventory as any
-    if (!inv) continue
-    const key = inv.variantId || inv.itemName || inv.id
-    const existing = productGroups.get(key)
-    if (existing) {
-      existing.inventoryIds.push(inv.id)
-    } else {
-      productGroups.set(key, {
-        variantId: inv.variantId || null,
-        itemName: inv.itemName || null,
-        inventoryIds: [inv.id],
-      })
-    }
-  }
-
-  // For each product group, remove stale shortlist entries only. Products are
-  // removed from the shortlist when they are explicitly restocked via the
-  // inventory creation flow; this cleanup endpoint only purges entries for
-  // items that no longer have any stock or restock history.
-  const toRemove: string[] = []
-  let checked = 0
-  for (const [, group] of productGroups) {
-    const { totalStock, latestRestockQty, inventoryIds } = await getAggregatedStockForVariant(
-      tenantId,
-      group.variantId,
-      group.itemName
-    )
-    checked++
-
-    // Stale entry — no stock and no restock history (item was never restocked)
-    if (totalStock === 0 && latestRestockQty === 0) {
-      toRemove.push(...inventoryIds)
-    }
-  }
-
-  // Deduplicate
-  const uniqueToRemove = [...new Set(toRemove)]
-  await removeShortlistForInventoryIds(tenantId, uniqueToRemove)
-
-  return formatResponse({
-    checked,
-    removed: uniqueToRemove.length,
-    removedIds: uniqueToRemove,
-  })
+  const result = await runShortlistCleanup(supabase, tenantId)
+  return formatResponse(result)
 }
 
-const scanShortlist: RouteHandler = async ({ tenantId, userId }) => {
-  const result = await runShortlistBackfill(supabase, tenantId, userId)
+const updateShortlist: RouteHandler = async ({ tenantId, userId }) => {
+  const result = await runShortlistUpdate(supabase, tenantId, userId)
   return formatResponse(result)
 }
 
@@ -285,7 +250,7 @@ export function registerShortlistRoutes(router: { register: (method: string, pat
   router.register('GET', '/shortlist', getShortlist)
   router.register('GET', '/shortlist/stats', getShortlistStats)
   router.register('POST', '/shortlist/cleanup', cleanupShortlist)
-  router.register('POST', '/shortlist/scan', scanShortlist)
+  router.register('POST', '/shortlist/scan', updateShortlist)
   router.register('POST', '/shortlist/:id/toggle', toggleShortlist)
   router.register('POST', '/shortlist/add/:id', addShortlist)
   router.register('POST', '/shortlist/batch-add', batchAddShortlist)

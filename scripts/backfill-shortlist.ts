@@ -10,7 +10,7 @@
  *   npx tsx scripts/backfill-shortlist.ts
  */
 import { createClient } from '@supabase/supabase-js'
-import { runShortlistBackfill } from '../src/lib/api/services/shortlistScanService'
+import { runShortlistUpdate } from '../src/lib/api/services/shortlistScanService'
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pdfqecwtuytkwkgsygca.supabase.co'
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_ZOd02o2paEDCJLKc2Gg3Ag_nuBsubvk'
@@ -43,7 +43,7 @@ async function main() {
   const userId = profile.id
   console.log(`  Tenant: ${tenantId}`)
 
-  const result = await runShortlistBackfill(supabase, tenantId, userId)
+  const result = await runShortlistUpdate(supabase, tenantId, userId)
 
   console.log(`\n=== Scan result ===`)
   console.log(`  Products checked: ${result.checked}`)

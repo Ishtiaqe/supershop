@@ -51,7 +51,8 @@ export default function ShortListPage() {
   const [sortBy, setSortBy] = useState<
     "quantity" | "addedAt" | "name" | "sales30Days"
   >("quantity");
-  const [sortOrder] = useState<"asc" | "desc">("asc");
+  // Sales sorts best-sellers first; the other columns read low-to-high.
+  const sortOrder: "asc" | "desc" = sortBy === "sales30Days" ? "desc" : "asc";
   const [filterSlow] = useState<boolean | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -237,11 +238,11 @@ export default function ShortListPage() {
       const checked = data?.checked ?? 0;
       if (removed > 0) {
         toast.success(`Cleanup complete`, {
-          description: `Removed ${removed} item${removed > 1 ? "s" : ""} with healthy stock (checked ${checked} product${checked > 1 ? "s" : ""}).`,
+          description: `Removed ${removed} restocked or stale entr${removed > 1 ? "ies" : "y"} (checked ${checked}).`,
         });
       } else {
         toast.success(`Cleanup complete`, {
-          description: `All ${checked} item${checked > 1 ? "s" : ""} are correctly on the shortlist.`,
+          description: `All ${checked} entr${checked > 1 ? "ies" : "y"} still belong on the shortlist.`,
         });
       }
     },
@@ -250,7 +251,7 @@ export default function ShortListPage() {
     },
   });
 
-  // Scan recent sales and add out-of-stock / low-stock products to shortlist
+  // Sweep all inventory and add out-of-stock / low-stock products to shortlist
   const scanMutation = useMutation({
     mutationFn: async () => {
       const response = await api.post("/shortlist/scan");
@@ -262,17 +263,17 @@ export default function ShortListPage() {
       const added = data?.added ?? 0;
       const checked = data?.checked ?? 0;
       if (added > 0) {
-        toast.success(`Scan complete`, {
-          description: `Added ${added} product${added > 1 ? "s" : ""} sold in the last 30 days (checked ${checked}).`,
+        toast.success(`Shortlist updated`, {
+          description: `Added ${added} low or out-of-stock product${added > 1 ? "s" : ""} (checked ${checked}).`,
         });
       } else {
-        toast.success(`Scan complete`, {
-          description: `Checked ${checked} product${checked > 1 ? "s" : ""} sold in the last 30 days. Nothing to add.`,
+        toast.success(`Shortlist updated`, {
+          description: `Checked ${checked} product${checked > 1 ? "s" : ""}. Nothing new to add.`,
         });
       }
     },
     onError: () => {
-      toast.error("Failed to scan");
+      toast.error("Failed to update shortlist");
     },
   });
 
@@ -307,7 +308,7 @@ export default function ShortListPage() {
             ) : (
               <RefreshCw className="w-4 h-4 mr-2" />
             )}
-            Scan
+            Update Shortlist
           </Button>
           <Button
             variant="outline"
@@ -401,7 +402,7 @@ export default function ShortListPage() {
                 <option value="quantity">Lowest Stock First</option>
                 <option value="addedAt">Recently Added</option>
                 <option value="name">Item Name</option>
-                <option value="sales30Days">30 Day Sales</option>
+                <option value="sales30Days">Highest 30 Day Sales</option>
               </select>
             </div>
           </div>
