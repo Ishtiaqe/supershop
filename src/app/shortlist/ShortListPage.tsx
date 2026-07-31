@@ -18,7 +18,7 @@ import {
 import { useItemDetail } from "@/components/providers/ItemDetailContext";
 import { Loader2, Download, Trash2, Check, X, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { MobileTableCard, MobileTableCardRow } from "@/components/mobile/MobileTableCard";
+import { MobileTableCard } from "@/components/mobile/MobileTableCard";
 
 interface ShortListItem {
   id: string;
@@ -470,7 +470,7 @@ export default function ShortListPage() {
                     <TableHead>Current Qty</TableHead>
                     <TableHead>30 day sales</TableHead>
                     <TableHead>Last Restock Qty</TableHead>
-                    <TableHead>Last Restock Price</TableHead>
+                    <TableHead>Purchasing Price</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -489,7 +489,7 @@ export default function ShortListPage() {
                           <TableCell>
                             {variantId ? (
                               <button
-                                onClick={() => openItem(variantId, { showBatches: false })}
+                                onClick={() => openItem(variantId, { showBatches: false, hideSku: true })}
                                 className="text-primary hover:underline text-left font-medium"
                               >
                                 {item.inventory.itemName}
@@ -553,7 +553,7 @@ export default function ShortListPage() {
               </Table>
             </div>
 
-            <div className="md:hidden p-4 space-y-3">
+            <div className="md:hidden p-2 space-y-1.5">
               {isLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -562,57 +562,78 @@ export default function ShortListPage() {
                 shortlistItems.map((item) => {
                   const variantId = item.inventory?.variant?.id;
                   return (
-                    <MobileTableCard key={item.id}>
-                      <div className="font-semibold text-sm">
-                        {variantId ? (
-                          <button
-                            onClick={() => openItem(variantId, { showBatches: false })}
-                            className="text-primary hover:underline text-left"
-                          >
-                            {item.inventory.itemName}
-                          </button>
-                        ) : (
-                          item.inventory.itemName
-                        )}
-                      </div>
-                      <MobileTableCardRow label="Current Qty" value={item.inventory.quantity} />
-                      <MobileTableCardRow label="30 day sales" value={item.sales30Days ?? 0} />
-                      <MobileTableCardRow label="Last Restock" value={item.inventory.lastRestockQty || "N/A"} />
-                      <MobileTableCardRow label="Last Restock Price" value={`৳${item.inventory.purchasePrice?.toLocaleString("en-IN") || "N/A"}`} />
-                      <div className="pt-2 border-t border-border mt-2 flex justify-end">
-                        {confirmDeleteId === item.id ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-destructive font-medium">Remove?</span>
+                    <MobileTableCard
+                      key={item.id}
+                      className="p-2"
+                      onClick={variantId ? () => openItem(variantId, { showBatches: false, hideSku: true }) : undefined}
+                    >
+                      <div className="flex items-start justify-between gap-1.5 pb-1 border-b border-border/50">
+                        <div className="font-semibold text-sm flex-1 min-w-0 leading-tight">
+                          <span className="break-words">{item.inventory.itemName}</span>
+                        </div>
+                        <div className="shrink-0">
+                          {confirmDeleteId === item.id ? (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Confirm remove"
+                                className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeMutation.mutate(item.inventoryId);
+                                  setConfirmDeleteId(null);
+                                }}
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Cancel"
+                                className="h-7 w-7 text-muted-foreground hover:bg-muted"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmDeleteId(null);
+                                }}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ) : (
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="icon"
-                              className="h-9 w-9 text-destructive"
-                              onClick={() => {
-                                removeMutation.mutate(item.inventoryId);
-                                setConfirmDeleteId(null);
+                              aria-label="Remove from shortlist"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 w-7"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDeleteId(item.id);
                               }}
                             >
-                              <Check className="h-4 w-4" />
+                              <Trash2 className="w-4 h-4" />
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-9 w-9"
-                              onClick={() => setConfirmDeleteId(null)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-1 py-1 text-sm leading-none">
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground">Current Qty</div>
+                          <div className="font-semibold">{item.inventory.quantity}</div>
+                        </div>
+                        <div className="text-center border-l border-border/50">
+                          <div className="text-xs text-muted-foreground">30 day sales</div>
+                          <div className="font-semibold">{item.sales30Days ?? 0}</div>
+                        </div>
+                        <div className="text-center border-l border-border/50">
+                          <div className="text-xs text-muted-foreground">Last restock</div>
+                          <div className="font-semibold text-xs leading-tight">
+                            {item.inventory.lastRestockQty
+                              ? `${item.inventory.lastRestockQty} × ${item.inventory.purchasePrice ? "৳" + Number(item.inventory.purchasePrice).toLocaleString("en-IN") : "—"}`
+                              : "—"}
                           </div>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive"
-                            onClick={() => setConfirmDeleteId(item.id)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" /> Remove
-                          </Button>
-                        )}
+                        </div>
                       </div>
                     </MobileTableCard>
                   );

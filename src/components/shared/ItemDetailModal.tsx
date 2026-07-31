@@ -27,6 +27,7 @@ import {
 interface Props {
   variantId: string;
   showBatches: boolean;
+  hideSku?: boolean;
   onClose: () => void;
 }
 
@@ -36,6 +37,7 @@ interface Batch {
   purchasePrice: number;
   retailPrice: number;
   quantity: number;
+  lastRestockQty?: number | null;
   batchNo: string | null;
   expiryDate: string | null;
   mfgDate: string | null;
@@ -44,7 +46,7 @@ interface Batch {
   fundSource?: string;
 }
 
-export default function ItemDetailModal({ variantId, showBatches, onClose }: Props) {
+export default function ItemDetailModal({ variantId, showBatches, hideSku = false, onClose }: Props) {
   const qc = useQueryClient();
   const [editingBatchId, setEditingBatchId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Batch>>({});
@@ -64,6 +66,16 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
     enabled: showBatches,
   });
 
+  const { data: latestInventory } = useQuery({
+    queryKey: ['latest-inventory', variantId],
+    queryFn: () =>
+      api.get(`/inventory?variantId=${variantId}&limit=1`).then((r) => {
+        const raw = r.data;
+        const arr = Array.isArray(raw) ? raw : (raw?.data ?? []);
+        return (arr[0] as Batch | undefined) ?? null;
+      }),
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Batch> }) =>
       api.put(`/inventory/${id}`, data),
@@ -78,7 +90,16 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
     updateMutation.mutate({ id: batchId, data: editForm });
   };
 
-  const product = catalogItem?.product;
+  const normalizeOne = <T,>(value: T | T[] | undefined | null): T | null => {
+    if (Array.isArray(value)) return value[0] ?? null;
+    if (value === undefined || value === null) return null;
+    return value;
+  };
+
+  const rawProduct = normalizeOne(catalogItem?.product);
+  const product = rawProduct
+    ? { ...rawProduct, brand: normalizeOne(rawProduct.brand), category: normalizeOne(rawProduct.category) }
+    : null;
 
   const sortedBatches = useMemo(() => {
     return [...(batches as Batch[])].sort((a, b) => {
@@ -235,6 +256,38 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
         ) : (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-lg">
+              <div>
+                <span className="text-muted-foreground font-medium">Product Name: </span>
+                <span className="text-foreground">{product?.name ?? catalogItem?.variantName ?? '—'}</span>
+              </div>
+              {!hideSku && (
+                <div>
+                  <span className="text-muted-foreground font-medium">SKU: </span>
+                  <span className="text-foreground">{catalogItem?.sku ?? '—'}</span>
+                </div>
+              )}
+              <div>
+                <span className="text-muted-foreground font-medium">Retail Price: </span>
+                <span className="text-foreground">{catalogItem?.retailPrice != null ? `৳${Number(catalogItem.retailPrice).toFixed(2)}` : '—'}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground font-medium">Last Restock Qty: </span>
+                <span className="text-foreground">{latestInventory?.lastRestockQty ?? '—'}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground font-medium">Purchasing Price: </span>
+                <span className="text-foreground">{latestInventory?.purchasePrice != null ? `৳${Number(latestInventory.purchasePrice).toFixed(2)}` : '—'}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground font-medium">Last Restock Date: </span>
+                <span className="text-foreground">
+                  {latestInventory?.lastRestockDate
+                    ? formatDate(latestInventory.lastRestockDate)
+                    : latestInventory?.createdAt
+                    ? formatDate(latestInventory.createdAt)
+                    : '—'}
+                </span>
+              </div>
               {product?.category?.name && (
                 <div>
                   <span className="text-muted-foreground font-medium">Category: </span>

@@ -4,6 +4,7 @@ import { lazyWithRetry, LazyImportErrorBoundary } from '@/components/LazyImportE
 
 interface ItemDetailOptions {
   showBatches?: boolean;
+  hideSku?: boolean;
 }
 
 interface ItemDetailContextValue {
@@ -23,17 +24,18 @@ export function useItemDetail() {
 const ItemDetailModalLazy = lazyWithRetry(() => import('@/components/shared/ItemDetailModal'));
 
 export function ItemDetailProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<{ variantId: string | null; showBatches: boolean }>({
+  const [state, setState] = useState<{ variantId: string | null; showBatches: boolean; hideSku: boolean }>({
     variantId: null,
     showBatches: false,
+    hideSku: false,
   });
 
   const openItem = useCallback((variantId: string, options: ItemDetailOptions = {}) => {
-    setState({ variantId, showBatches: options.showBatches ?? false });
+    setState({ variantId, showBatches: options.showBatches ?? false, hideSku: options.hideSku ?? false });
   }, []);
 
   const closeItem = useCallback(() => {
-    setState({ variantId: null, showBatches: false });
+    setState({ variantId: null, showBatches: false, hideSku: false });
   }, []);
 
   return (
@@ -45,6 +47,7 @@ export function ItemDetailProvider({ children }: { children: React.ReactNode }) 
             <ItemDetailModalLazy
               variantId={state.variantId}
               showBatches={state.showBatches}
+              hideSku={state.hideSku}
               onClose={closeItem}
             />
           </Suspense>
