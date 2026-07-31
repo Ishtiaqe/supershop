@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { formatResponse, generateUUID, getAggregatedStockForVariant, removeShortlistForInventoryIds } from '../utils'
 import { RouteHandler } from '../types'
+import { runShortlistBackfill } from '../services/shortlistScanService'
 
 const getShortlist: RouteHandler = async ({ tenantId, query }) => {
   const sortBy = query.get('sortBy') || 'addedAt'
@@ -164,7 +165,7 @@ const getShortlistStats: RouteHandler = async ({ tenantId }) => {
   const total = items.length
   const slowItems = items.filter((item) => item.isSlowItem).length
   const manualItems = items.filter((item) => item.reason === 'manual').length
-  const autoRuleItems = items.filter((item) => item.reason === '50% rule').length
+  const autoRuleItems = items.filter((item) => item.reason === '50% rule' || item.reason === 'out of stock').length
 
   const inventoryIds = items.map((item) => item.inventoryId).filter(Boolean)
   let totalQuantity = 0
@@ -244,7 +245,10 @@ const cleanupShortlist: RouteHandler = async ({ tenantId }) => {
     }
   }
 
-  // For each product group, check aggregated stock against the 50% rule
+  // For each product group, remove stale shortlist entries only. Products are
+  // removed from the shortlist when they are explicitly restocked via the
+  // inventory creation flow; this cleanup endpoint only purges entries for
+  // items that no longer have any stock or restock history.
   const toRemove: string[] = []
   let checked = 0
   for (const [, group] of productGroups) {
@@ -255,14 +259,8 @@ const cleanupShortlist: RouteHandler = async ({ tenantId }) => {
     )
     checked++
 
-    // Remove from shortlist if:
-    // - stock is above 50% of lastRestockQty (no longer running low), OR
-    // - total stock is 0 and there's no restock record (stale entry)
-    const threshold = latestRestockQty * 0.5
-    if (latestRestockQty > 0 && totalStock > threshold) {
-      toRemove.push(...inventoryIds)
-    } else if (totalStock === 0 && latestRestockQty === 0) {
-      // Stale entry — no stock and no restock history
+    // Stale entry — no stock and no restock history (item was never restocked)
+    if (totalStock === 0 && latestRestockQty === 0) {
       toRemove.push(...inventoryIds)
     }
   }
@@ -278,10 +276,16 @@ const cleanupShortlist: RouteHandler = async ({ tenantId }) => {
   })
 }
 
+const scanShortlist: RouteHandler = async ({ tenantId, userId }) => {
+  const result = await runShortlistBackfill(supabase, tenantId, userId)
+  return formatResponse(result)
+}
+
 export function registerShortlistRoutes(router: { register: (method: string, pattern: string, handler: RouteHandler) => void }) {
   router.register('GET', '/shortlist', getShortlist)
   router.register('GET', '/shortlist/stats', getShortlistStats)
   router.register('POST', '/shortlist/cleanup', cleanupShortlist)
+  router.register('POST', '/shortlist/scan', scanShortlist)
   router.register('POST', '/shortlist/:id/toggle', toggleShortlist)
   router.register('POST', '/shortlist/add/:id', addShortlist)
   router.register('POST', '/shortlist/batch-add', batchAddShortlist)

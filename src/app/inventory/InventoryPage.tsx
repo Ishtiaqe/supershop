@@ -258,9 +258,11 @@ export default function InventoryPage() {
       maxDiscount,
       variantId: selectedFromCatalog?.variantId,
       expiryDate: values.expiryDate
-        ? dayjs(values.expiryDate).toISOString()
+        ? dayjs(values.expiryDate).format("YYYY-MM-DDTHH:mm:ss")
         : undefined,
-      mfgDate: values.mfgDate ? dayjs(values.mfgDate).toISOString() : undefined,
+      mfgDate: values.mfgDate
+        ? dayjs(values.mfgDate).format("YYYY-MM-DDTHH:mm:ss")
+        : undefined,
     };
 
     setIsAddingItem(true);

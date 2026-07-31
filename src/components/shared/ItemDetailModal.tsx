@@ -113,6 +113,12 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
             <div className="text-sm">{formatBatchDate(record)}</div>
           </div>
           <div>
+            <div className="text-xs text-muted-foreground">Mfg. Date</div>
+            <div className="text-sm">
+              {record.mfgDate ? formatDate(record.mfgDate) : '—'}
+            </div>
+          </div>
+          <div>
             <div className="text-xs text-muted-foreground">Expiry</div>
             <div className="text-sm">
               {record.expiryDate ? formatDate(record.expiryDate) : '—'}
@@ -272,12 +278,13 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                         <Table className="min-w-full">
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="w-[15%]">Batch No</TableHead>
-                              <TableHead className="w-[15%]">Date</TableHead>
-                              <TableHead className="w-[15%]">Purchase Price</TableHead>
-                              <TableHead className="w-[15%]">Retail Price</TableHead>
-                              <TableHead className="w-[10%] text-right">Qty</TableHead>
-                              <TableHead className="w-[15%]">Expiry</TableHead>
+                              <TableHead className="w-[14%]">Batch No</TableHead>
+                              <TableHead className="w-[12%]">Date</TableHead>
+                              <TableHead className="w-[12%]">Mfg. Date</TableHead>
+                              <TableHead className="w-[13%]">Purchase Price</TableHead>
+                              <TableHead className="w-[13%]">Retail Price</TableHead>
+                              <TableHead className="w-[8%] text-right">Qty</TableHead>
+                              <TableHead className="w-[13%]">Expiry</TableHead>
                               <TableHead className="w-[15%] text-right">Action</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -290,6 +297,11 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                                   </TableCell>
                                   <TableCell className="whitespace-nowrap">
                                     {formatBatchDate(record)}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap">
+                                    {record.mfgDate
+                                      ? formatDate(record.mfgDate)
+                                      : '—'}
                                   </TableCell>
                                   <TableCell>
                                     {editingBatchId === record.id ? (
@@ -383,7 +395,7 @@ export default function ItemDetailModal({ variantId, showBatches, onClose }: Pro
                               ))
                             ) : (
                               <TableRow>
-                                <TableCell colSpan={7} className="text-center py-6 text-muted-foreground text-sm">
+                                <TableCell colSpan={8} className="text-center py-6 text-muted-foreground text-sm">
                                   No batches found.
                                 </TableCell>
                               </TableRow>

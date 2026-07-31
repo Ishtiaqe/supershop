@@ -250,6 +250,32 @@ export default function ShortListPage() {
     },
   });
 
+  // Scan recent sales and add out-of-stock / low-stock products to shortlist
+  const scanMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/shortlist/scan");
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["shortlist"] });
+      queryClient.invalidateQueries({ queryKey: ["shortlist-stats"] });
+      const added = data?.added ?? 0;
+      const checked = data?.checked ?? 0;
+      if (added > 0) {
+        toast.success(`Scan complete`, {
+          description: `Added ${added} product${added > 1 ? "s" : ""} sold in the last 30 days (checked ${checked}).`,
+        });
+      } else {
+        toast.success(`Scan complete`, {
+          description: `Checked ${checked} product${checked > 1 ? "s" : ""} sold in the last 30 days. Nothing to add.`,
+        });
+      }
+    },
+    onError: () => {
+      toast.error("Failed to scan");
+    },
+  });
+
   // Reset pagination when filters or search change
   useEffect(() => {
     setCurrentPage(1);
@@ -269,19 +295,34 @@ export default function ShortListPage() {
             Items running low on stock (below 50% of last restock)
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => cleanupMutation.mutate()}
-          disabled={cleanupMutation.isPending}
-        >
-          {cleanupMutation.isPending ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4 mr-2" />
-          )}
-          Cleanup stale entries
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => scanMutation.mutate()}
+            disabled={scanMutation.isPending}
+          >
+            {scanMutation.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            Scan
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => cleanupMutation.mutate()}
+            disabled={cleanupMutation.isPending}
+          >
+            {cleanupMutation.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            Cleanup stale entries
+          </Button>
+        </div>
       </div>
 
       {/* Controls */}

@@ -205,12 +205,14 @@ export async function removeShortlistForInventoryIds(
 }
 
 /**
- * Evaluate the 50% rule for a product (across all batches) and update the
- * shortlist accordingly:
+ * Evaluate the 50% rule for a product (across all batches) and add it to the
+ * shortlist when it is running low:
+ * - If total stock is out of stock (<= 0) → add the sold batch to shortlist
  * - If total stock <= 50% of latestRestockQty → add the sold batch to shortlist
- * - If total stock > 50% of latestRestockQty → remove all batches from shortlist
  *
- * Returns the inventory IDs that were added to the shortlist (if any).
+ * Products are only removed from the shortlist when they are explicitly
+ * restocked via createInventory. This keeps the shortlist stable until a
+ * restock actually happens.
  */
 export async function evaluateShortlistForVariant(
   tenantId: string,
@@ -219,35 +221,34 @@ export async function evaluateShortlistForVariant(
   soldInventoryId: string,
   userId: string
 ): Promise<void> {
-  const { totalStock, latestRestockQty, inventoryIds } = await getAggregatedStockForVariant(tenantId, variantId, itemName)
+  const { totalStock, latestRestockQty } = await getAggregatedStockForVariant(tenantId, variantId, itemName)
 
-  if (latestRestockQty <= 0) return // never had a restock — can't evaluate
-
+  const hasRestockHistory = latestRestockQty > 0
   const threshold = latestRestockQty * 0.5
 
-  if (totalStock > 0 && totalStock <= threshold) {
-    // Below 50% — add the sold batch to shortlist if not already there
-    const { data: existing } = await supabase
-      .from('short_list')
-      .select('inventoryId')
-      .eq('inventoryId', soldInventoryId)
-      .eq('tenantId', tenantId)
+  const isOutOfStock = totalStock <= 0
+  const isBelowThreshold = hasRestockHistory && totalStock <= threshold
 
-    if (!existing || existing.length === 0) {
-      await supabase.from('short_list').insert({
-        id: generateUUID(),
-        tenantId,
-        inventoryId: soldInventoryId,
-        isSlowItem: false,
-        reason: '50% rule',
-        addedAt: new Date().toISOString(),
-        addedBy: userId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-    }
-  } else if (totalStock > threshold) {
-    // Above 50% — remove all batches of this product from shortlist
-    await removeShortlistForInventoryIds(tenantId, inventoryIds)
+  if (!isOutOfStock && !isBelowThreshold) return
+
+  // Running low or sold out — add the sold batch to shortlist if not already there
+  const { data: existing } = await supabase
+    .from('short_list')
+    .select('inventoryId')
+    .eq('inventoryId', soldInventoryId)
+    .eq('tenantId', tenantId)
+
+  if (!existing || existing.length === 0) {
+    await supabase.from('short_list').insert({
+      id: generateUUID(),
+      tenantId,
+      inventoryId: soldInventoryId,
+      isSlowItem: false,
+      reason: isOutOfStock ? 'out of stock' : '50% rule',
+      addedAt: new Date().toISOString(),
+      addedBy: userId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
   }
 }
